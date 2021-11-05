@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+
+linking=yes
+for arg in "$@" ; do
+    case "$arg" in
+    	-c|-S|-E|-M|-MM|-MMD)
+            linking=no
+    	    ;;
+    esac
+done
+
+
+#if [ $linking == yes ] ; then
+#    LDFLAGS="-L@CMAKE_INSTALL_PREFIX@/lib/ \
+#             -Wl,-rpath,@INSTCONTROL_LIB_DIR@/lib/ \
+#             -ltypeart-rt"
+#fi
+
+@LLVM_TOOLS_BINARY_DIR@/clang \
+#	-Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/readmetacg.so \
+    -Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/instfilter.so \
+	$LDFLAGS \
+	$@

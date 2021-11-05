@@ -1,0 +1,14 @@
+{
+"_CG": {
+  "_Z3fooi": {
+    "meta": {
+        "instrument": true
+    }
+  },
+  "main": {
+      "meta": {
+          "instrument": true
+      }
+    }
+}
+}
