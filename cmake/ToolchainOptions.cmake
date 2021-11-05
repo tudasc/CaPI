@@ -3,9 +3,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
-find_package(nlohmann_json REQUIRED)
-message(STATUS "Found nlohmann_json ${nlohmann_json_PACKAGE_VERSION}")
-
+include(FetchContent)
+include(json)
 include(AddLLVM)
 include(llvm-lit)
 include(clang-tidy)
