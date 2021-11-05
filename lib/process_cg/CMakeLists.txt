@@ -6,3 +6,5 @@ set(SOURCES CallGraph.cpp
         Selector.cpp)
 
 add_executable(preparecg ${SOURCES})
+target_link_libraries(preparecg nlohmann_json::nlohmann_json)
+

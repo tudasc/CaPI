@@ -20,7 +20,7 @@ endif ()
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   # set default install path
-  set(CMAKE_INSTALL_PREFIX "${instcontrol_SOURCE_DIR}/install/instcontrol" CACHE PATH "Default install path" FORCE)
+  set(CMAKE_INSTALL_PREFIX "${instro-llvm_SOURCE_DIR}/install/instro-llvm" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
 
