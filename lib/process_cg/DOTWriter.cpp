@@ -9,7 +9,7 @@ static inline std::string getNodeId(CGNode& node) {
 }
 
 bool writeDOT(const CallGraph& cg, std::ostream& out) {
-    out << "graph {\n";
+    out << "digraph {\n";
     for (auto& node : cg.getNodes()) {
         out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
     }
