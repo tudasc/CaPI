@@ -4,6 +4,8 @@
 
 #include "DOTWriter.h"
 
+#include <ostream>
+
 static inline std::string getNodeId(CGNode& node) {
     return "n_" + std::to_string(reinterpret_cast<uintptr_t>(&node));
 }
