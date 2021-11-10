@@ -111,6 +111,8 @@ public:
     CGNode& getOrCreate(const std::string& name);
     CGNode* get(const std::string& name);
 
+//    bool deleteNode(const std::string& name);
+
     void addCallee(CGNode& parent, CGNode& child);
     void removeCallee(CGNode& parent, CGNode& child);
 

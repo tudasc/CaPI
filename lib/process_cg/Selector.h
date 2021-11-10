@@ -6,11 +6,10 @@
 #define INSTCONTROL_SELECTOR_H
 
 #include <regex>
+#include <iostream>
 
 #include "MetaCGReader.h"
 #include "CallGraph.h"
-
-
 
 using FunctionSet = std::vector<std::string>;
 
@@ -72,6 +71,11 @@ public:
     bool accept(const std::string& fName) override;
 };
 
+enum class TraverseDir {
+    TraverseUp, TraverseDown
+};
+
+template<TraverseDir dir>
 class CallPathSelector : public Selector {
     SelectorPtr input;
     CallGraph* cg;
@@ -88,7 +92,67 @@ public:
 
 };
 
+/**
+ * Traverses the call chain downwards, calling the given visit function on each node.
+ * @tparam VisitFn Function that takes a CGNode& argument and returns the next nodes to traverse.
+ * @tparam VisitFn Function that takes a CGNode& argument.
+ * @param node
+ * @param visit
+ * @returns The number of visited functions.
+ */
+template<typename TraverseFn, typename VisitFn>
+int traverseCallGraph(CGNode& node, TraverseFn&& selectNextNodes, VisitFn&& visit) {
+    std::vector<CGNode*> workingSet;
+    std::vector<CGNode*> alreadyVisited;
 
+    workingSet.push_back(&node);
+
+    do {
+        auto currentNode = workingSet.back();
+        workingSet.pop_back();
+//        std::cout << "Visiting caller " << currentNode->getName() << "\n";
+        visit(*currentNode);
+        alreadyVisited.push_back(currentNode);
+        for (auto& nextNode : selectNextNodes(*currentNode)) {
+            if (std::find(workingSet.begin(), workingSet.end(), nextNode) == workingSet.end() &&
+                std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode) == alreadyVisited.end()) {
+                workingSet.push_back(nextNode);
+            }
+        }
+
+    } while(!workingSet.empty());
+
+    return alreadyVisited.size();
+}
+
+
+
+template<TraverseDir Dir>
+FunctionSet CallPathSelector<Dir>::apply() {
+    static_assert(Dir == TraverseDir::TraverseDown || Dir == TraverseDir::TraverseUp);
+
+    FunctionSet in = input->apply();
+    FunctionSet out(in);
+
+    auto visitFn = [&out](CGNode &node) {
+        if (std::find(out.begin(), out.end(), node.getName()) == out.end()) {
+            out.push_back(node.getName());
+        }
+    };
+
+    for (auto& fn : in) {
+        auto fnNode = cg->get(fn);
+
+        if constexpr(Dir == TraverseDir::TraverseDown) {
+            int count = traverseCallGraph(*fnNode, [](CGNode& node) -> auto {return node.getCallees();}, visitFn);
+            std::cout << "Functions on callpath from " << fn << ": " << count << "\n";
+        } else if constexpr (Dir == TraverseDir::TraverseUp) {
+            int count = traverseCallGraph(*fnNode, [](CGNode& node) -> auto {return node.getCallers();}, visitFn);
+            std::cout << "Functions on callpath to " << fn << ": " << count << "\n";
+        }
+    }
+    return out;
+}
 
 class SelectorRunner {
     CallGraph& cg;

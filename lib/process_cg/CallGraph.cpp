@@ -28,6 +28,14 @@ CGNode* CallGraph::get(const std::string& name) {
     return &*nodes[it->second];
 }
 
+//bool CallGraph::deleteNode(const std::string &name) {
+//    auto it = nodeMap.find(name);
+//    if (it == nodeMap.end())
+//        return false;
+//
+//    for (auto& callee : )
+//}
+
 void CallGraph::addCallee(CGNode &parent, CGNode &child) {
     parent.addCallee(&child);
     child.addCaller(&parent);

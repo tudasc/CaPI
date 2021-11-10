@@ -13,7 +13,11 @@ namespace selector {
         return std::make_unique<NameSelector>(std::move(in), std::move(regex));
     }
 
-    inline std::unique_ptr<CallPathSelector> onCallPathTo(SelectorPtr in) {
-        return std::make_unique<CallPathSelector>(std::move(in));
+    inline std::unique_ptr<CallPathSelector<TraverseDir::TraverseUp>> onCallPathTo(SelectorPtr in) {
+        return std::make_unique<CallPathSelector<TraverseDir::TraverseUp>>(std::move(in));
+    }
+
+    inline std::unique_ptr<CallPathSelector<TraverseDir::TraverseDown>> onCallPathFrom(SelectorPtr in) {
+        return std::make_unique<CallPathSelector<TraverseDir::TraverseDown>>(std::move(in));
     }
 }

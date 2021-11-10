@@ -25,50 +25,38 @@ bool NameSelector::accept(const std::string &fName) {
     return matches;
 }
 
-/**
- * Traverses the call chain upwards, calling the given visit function on each node.
- * @tparam VisitFn Function that takes a CGNode& argument.
- * @param node
- * @param visit
- * @returns The number of visited functions.
- */
-template<typename VisitFn>
-int traverseCallers(CGNode& node, VisitFn&& visit) {
-    std::vector<CGNode*> workingSet;
-    std::vector<CGNode*> alreadyVisited;
+///**
+// * Traverses the call chain upwards, calling the given visit function on each node.
+// * @tparam VisitFn Function that takes a CGNode& argument.
+// * @param node
+// * @param visit
+// * @returns The number of visited functions.
+// */
+//template<typename VisitFn>
+//int traverseCallers(CGNode& node, VisitFn&& visit) {
+//    std::vector<CGNode*> workingSet;
+//    std::vector<CGNode*> alreadyVisited;
+//
+//    workingSet.push_back(&node);
+//
+//    do {
+//        auto currentFn = workingSet.back();
+//        workingSet.pop_back();
+////        std::cout << "Visiting caller " << currentFn->getName() << "\n";
+//        visit(*currentFn);
+//        alreadyVisited.push_back(currentFn);
+//        for (auto& caller : currentFn->getCallers()) {
+//            if (std::find(workingSet.begin(), workingSet.end(), caller) == workingSet.end() &&
+//                std::find(alreadyVisited.begin(), alreadyVisited.end(), caller) == alreadyVisited.end()) {
+//                workingSet.push_back(caller);
+//            }
+//        }
+//
+//    } while(!workingSet.empty());
+//
+//    return alreadyVisited.size();
+//}
 
-    workingSet.push_back(&node);
 
-    do {
-        auto currentFn = workingSet.back();
-        workingSet.pop_back();
-//        std::cout << "Visiting caller " << currentFn->getName() << "\n";
-        visit(*currentFn);
-        alreadyVisited.push_back(currentFn);
-        for (auto& caller : currentFn->getCallers()) {
-            if (std::find(workingSet.begin(), workingSet.end(), caller) == workingSet.end() &&
-                std::find(alreadyVisited.begin(), alreadyVisited.end(), caller) == alreadyVisited.end()) {
-                workingSet.push_back(caller);
-            }
-        }
 
-    } while(!workingSet.empty());
-
-    return alreadyVisited.size();
-}
-
-FunctionSet CallPathSelector::apply() {
-    FunctionSet in = input->apply();
-    FunctionSet out(in);
-    for (auto& fn : in) {
-        auto fnNode = cg->get(fn);
-        int count = traverseCallers(*fnNode, [&out](CGNode& node) {
-            if (std::find(out.begin(), out.end(), node.getName()) == out.end()) {
-                out.push_back(node.getName());
-            }
-        });
-        std::cout << "Functions on callpath to " << fn << ": " << count << "\n";
-    }
-    return out;
-}
 
