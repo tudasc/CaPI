@@ -20,15 +20,6 @@ namespace {
     RTInitializer init;
 }
 
-void disable_preloads() {
-    for (int i = 0; environ[i]; i++) {
-        // Change 'L' to '_' to disable preloads. Hacky, but works.
-        if (strstr(environ[i], "LD_PRELOAD=")) {
-            environ[i][0] = '_';
-        }
-    }
-}
-
 std::string get_exec_path() {
     char filename[128] = {0};
     auto n = readlink("/proc/self/exe", filename, sizeof(filename) - 1);
@@ -40,7 +31,7 @@ std::string get_exec_path() {
 
 std::string resolve_symbol_name(const char *exec_name, const void *addr) {
     char command[256];
-    int n = sprintf(command, R"(LD_PRELOAD="" nm %s | grep %lx | awk '{ printf "%%s", $3 }')", exec_name,
+    int n = sprintf(command, R"(nm %s | grep %lx | awk '{ printf "%%s", $3 }')", exec_name,
                     reinterpret_cast<std::uintptr_t>(addr));
 
     if (n >= sizeof(command) - 1) {
@@ -77,12 +68,8 @@ void print_process_map() {
 }
 
 RTInitializer::RTInitializer() {
-//    exec_name = std::getenv("EXEC_FILE");
-//    if (!exec_name) {
-//        std::cerr << "[ERROR] Can't initialize runtime library: requires EXEC_FILE to point to the current executable.\n";
-//        return;
-//    }
-    disable_preloads();
+    // Need to disable LD_PRELOAD, otherwise this code will be executed in popen call.
+    setenv("LD_PRELOAD", "", true);
     exec_name = get_exec_path();
 //    std::cout << "Executable: " << exec_name << "\n";
 //    print_process_map();
@@ -123,7 +110,6 @@ void CallTreeLogger::onFunctionExit(void *fn, void *callsite, int callDepth) {
     }
     out << "[EXIT] " << fn << " " << cache.resolve(fn) << " (callsite: " << callsite << " )\n";
 }
-
 
 extern "C" {
 
