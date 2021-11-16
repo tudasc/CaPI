@@ -18,9 +18,6 @@ done
 #fi
 
 @LLVM_TOOLS_BINARY_DIR@/clang++ \
-#	-Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/readmetacg.so \
-    -Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/instfilter.so \
+    -Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/instrumentation_filter/instfilter.so \
 	$LDFLAGS \
 	$@
-#	-mllvm -call-filter \
-#	-mllvm -alloca-array-only=false \

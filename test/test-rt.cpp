@@ -12,7 +12,7 @@ namespace {
     const char* exec_name{nullptr};
 }
 
-void init_test_rt(int argc, char** argv) {
+void init_verifier_rt(int argc, char** argv) {
     exec_name = argv[0];
 }
 
