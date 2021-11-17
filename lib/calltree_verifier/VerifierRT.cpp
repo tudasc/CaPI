@@ -20,7 +20,27 @@ namespace {
     RTInitializer init;
 }
 
+struct RemoveEnvInScope {
+
+    explicit RemoveEnvInScope(const char* varName) : varName(varName) {
+        oldVal = getenv(varName);
+        if (oldVal)
+            setenv(varName, "", true);
+    }
+
+    ~RemoveEnvInScope() {
+        if (oldVal)
+            setenv(varName, oldVal, true);
+    }
+
+private:
+    const char* varName;
+    const char* oldVal;
+};
+
+
 std::string get_exec_path() {
+    RemoveEnvInScope removePreload("LD_PRELOAD");
     char filename[128] = {0};
     auto n = readlink("/proc/self/exe", filename, sizeof(filename) - 1);
     if (n > 0) {
@@ -30,6 +50,9 @@ std::string get_exec_path() {
 }
 
 std::string resolve_symbol_name(const char *exec_name, const void *addr) {
+    // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
+    RemoveEnvInScope removePreload("LD_PRELOAD");
+
     char command[256];
     int n = sprintf(command, R"(nm %s | grep %lx | awk '{ printf "%%s", $3 }')", exec_name,
                     reinterpret_cast<std::uintptr_t>(addr));
@@ -56,6 +79,8 @@ std::string resolve_symbol_name(const char *exec_name, const void *addr) {
 
 
 void print_process_map() {
+    RemoveEnvInScope removePreload("LD_PRELOAD");
+
     char buffer[256];
     FILE *memory_map = fopen("/proc/self/maps", "r");
     if (!memory_map) {
@@ -68,8 +93,6 @@ void print_process_map() {
 }
 
 RTInitializer::RTInitializer() {
-    // Need to disable LD_PRELOAD, otherwise this code will be executed in popen call.
-    setenv("LD_PRELOAD", "", true);
     exec_name = get_exec_path();
 //    std::cout << "Executable: " << exec_name << "\n";
 //    print_process_map();
