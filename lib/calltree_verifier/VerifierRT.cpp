@@ -14,7 +14,7 @@
 
 namespace {
     int call_depth{-1};
-    std::string exec_name;
+    std::string exec_path;
     std::unique_ptr<CallTreeLogger> logger;
     std::unique_ptr<FunctionNameCache> name_cache;
     RTInitializer init;
@@ -93,11 +93,12 @@ void print_process_map() {
 }
 
 RTInitializer::RTInitializer() {
-    exec_name = get_exec_path();
+    exec_path = get_exec_path();
+    auto execFilename = exec_path.substr(exec_path.find_last_of('/') + 1);
 //    std::cout << "Executable: " << exec_name << "\n";
 //    print_process_map();
-    name_cache = std::make_unique<FunctionNameCache>(exec_name);
-    auto logFile = std::string(exec_name) + ".instro.log";
+    name_cache = std::make_unique<FunctionNameCache>(exec_path);
+    auto logFile = execFilename + ".instro.log";
     logger = std::make_unique<CallTreeLogger>(logFile, *name_cache);
 }
 
