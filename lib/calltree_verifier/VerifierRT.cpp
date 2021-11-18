@@ -123,7 +123,7 @@ void FunctionNameCache::collectSharedLibs() {
     char result[128] = {0};
     FILE *output = popen(command, "r");
     if (!output) {
-        std::cerr << "Unable to execute nm to resolve symbol name.\n";
+        std::cerr << "Unable to execute ldd to identify shared libs.\n";
         return;
     }
 
@@ -132,12 +132,13 @@ void FunctionNameCache::collectSharedLibs() {
         std::string line = result;
         auto arrowPos = line.find("=> ");
         if (arrowPos == std::string::npos) {
-            std::cerr << "Line in ldd output not recognized: " << line << "\n";
+            std::cerr << "Line in ldd output ignored: " << line;
             continue;
         }
-        std::string libPath = line.substr(arrowPos + 3, line.find(' ', arrowPos + 3));
+        auto pathStart = arrowPos + 3;
+        std::string libPath = line.substr(pathStart, line.find(' ', pathStart) - pathStart);
         objFiles.emplace_back(libPath, 0);
-        std::cout << "\t" << libPath << "\n";
+        std::cout << libPath << "\n";
     }
     std::cout << "Done.\n";
 
@@ -151,7 +152,7 @@ std::string FunctionNameCache::resolve(const void *addr) {
         return it->second;
     }
     auto it = objFiles.begin();
-    do {
+    while (it != objFiles.end()) {
         auto& filename = it->first;
         auto name = resolve_symbol_name(filename.c_str(), addr);
         if (!name.empty()) {
@@ -161,9 +162,10 @@ std::string FunctionNameCache::resolve(const void *addr) {
             if (it != objFiles.begin() && count > (it-1)->second) {
                 std::iter_swap(it, it-1);
             }
-            break;
+            return name;
         }
-    } while(it != objFiles.end());
+        it++;
+    }
     std::cerr << "Unable to resolve address\n";
     return "UNKNOWN";
 }
