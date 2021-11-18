@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 struct RTInitializer {
@@ -16,6 +17,10 @@ struct RTInitializer {
 class FunctionNameCache {
     std::string execFile;
     std::unordered_map<const void*, std::string> nameCache;
+    std::vector<std::pair<std::string, int>> objFiles;
+
+    void collectSharedLibs();
+
 public:
     FunctionNameCache(std::string execFile);
 

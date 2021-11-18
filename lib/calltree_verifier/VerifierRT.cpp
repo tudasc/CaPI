@@ -49,17 +49,17 @@ std::string get_exec_path() {
     return "";
 }
 
-std::string resolve_symbol_name(const char *exec_name, const void *addr) {
+std::string resolve_symbol_name(const char *object_file, const void *addr) {
     // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
     RemoveEnvInScope removePreload("LD_PRELOAD");
 
     char command[256];
-    int n = sprintf(command, R"(nm %s | grep %lx | awk '{ printf "%%s", $3 }')", exec_name,
+    int n = sprintf(command, R"(nm %s | grep %lx | awk '{ printf "%%s", $3 }')", object_file,
                     reinterpret_cast<std::uintptr_t>(addr));
 
     if (n >= sizeof(command) - 1) {
         std::cerr << "Insufficient buffer size for symbol name resolution command.\n";
-        return "UNKNOWN";
+        return "";
     }
 //    std::cout << "Resolve " << addr << ": " << command << "\n";
 
@@ -67,10 +67,10 @@ std::string resolve_symbol_name(const char *exec_name, const void *addr) {
     FILE *output = popen(command, "r");
     if (!output) {
         std::cerr << "Unable to execute nm to resolve symbol name.\n";
-        return "UNKNOWN";
+        return "";
     }
     if (!fgets(result, sizeof(result), output)) {
-        return "UNKNOWN";
+        return "";
     }
     pclose(output);
 
@@ -103,15 +103,69 @@ RTInitializer::RTInitializer() {
 }
 
 FunctionNameCache::FunctionNameCache(std::string execFile) : execFile(execFile) {
+    objFiles.emplace_back(execFile, 0);
+    collectSharedLibs();
+}
+
+void FunctionNameCache::collectSharedLibs() {
+    // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
+    RemoveEnvInScope removePreload("LD_PRELOAD");
+
+    char command[256];
+    int n = sprintf(command, R"(ldd %s)", execFile.c_str());
+
+    if (n >= sizeof(command) - 1) {
+        std::cerr << "Insufficient buffer size for ldd command.\n";
+        return;
+    }
+//    std::cout << "Resolve " << addr << ": " << command << "\n";
+
+    char result[128] = {0};
+    FILE *output = popen(command, "r");
+    if (!output) {
+        std::cerr << "Unable to execute nm to resolve symbol name.\n";
+        return;
+    }
+
+    std::cout << "Indentifying shared libraries...\n";
+    while (fgets(result, sizeof(result), output)) {
+        std::string line = result;
+        auto arrowPos = line.find("=> ");
+        if (arrowPos == std::string::npos) {
+            std::cerr << "Line in ldd output not recognized: " << line << "\n";
+            continue;
+        }
+        std::string libPath = line.substr(arrowPos + 3, line.find(' ', arrowPos + 3));
+        objFiles.emplace_back(libPath, 0);
+        std::cout << "\t" << libPath << "\n";
+    }
+    std::cout << "Done.\n";
+
+    pclose(output);
+
+
 }
 
 std::string FunctionNameCache::resolve(const void *addr) {
     if (auto it = nameCache.find(addr); it != nameCache.end()) {
         return it->second;
     }
-    auto name = resolve_symbol_name(execFile.c_str(), addr);
-    nameCache[addr] = name;
-    return name;
+    auto it = objFiles.begin();
+    do {
+        auto& filename = it->first;
+        auto name = resolve_symbol_name(filename.c_str(), addr);
+        if (!name.empty()) {
+            nameCache[addr] = name;
+            int count = ++it->second;
+            // Shift lib to the front, if used for many resolutions
+            if (it != objFiles.begin() && count > (it-1)->second) {
+                std::iter_swap(it, it-1);
+            }
+            break;
+        }
+    } while(it != objFiles.end());
+    std::cerr << "Unable to resolve address\n";
+    return "UNKNOWN";
 }
 
 CallTreeLogger::CallTreeLogger(std::string filename, FunctionNameCache &cache) : out(std::ofstream(filename)),
