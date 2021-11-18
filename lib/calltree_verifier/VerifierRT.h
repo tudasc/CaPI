@@ -8,7 +8,10 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <map>
 #include <unordered_map>
+
+using SymbolTable = std::map<std::uintptr_t, std::string>;
 
 struct RTInitializer {
     RTInitializer();
@@ -17,9 +20,12 @@ struct RTInitializer {
 class FunctionNameCache {
     std::string execFile;
     std::unordered_map<const void*, std::string> nameCache;
+    std::vector<std::pair<std::string, SymbolTable>> symTables;
     std::vector<std::pair<std::string, int>> objFiles;
 
     void collectSharedLibs();
+
+    void loadSymTables();
 
 public:
     FunctionNameCache(std::string execFile);

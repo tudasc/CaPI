@@ -10,6 +10,8 @@
 #include <memory>
 #include <unistd.h>
 #include <cstring>
+#include <map>
+#include <sstream>
 
 
 namespace {
@@ -49,12 +51,53 @@ std::string get_exec_path() {
     return "";
 }
 
+
+SymbolTable loadSymbolTable(const std::string& object_file) {
+    // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
+    RemoveEnvInScope removePreload("LD_PRELOAD");
+
+    std::string command = "nm --defined-only ";
+    if (object_file.find(".so") != std::string::npos) {
+        command += "-D ";
+    }
+    command += object_file;
+
+    char buffer[256] = {0};
+    FILE *output = popen(command.c_str(), "r");
+    if (!output) {
+        std::cerr << "Unable to execute nm to resolve symbol names.\n";
+        return {};
+    }
+
+    SymbolTable table;
+
+    uintptr_t addr;
+    std::string symType;
+    std::string symName;
+
+    while (fgets(buffer, sizeof(buffer), output)) {
+        std::istringstream line(buffer);
+        if (buffer[0] != '0') {
+            continue;
+        }
+        line >> std::hex >> addr;
+        line >> symType;
+        line >> symName;
+//        std::cout << "Found symbol: " << addr << ", " << symName << "\n"; // FIXME Remove
+        table[addr] = symName;
+    }
+    pclose(output);
+
+    return table;
+
+}
+
 std::string resolve_symbol_name(const char *object_file, const void *addr) {
     // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
     RemoveEnvInScope removePreload("LD_PRELOAD");
 
     char command[256];
-    int n = sprintf(command, R"(nm %s | grep %lx | awk '{ printf "%%s", $3 }')", object_file,
+    int n = sprintf(command, R"(nm -D %s | grep %lx | awk '{ printf "%%s", $3 }')", object_file,
                     reinterpret_cast<std::uintptr_t>(addr));
 
     if (n >= sizeof(command) - 1) {
@@ -105,6 +148,20 @@ RTInitializer::RTInitializer() {
 FunctionNameCache::FunctionNameCache(std::string execFile) : execFile(execFile) {
     objFiles.emplace_back(execFile, 0);
     collectSharedLibs();
+    loadSymTables();
+}
+
+void FunctionNameCache::loadSymTables() {
+    for (auto& entry : objFiles) {
+        auto& filename = entry.first;
+        auto table = loadSymbolTable(filename);
+        if (table.empty()) {
+            std::cout << "Could not load symbols from " << filename << "\n";
+            continue;
+        }
+        std::cout << "Loaded " << table.size() << " symbols from " << filename << "\n";
+        symTables.emplace_back(filename, std::move(table));
+    }
 }
 
 void FunctionNameCache::collectSharedLibs() {
@@ -151,21 +208,30 @@ std::string FunctionNameCache::resolve(const void *addr) {
     if (auto it = nameCache.find(addr); it != nameCache.end()) {
         return it->second;
     }
-    auto it = objFiles.begin();
-    while (it != objFiles.end()) {
-        auto& filename = it->first;
-        auto name = resolve_symbol_name(filename.c_str(), addr);
-        if (!name.empty()) {
+    for (auto&& [filename, table]: symTables) {
+        auto addrVal = reinterpret_cast<std::uintptr_t>(addr);
+        auto it = table.find(addrVal);
+        if (it != table.end()) {
+            auto name = it->second;
             nameCache[addr] = name;
-            int count = ++it->second;
-            // Shift lib to the front, if used for many resolutions
-            if (it != objFiles.begin() && count > (it-1)->second) {
-                std::iter_swap(it, it-1);
-            }
             return name;
         }
-        it++;
     }
+//    auto it = objFiles.begin();
+//    while (it != objFiles.end()) {
+//        auto& filename = it->first;
+//        auto name = resolve_symbol_name(filename.c_str(), addr);
+//        if (!name.empty()) {
+//            nameCache[addr] = name;
+//            int count = ++it->second;
+//            // Shift lib to the front, if used for many resolutions
+//            if (it != objFiles.begin() && count > (it-1)->second) {
+//                std::iter_swap(it, it-1);
+//            }
+//            return name;
+//        }
+//        it++;
+//    }
     std::cerr << "Unable to resolve address\n";
     return "UNKNOWN";
 }
