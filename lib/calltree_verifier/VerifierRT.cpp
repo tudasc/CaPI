@@ -138,7 +138,12 @@ void print_process_map() {
 RTInitializer::RTInitializer() {
     exec_path = get_exec_path();
     auto execFilename = exec_path.substr(exec_path.find_last_of('/') + 1);
-//    std::cout << "Executable: " << exec_name << "\n";
+    if (auto val = getenv("VERIFY_ONLY"); val) {
+        if (strcmp(val, execFilename.c_str()) != 0) {
+            return;
+        }
+    }
+    //    std::cout << "Executable: " << exec_name << "\n";
 //    print_process_map();
     name_cache = std::make_unique<FunctionNameCache>(exec_path);
     auto logFile = execFilename + ".instro.log";
