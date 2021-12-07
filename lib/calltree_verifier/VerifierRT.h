@@ -13,6 +13,17 @@
 
 using SymbolTable = std::map<std::uintptr_t, std::string>;
 
+struct MemMapEntry {
+    std::string path;
+    uintptr_t addrBegin;
+    uint64_t offset;
+};
+
+struct MappedSymTable {
+    SymbolTable table;
+    MemMapEntry memMap;
+};
+
 struct RTInitializer {
     RTInitializer();
 };
@@ -20,7 +31,10 @@ struct RTInitializer {
 class FunctionNameCache {
     std::string execFile;
     std::unordered_map<const void*, std::string> nameCache;
-    std::vector<std::pair<std::string, SymbolTable>> symTables;
+
+    std::map<uintptr_t, MappedSymTable> addrToSymTable;
+
+    std::vector<std::pair<std::string, MappedSymTable>> symTables;
     std::vector<std::pair<std::string, int>> objFiles;
 
     void collectSharedLibs();

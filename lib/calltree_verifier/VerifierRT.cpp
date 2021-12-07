@@ -51,6 +51,41 @@ std::string get_exec_path() {
     return "";
 }
 
+std::vector<MemMapEntry> read_memory_map() {
+    RemoveEnvInScope removePreload("LD_PRELOAD");
+
+    std::vector<MemMapEntry> entries;
+
+    char buffer[256];
+    FILE *memory_map = fopen("/proc/self/maps", "r");
+    if (!memory_map) {
+        std::cout << "Could not load memory map.\n";
+    }
+
+    std::string addrRange;
+    std::string perms;
+    uint64_t offset;
+    std::string dev;
+    uint64_t inode;
+    std::string path;
+    while (fgets(buffer, sizeof(buffer), memory_map)) {
+        std::istringstream lineStream(buffer);
+        lineStream >> addrRange >> perms >> std::hex >> offset >> std::dec >> dev >> inode >> path;
+        //std::cout << "Memory Map: " << addrRange << ", " << perms << ", " << offset << ", " << path <<"\n";
+        if (strcmp(perms.c_str(), "r-xp") != 0) {
+            continue;
+        }
+        if (path.find(".so") == std::string::npos) {
+            continue;
+        }
+        uintptr_t addrBegin = std::stoul(addrRange.substr(0, addrRange.find('-')), nullptr, 16);
+        //std::cout << std::hex << addrBegin << '\n';
+        entries.push_back({path, addrBegin, offset});
+    }
+    return entries;
+}
+
+
 
 SymbolTable loadSymbolTable(const std::string& object_file) {
     // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call.
@@ -121,6 +156,7 @@ std::string resolve_symbol_name(const char *object_file, const void *addr) {
 }
 
 
+
 void print_process_map() {
     RemoveEnvInScope removePreload("LD_PRELOAD");
 
@@ -144,7 +180,7 @@ RTInitializer::RTInitializer() {
         }
     }
     //    std::cout << "Executable: " << exec_name << "\n";
-//    print_process_map();
+    print_process_map();
     name_cache = std::make_unique<FunctionNameCache>(exec_path);
     auto logFile = execFilename + ".instro.log";
     logger = std::make_unique<CallTreeLogger>(logFile, *name_cache);
@@ -152,21 +188,45 @@ RTInitializer::RTInitializer() {
 
 FunctionNameCache::FunctionNameCache(std::string execFile) : execFile(execFile) {
     objFiles.emplace_back(execFile, 0);
-    collectSharedLibs();
+//    collectSharedLibs();
     loadSymTables();
 }
 
 void FunctionNameCache::loadSymTables() {
-    for (auto& entry : objFiles) {
-        auto& filename = entry.first;
+
+    // Load symbols from main executable
+    auto execSyms = loadSymbolTable(execFile);
+    MappedSymTable execTable{std::move(execSyms), {execFile, 0, 0}};
+    addrToSymTable[0] = execTable;
+//    symTables.emplace_back(execFile, std::move(execTable));
+
+
+    // Load symbols from shared libs
+    auto memMap = read_memory_map();
+    for (auto& entry : memMap) {
+        auto& filename = entry.path;
         auto table = loadSymbolTable(filename);
         if (table.empty()) {
             std::cout << "Could not load symbols from " << filename << "\n";
             continue;
         }
         std::cout << "Loaded " << table.size() << " symbols from " << filename << "\n";
-        symTables.emplace_back(filename, std::move(table));
+        //std::cout << "Starting address: " << entry.addrBegin << "\n";
+        MappedSymTable mappedTable{std::move(table), entry};
+        addrToSymTable[entry.addrBegin] = mappedTable;
+        //        symTables.emplace_back(filename, std::move(mappedTable));
     }
+
+//    for (auto& entry : objFiles) {
+//        auto& filename = entry.first;
+//        auto table = loadSymbolTable(filename);
+//        if (table.empty()) {
+//            std::cout << "Could not load symbols from " << filename << "\n";
+//            continue;
+//        }
+//        std::cout << "Loaded " << table.size() << " symbols from " << filename << "\n";
+//        symTables.emplace_back(filename, std::move(table));
+//    }
 }
 
 void FunctionNameCache::collectSharedLibs() {
@@ -206,22 +266,42 @@ void FunctionNameCache::collectSharedLibs() {
 
     pclose(output);
 
-
 }
 
 std::string FunctionNameCache::resolve(const void *addr) {
     if (auto it = nameCache.find(addr); it != nameCache.end()) {
         return it->second;
     }
-    for (auto&& [filename, table]: symTables) {
-        auto addrVal = reinterpret_cast<std::uintptr_t>(addr);
-        auto it = table.find(addrVal);
-        if (it != table.end()) {
-            auto name = it->second;
+
+    auto addrVal = reinterpret_cast<std::uintptr_t>(addr);
+
+//    std::cout << "Looking up address: " << addrVal << "\n";
+
+    auto it = addrToSymTable.lower_bound(addrVal);
+    if (it != addrToSymTable.begin()) {
+        --it;
+        auto& table = it->second.table;
+        auto& mapping = it->second.memMap;
+//        std::cout << "Start: " << mapping.addrBegin << ", offset: " << mapping.offset <<"\n";
+        auto mappedAddr = (addrVal - mapping.addrBegin) + mapping.offset;
+//        std::cout << "Looking for mapped adddress " << mappedAddr << " in " << mapping.path << "\n";
+        auto entry = table.find(mappedAddr);
+        if (entry != table.end()) {
+            auto name = entry->second;
             nameCache[addr] = name;
             return name;
         }
     }
+//
+//    for (auto&& [filename, mappedTable]: symTables) {
+//        auto addrVal = reinterpret_cast<std::uintptr_t>(addr);
+//        auto it = mappedTable.find(addrVal);
+//        if (it != mappedTable.end()) {
+//            auto name = it->second;
+//            nameCache[addr] = name;
+//            return name;
+//        }
+//    }
 //    auto it = objFiles.begin();
 //    while (it != objFiles.end()) {
 //        auto& filename = it->first;
