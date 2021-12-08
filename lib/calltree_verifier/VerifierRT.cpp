@@ -179,7 +179,7 @@ RTInitializer::RTInitializer() {
             return;
         }
     }
-    //    std::cout << "Executable: " << exec_name << "\n";
+    std::cout << "Retrieving symbols for executable " << exec_path << "\n";
     print_process_map();
     name_cache = std::make_unique<FunctionNameCache>(exec_path);
     auto logFile = execFilename + ".instro.log";
