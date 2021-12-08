@@ -2,7 +2,7 @@
 // Created by sebastian on 15.10.21.
 //
 
-#include "VerifierRT.h"
+#include "ScorePHelper.h"
 
 #include <string>
 #include <iostream>
@@ -17,7 +17,6 @@
 namespace {
     int call_depth{-1};
     std::string exec_path;
-    std::unique_ptr<CallTreeLogger> logger;
     std::unique_ptr<FunctionNameCache> name_cache;
     RTInitializer init;
 }
@@ -185,15 +184,24 @@ RTInitializer::RTInitializer() {
 	return;
     }
     std::cout << "Retrieving symbols for executable " << exec_path << "\n";
-    print_process_map();
+//    print_process_map();
     name_cache = std::make_unique<FunctionNameCache>(exec_path);
-    auto logFile = execFilename + ".instro.log";
-    logger = std::make_unique<CallTreeLogger>(logFile, *name_cache);
 }
 
 FunctionNameCache::FunctionNameCache(std::string execFile) : execFile(execFile) {
     objFiles.emplace_back(execFile, 0);
+//    collectSharedLibs();
     loadSymTables();
+    registerSymbolsInScoreP();
+}
+
+void FunctionNameCache::registerSymbolsInScoreP() {
+    for (auto&& [startAddr, table] : addrToSymTable) {
+        for (auto&& [addr, symName] : table.table) {
+            auto mappedAddr = startAddr + addr - table.memMap.offset;
+            scorep_compiler_hash_put(mappedAddr, symName.c_str(), symName.c_str(), "", 0);
+        }
+    }
 }
 
 void FunctionNameCache::loadSymTables() {
@@ -214,6 +222,7 @@ void FunctionNameCache::loadSymTables() {
             std::cout << "Could not load symbols from " << filename << "\n";
             continue;
         }
+
         std::cout << "Loaded " << table.size() << " symbols from " << filename << "\n";
         //std::cout << "Starting address: " << entry.addrBegin << "\n";
         MappedSymTable mappedTable{std::move(table), entry};
@@ -232,6 +241,7 @@ void FunctionNameCache::loadSymTables() {
 //        symTables.emplace_back(filename, std::move(table));
 //    }
 }
+
 
 std::string FunctionNameCache::resolve(const void *addr) {
     if (auto it = nameCache.find(addr); it != nameCache.end()) {
@@ -257,70 +267,8 @@ std::string FunctionNameCache::resolve(const void *addr) {
             return name;
         }
     }
-//
-//    for (auto&& [filename, mappedTable]: symTables) {
-//        auto addrVal = reinterpret_cast<std::uintptr_t>(addr);
-//        auto it = mappedTable.find(addrVal);
-//        if (it != mappedTable.end()) {
-//            auto name = it->second;
-//            nameCache[addr] = name;
-//            return name;
-//        }
-//    }
-//    auto it = objFiles.begin();
-//    while (it != objFiles.end()) {
-//        auto& filename = it->first;
-//        auto name = resolve_symbol_name(filename.c_str(), addr);
-//        if (!name.empty()) {
-//            nameCache[addr] = name;
-//            int count = ++it->second;
-//            // Shift lib to the front, if used for many resolutions
-//            if (it != objFiles.begin() && count > (it-1)->second) {
-//                std::iter_swap(it, it-1);
-//            }
-//            return name;
-//        }
-//        it++;
-//    }
+
     std::cerr << "Unable to resolve address\n";
     return "UNKNOWN";
 }
 
-CallTreeLogger::CallTreeLogger(std::string filename, FunctionNameCache &cache) : out(std::ofstream(filename)),
-                                                                                 cache(cache) {
-    std::cout << "Writing call tree log to " << filename << "\n";
-}
-
-void CallTreeLogger::onFunctionEnter(void *fn, void *callsite, int callDepth) {
-    auto indent = callDepth;
-    while (indent-- > 0) {
-        out << "  ";
-    }
-    out << "[ENTER] " << fn << " " << cache.resolve(fn) << " (callsite: " << callsite << " )\n";
-}
-
-void CallTreeLogger::onFunctionExit(void *fn, void *callsite, int callDepth) {
-    auto indent = callDepth;
-    while (indent-- > 0) {
-        out << "  ";
-    }
-    out << "[EXIT] " << fn << " " << cache.resolve(fn) << " (callsite: " << callsite << " )\n";
-}
-
-extern "C" {
-
-void __cyg_profile_func_enter(void *fn, void *callsite) {
-    call_depth++;
-    if (logger) {
-        logger->onFunctionEnter(fn, callsite, call_depth);
-    }
-}
-
-void __cyg_profile_func_exit(void *fn, void *callsite) {
-    if (logger) {
-        logger->onFunctionExit(fn, callsite, call_depth);
-    }
-    call_depth--;
-}
-
-}

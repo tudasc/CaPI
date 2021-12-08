@@ -25,3 +25,4 @@ install(
 add_subdirectory(instrumentation_filter)
 add_subdirectory(process_cg)
 add_subdirectory(calltree_verifier)
+add_subdirectory(scorep_helper)
