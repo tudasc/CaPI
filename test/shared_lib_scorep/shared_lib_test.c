@@ -11,6 +11,7 @@ void foo(int n) {
 }
 
 int main(int argc, char** argv) {
+    printf("addr of lib_fn is %p\n", lib_fn);
     int x = lib_fn();
     foo(x);
     return 0;
