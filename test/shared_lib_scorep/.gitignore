@@ -1,0 +1,3 @@
+*.o
+shared_lib_test
+shared_lib_test_scorep
