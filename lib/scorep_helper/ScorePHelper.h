@@ -16,6 +16,8 @@ extern "C" {
     typedef uint32_t SCOREP_LineNo;
 
     scorep_compiler_hash_node* scorep_compiler_hash_put(uint64_t key, const char* region_name_mangled, const char* region_name_demangled, const char* file_name, SCOREP_LineNo line_no_begin);
+
+    void SCOREP_InitMeasurement();
 };
 
 using SymbolTable = std::map<std::uintptr_t, std::string>;

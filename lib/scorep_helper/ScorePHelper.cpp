@@ -155,7 +155,6 @@ std::string resolve_symbol_name(const char *object_file, const void *addr) {
 }
 
 
-
 void print_process_map() {
     RemoveEnvInScope removePreload("LD_PRELOAD");
 
@@ -185,6 +184,10 @@ RTInitializer::RTInitializer() {
     }
     std::cout << "Retrieving symbols for executable " << exec_path << "\n";
 //    print_process_map();
+
+    // Initializing ScoreP
+    SCOREP_InitMeasurement();
+
     name_cache = std::make_unique<FunctionNameCache>(exec_path);
 }
 
