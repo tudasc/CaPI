@@ -110,12 +110,18 @@ int main(int argc, char** argv) {
             return 1;
         }
         auto otherFunctionInfo = reader.getFunctionInfo();
-        auto otherCG = createCG(functionInfo);
+        auto otherCG = createCG(otherFunctionInfo);
 
         std::cout << "Loaded CG with " << otherCG->size() << " nodes\n";
 
+        if (!otherCG->get(targetFn)) {
+            std::cerr << "Target function does not exist\n";
+            return 1;
+        }
         // Determine functions in subtree starting at targetFn
         auto subtreeFns = getSubtreeFunctions(*otherCG, targetFn);
+
+        std::cout << "Functions called from " << targetFn << ": " << subtreeFns.size() << "\n";
 
         // Run MPI filtering on first CG
         SelectorRunner runner(*cg);
