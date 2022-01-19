@@ -70,14 +70,16 @@ int main(int argc, char** argv) {
 
     std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
-    auto targetNode = cg->get(targetFn);
-
-    if (!targetNode) {
-        std::cerr << "Function" << targetFn << " could not be found.\n";
-        return 1;
-    }
 
     if (tool == Tool::WRITE_DOT) {
+
+        auto targetNode = cg->get(targetFn);
+
+        if (!targetNode) {
+            std::cerr << "Function " << targetFn << " could not be found.\n";
+            return 1;
+        }
+
         auto result = getSubtreeFunctions(*cg, targetFn);
         std::cout << "Selected " << result.size() << " functions.\n";
 
@@ -114,8 +116,6 @@ int main(int argc, char** argv) {
 
         // Determine functions in subtree starting at targetFn
         auto subtreeFns = getSubtreeFunctions(*otherCG, targetFn);
-
-
 
         // Run MPI filtering on first CG
         SelectorRunner runner(*cg);
