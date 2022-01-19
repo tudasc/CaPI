@@ -39,13 +39,13 @@ int main(int argc, char** argv) {
 
     Tool tool;
 
-    if (toolName.compare("check-connected")) {
+    if (toolName == "check-connected") {
         tool = Tool::CHECK_CONNECTED;
         if (argc < 5) {
             std::cerr << "Missing second CG\n";
             return 1;
         }
-    } else if (toolName.compare("write-dot")) {
+    } else if (toolName == "write-dot") {
         tool = Tool::WRITE_DOT;
     } else {
         std::cerr << "Unknown utility tool. Available tools:\n";
@@ -113,12 +113,12 @@ int main(int argc, char** argv) {
         std::cout << "Loaded CG with " << otherCG->size() << " nodes\n";
 
         // Determine functions in subtree starting at targetFn
-        auto subtreeFns = getSubtreeFunctions(*cg, targetFn);
+        auto subtreeFns = getSubtreeFunctions(*otherCG, targetFn);
 
 
 
-        // Run MPI filtering on second CG
-        SelectorRunner runner(*otherCG);
+        // Run MPI filtering on first CG
+        SelectorRunner runner(*cg);
         auto mpiSelector = selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
         auto selector = selector::byWhiteList(subtreeFns, std::move(mpiSelector));
         auto result = runner.run(*selector);
