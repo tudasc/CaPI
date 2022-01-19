@@ -20,27 +20,41 @@ void erase_if( ContainerT& items, const PredicateT& predicate ) {
     }
 }
 
+enum class Tool {CHECK_CONNECTED, WRITE_DOT};
+
+std::vector<std::string> getSubtreeFunctions(CallGraph& cg, const std::string& targetFn) {
+    SelectorRunner runner(cg);
+    auto selector = selector::onCallPathFrom(selector::byName(targetFn, selector::all()));
+    return runner.run(*selector);
+}
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
+    if (argc < 4) {
         std::cerr << "Missing input file argument\n";
         return 1;
     }
 
-    std::string infile = argv[1];
-    std::string targetFn = argv[2];
+    std::string toolName = argv[1];
+    std::string infile = argv[2];
 
-//    for (int i = 1; i < argc; i++) {
-//        std::string arg = argv[i];
-//        if (arg.length() > 2 && arg[0] == '-' && arg[1] == '-') {
-//            auto option = arg.substr(2);
-//            if (option.compare("write-dot") == 0) {
-//                shouldWriteDOT = true;
-//            }
-//            continue;
-//        }
-//        infile = arg;
-//    }
+    Tool tool;
+
+    if (toolName.compare("check-connected")) {
+        tool = Tool::CHECK_CONNECTED;
+        if (argc < 5) {
+            std::cerr << "Missing second CG\n";
+            return 1;
+        }
+    } else if (toolName.compare("write-dot")) {
+        tool = Tool::WRITE_DOT;
+    } else {
+        std::cerr << "Unknown utility tool. Available tools:\n";
+        std::cerr << "check-connected cg_a function cg_b\n";
+        std::cerr << "write-dot cg function\n";
+        return 1;
+    }
+
+    std::string targetFn = argv[3];
 
     std::cout << "Loading CG from " << infile << "\n";
 
@@ -63,28 +77,58 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    SelectorRunner runner(*cg);
-    auto selector = selector::onCallPathFrom(selector::byName(targetFn, selector::all()));
-    auto result = runner.run(*selector);
+    if (tool == Tool::WRITE_DOT) {
+        auto result = getSubtreeFunctions(*cg, targetFn);
+        std::cout << "Selected " << result.size() << " functions.\n";
 
-    std::cout << "Selected " << result.size() << " functions.\n";
+        auto filteredFunctionInfo = functionInfo;
+        erase_if(filteredFunctionInfo, [&result](const auto& entry) -> auto {
+            return std::find(result.begin(), result.end(), entry.first) == result.end();
+        });
 
-    auto filteredFunctionInfo = functionInfo;
-    erase_if(filteredFunctionInfo, [&result](const auto& entry) -> auto {
-        return std::find(result.begin(), result.end(), entry.first) == result.end();
-    });
+        auto filteredCG = createCG(filteredFunctionInfo);
 
-    auto filteredCG = createCG(filteredFunctionInfo);
+        std::cout << "Functions on CG subtree: " << filteredCG->size() << "\n";
 
-    std::cout << "Filtered CG size: " << filteredCG->size() << "\n";
-
-    std::string dotfile = "cg_" + targetFn + ".dot";
-    {
-        std::ofstream os(dotfile);
-        if (os.is_open()) {
-            writeDOT(*filteredCG, os);
+        std::string dotfile = "cg_" + targetFn + ".dot";
+        {
+            std::ofstream os(dotfile);
+            if (os.is_open()) {
+                writeDOT(*filteredCG, os);
+            }
         }
+    } else if  (tool == Tool::CHECK_CONNECTED) {
+        std::string otherCGFile = argv[4];
+
+        std::cout << "Loading CG from " << otherCGFile << "\n";
+
+        MetaCGReader reader(otherCGFile);
+        if (!reader.read()) {
+            std::cerr << "Unable to load call graph\n";
+            return 1;
+        }
+        auto otherFunctionInfo = reader.getFunctionInfo();
+        auto otherCG = createCG(functionInfo);
+
+        std::cout << "Loaded CG with " << otherCG->size() << " nodes\n";
+
+        // Determine functions in subtree starting at targetFn
+        auto subtreeFns = getSubtreeFunctions(*cg, targetFn);
+
+
+
+        // Run MPI filtering on second CG
+        SelectorRunner runner(*otherCG);
+        auto mpiSelector = selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
+        auto selector = selector::byWhiteList(subtreeFns, std::move(mpiSelector));
+        auto result = runner.run(*selector);
+
+        std::cout << "Found " << result.size() << " selected functions that are called from " << targetFn << ".\n";
+
+
     }
+
+
 
     return 0;
 }

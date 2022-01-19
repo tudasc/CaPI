@@ -62,6 +62,15 @@ public:
     }
 };
 
+class WhiteListSelector: public FilterSelector {
+    std::vector<std::string> names;
+public:
+    WhiteListSelector(SelectorPtr in, std::vector<std::string> names) : FilterSelector(std::move(in)), names(names) {
+    }
+
+    bool accept(const std::string& fName) override;
+};
+
 class NameSelector : public FilterSelector{
     std::regex nameRegex;
 public:

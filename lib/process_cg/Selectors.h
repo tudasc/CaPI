@@ -13,6 +13,10 @@ namespace selector {
         return std::make_unique<NameSelector>(std::move(in), std::move(regex));
     }
 
+    inline std::unique_ptr<WhiteListSelector> byWhiteList(std::vector<std::string> whiteList, SelectorPtr in) {
+        return std::make_unique<WhiteListSelector>(std::move(in), std::move(whiteList));
+    }
+
     inline std::unique_ptr<CallPathSelector<TraverseDir::TraverseUp>> onCallPathTo(SelectorPtr in) {
         return std::make_unique<CallPathSelector<TraverseDir::TraverseUp>>(std::move(in));
     }

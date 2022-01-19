@@ -14,6 +14,9 @@ FunctionSet SelectorRunner::run(Selector &selector) {
     return selector.apply();
 }
 
+bool WhiteListSelector::accept(const std::string &fName) {
+    return std::find(names.begin(), names.end(), fName) != names.end();
+}
 
 bool NameSelector::accept(const std::string &fName) {
     std::smatch nameMatch;
