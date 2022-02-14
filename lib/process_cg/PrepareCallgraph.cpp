@@ -68,7 +68,9 @@ int main(int argc, char** argv) {
         for (auto& f : result) {
             filter.addIncludedFunction(f);
         }
-        writeScorePFilterFile(filter, outfile);
+        if (!writeScorePFilterFile(filter, outfile)) {
+            std::cerr << "Error: Writing filter file failed.\n";
+        }
     }
 
     if (shouldWriteDOT) {
