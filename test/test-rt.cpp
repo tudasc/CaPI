@@ -9,16 +9,16 @@
 
 namespace {
     int call_depth{-1};
-    const char* exec_name{nullptr};
+    const char* exec_path{nullptr};
 }
 
 void init_verifier_rt(int argc, char** argv) {
-    exec_name = argv[0];
+    exec_path = argv[0];
 }
 
 std::string resolve_function_name(const void* fptr) {
     char command[64];
-    int n = sprintf(command, "nm %s | grep %lx | awk '{ printf \"%%s\", $3 }'", exec_name, reinterpret_cast<std::uintptr_t>(fptr));
+    int n = sprintf(command, "nm %s | grep %lx | awk '{ printf \"%%s\", $3 }'", exec_path, reinterpret_cast<std::uintptr_t>(fptr));
 
     FILE *output = popen(command, "r");
     char result[32];

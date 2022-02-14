@@ -12,6 +12,7 @@
 #include "CallGraph.h"
 #include "DOTWriter.h"
 #include "Selectors.h"
+#include "FunctionFilter.h"
 
 int main(int argc, char** argv) {
 
@@ -59,10 +60,15 @@ int main(int argc, char** argv) {
     auto outfile = infile.substr(0, infile.find_last_of('.')) + ".filt";
 
     {
-        std::ofstream os(outfile);
+//        std::ofstream os(outfile);
+//        for (auto& f : result) {
+//           os << f << "\n";
+//        }
+        FunctionFilter filter;
         for (auto& f : result) {
-           os << f << "\n";
+            filter.addIncludedFunction(f);
         }
+        writeScorePFilterFile(filter, outfile);
     }
 
     if (shouldWriteDOT) {

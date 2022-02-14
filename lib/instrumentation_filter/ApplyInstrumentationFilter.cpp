@@ -19,7 +19,7 @@ namespace {
     static llvm::RegisterPass<ApplyInstrumentationFilter> passreg("instfilter", "Read and apply instrumentation filter", false, false);
 }
 
-static cl::opt<std::string> ClFilterFile("filter-file", cl::desc("Location of instrumentation filter file"), cl::Hidden, cl::init("inst.filt"));
+static cl::opt<std::string> ClFilterFile("instrument-filter", cl::desc("Location of instrumentation filter file"), cl::Hidden, cl::init("inst.filt"));
 
 // Used by LLVM pass manager to identify passes in memory
 char ApplyInstrumentationFilter::ID = 0;
@@ -57,6 +57,7 @@ bool ApplyInstrumentationFilter::doInitialization(llvm::Module& m) {
             }
         }
 
+
         std::string line;
         while(std::getline(in, line)) {
             filterList.push_back(line);
@@ -68,8 +69,8 @@ bool ApplyInstrumentationFilter::doInitialization(llvm::Module& m) {
 
 bool markForInstrumentation(llvm::Function& f) {
     llvm::errs() << "Instrumenting function: " << f.getName() << "\n";
-    StringRef entryAttr = "instrument-function-entry";
-    StringRef exitAttr = "instrument-function-exit";
+    StringRef entryAttr = "instrument-function-entry-inlined";
+    StringRef exitAttr = "instrument-function-exit-inlined";
     if (f.hasFnAttribute(entryAttr) || f.hasFnAttribute(exitAttr)) {
         llvm::errs() << "Function is already marked for instrumentation: " << f.getName() << "\n";
         // TODO: Check if existing attribute is for GNU profiling interface

@@ -6,7 +6,7 @@
 // TODO: Testing setup
 // RUN: clang-inst++ -mllvm -metacg-file="basic.ipcg" -O2 basic.cpp -ltest-rt -o basic | ./basic
 
-#include "test-rt.h"
+//#include "test-rt.h"
 
 #include <stdio.h>
 
@@ -18,7 +18,7 @@ int foo(int x) {
 }
 
 int main(int argc, char** argv) {
-   init_test_rt(argc, argv);
+   //init_test_rt(argc, argv);
    int result = foo(argc);
    return result;
 }
