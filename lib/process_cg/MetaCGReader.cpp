@@ -67,6 +67,27 @@ bool MetaCGReader::read() {
             });
         }
 
+        auto jMeta = it.value()["meta"];
+        if (!jMeta.is_null()) {
+            auto jPointerCall = jMeta["containsPointerCall"];
+            if (jPointerCall.is_boolean()) {
+                fi.containsPointerCall = jPointerCall.template get<bool>();
+            }
+            auto jFileProps = jMeta["fileProperties"];
+            if (!jFileProps.is_null()) {
+                auto jOrigin = jFileProps["origin"];
+                auto jSystemInclude = jFileProps["systemInclude"];
+                if (jOrigin.is_string()) {
+                    fi.fileName = jOrigin.get<std::string>();
+                }
+                if (jSystemInclude.is_boolean()) {
+                    fi.definedInSystemInclude = jSystemInclude.get<bool>();
+                }
+            }
+        }
+
+
+
 //        auto jMeta = it.value()["meta"];
 //        if (!jMeta.is_null()) {
 //            auto jInstrument = jMeta["instrument"];

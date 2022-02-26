@@ -24,4 +24,30 @@ namespace selector {
     inline std::unique_ptr<CallPathSelector<TraverseDir::TraverseDown>> onCallPathFrom(SelectorPtr in) {
         return std::make_unique<CallPathSelector<TraverseDir::TraverseDown>>(std::move(in));
     }
+
+    inline std::unique_ptr<UnresolvedCallSelector> containingUnresolvedCall(SelectorPtr in) {
+        return std::make_unique<UnresolvedCallSelector>(std::move(in));
+    }
+
+    inline std::unique_ptr<SetOperationSelector<SetOperation::UNION>> join(SelectorPtr inA, SelectorPtr inB) {
+        return std::make_unique<SetOperationSelector<SetOperation::UNION>>(std::move(inA), std::move(inB));
+    }
+
+    inline std::unique_ptr<SetOperationSelector<SetOperation::INTERSECTION>> intersect(SelectorPtr inA, SelectorPtr inB) {
+        return std::make_unique<SetOperationSelector<SetOperation::INTERSECTION>>(std::move(inA), std::move(inB));
+    }
+
+    inline std::unique_ptr<SetOperationSelector<SetOperation::COMPLEMENT>> subtract(SelectorPtr inA, SelectorPtr inB) {
+        return std::make_unique<SetOperationSelector<SetOperation::COMPLEMENT>>(std::move(inA), std::move(inB));
+    }
+
+    inline std::unique_ptr<SystemIncludeSelector> inSystemInclude(SelectorPtr in) {
+        return std::make_unique<SystemIncludeSelector>(std::move(in));
+    }
+
+    inline std::unique_ptr<FilePathSelector> byPath(std::string regex, SelectorPtr in) {
+        return std::make_unique<FilePathSelector>(std::move(in), std::move(regex));
+    }
+
+
 }

@@ -19,6 +19,9 @@ struct FunctionInfo {
     std::vector<std::string> callers;
 
     bool instrument{false};
+    bool containsPointerCall{false};
+    std::string fileName;
+    bool definedInSystemInclude{false};
 };
 
 class MetaCGReader {

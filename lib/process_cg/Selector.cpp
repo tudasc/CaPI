@@ -28,6 +28,39 @@ bool NameSelector::accept(const std::string &fName) {
     return matches;
 }
 
+bool FilePathSelector::accept(const std::string &fName) {
+    if (auto node = this->cg->get(fName); node) {
+
+        std::smatch pathMatch;
+        bool matches = std::regex_match(node->getFunctionInfo().fileName, pathMatch, nameRegex);
+        return matches;
+    }
+    return false;
+}
+
+
+bool SystemIncludeSelector::accept(const std::string &fName) {
+    if (auto node = this->cg->get(fName); node) {
+        return node->getFunctionInfo().definedInSystemInclude;
+    }
+    return false;
+}
+
+FunctionSet UnresolvedCallSelector::apply() {
+    FunctionSet in = input->apply();
+    FunctionSet out;
+
+    for (auto& f : in) {
+        if (auto* node = cg->get(f); node) {
+            if (node->getFunctionInfo().containsPointerCall) {
+                out.push_back(f);
+            }
+        }
+    }
+
+    return out;
+}
+
 ///**
 // * Traverses the call chain upwards, calling the given visit function on each node.
 // * @tparam VisitFn Function that takes a CGNode& argument.

@@ -4,7 +4,8 @@ set(SOURCES CallGraph.cpp
         MetaCGReader.cpp
         DOTWriter.cpp
         Selector.cpp
-        FunctionFilter.cpp)
+        FunctionFilter.cpp
+        SelectionSpecLoader.cpp)
 
 add_executable(preparecg ${SOURCES})
 target_link_libraries(preparecg nlohmann_json::nlohmann_json)

@@ -42,12 +42,15 @@ public:
 
 class FilterSelector : public Selector {
     SelectorPtr input;
+protected:
+    CallGraph* cg;
 public:
     FilterSelector(SelectorPtr in) : input(std::move(in)) {
     }
 
     void init(CallGraph& cg) override {
         input->init(cg);
+        this->cg = &cg;
     }
 
     virtual bool accept(const std::string&) = 0;
@@ -60,6 +63,29 @@ public:
         }), in.end());
         return in;
     }
+};
+
+enum class SetOperation {
+    UNION, INTERSECTION, COMPLEMENT
+};
+
+template<SetOperation Op>
+class SetOperationSelector: public Selector {
+    SelectorPtr inputA;
+    SelectorPtr inputB;
+
+public:
+
+    SetOperationSelector(SelectorPtr inA, SelectorPtr inB) : inputA(std::move(inA)), inputB(std::move(inB)) {
+    }
+
+    void init(CallGraph& cg) override {
+        inputA->init(cg);
+        inputB->init(cg);
+    }
+
+    FunctionSet apply() override;
+
 };
 
 class WhiteListSelector: public FilterSelector {
@@ -78,6 +104,39 @@ public:
     }
 
     bool accept(const std::string& fName) override;
+};
+
+class FilePathSelector : public FilterSelector{
+    std::regex nameRegex;
+public:
+    FilePathSelector(SelectorPtr in, std::string regexStr) : FilterSelector(std::move(in)), nameRegex(regexStr) {
+    }
+
+    bool accept(const std::string& fName) override;
+};
+
+class SystemIncludeSelector : public FilterSelector{
+    std::regex nameRegex;
+public:
+    SystemIncludeSelector(SelectorPtr in) : FilterSelector(std::move(in))  {
+    }
+
+    bool accept(const std::string& fName) override;
+};
+
+class UnresolvedCallSelector : public Selector {
+    SelectorPtr input;
+    CallGraph* cg;
+public:
+    explicit UnresolvedCallSelector(SelectorPtr in) : input(std::move(in)) {
+    }
+
+    void init(CallGraph& cg) override {
+        input->init(cg);
+        this->cg = &cg;
+    }
+
+    FunctionSet apply() override;
 };
 
 enum class TraverseDir {
@@ -161,6 +220,35 @@ FunctionSet CallPathSelector<Dir>::apply() {
         }
     }
     return out;
+}
+
+template<SetOperation Op>
+FunctionSet SetOperationSelector<Op>::apply() {
+    static_assert(Op == SetOperation::UNION || Op == SetOperation::INTERSECTION || Op == SetOperation::COMPLEMENT);
+
+    FunctionSet inA = inputA->apply();
+    FunctionSet inB = inputB->apply();
+
+    FunctionSet out;
+
+    if constexpr(Op == SetOperation::UNION) {
+        out.insert(out.end(), inA.begin(), inA.end());
+        out.insert(out.end(), inB.begin(), inB.end());
+    } else if constexpr(Op == SetOperation::INTERSECTION) {
+        for (auto& fA : inA) {
+            if (std::find(inB.begin(), inB.end(), fA) != inB.end()) {
+                out.push_back(fA);
+            }
+        }
+    } else if constexpr(Op == SetOperation::COMPLEMENT) {
+        for (auto& fA : inA) {
+            if (std::find(inB.begin(), inB.end(), fA) == inB.end()) {
+                out.push_back(fA);
+            }
+        }
+    }
+    return out;
+
 }
 
 class SelectorRunner {
