@@ -2,8 +2,8 @@
 // Created by sebastian on 28.10.21.
 //
 
-#ifndef INSTCONTROL_CALLGRAPH_H
-#define INSTCONTROL_CALLGRAPH_H
+#ifndef CAPI_CALLGRAPH_H
+#define CAPI_CALLGRAPH_H
 
 
 #include <string>
@@ -129,4 +129,4 @@ public:
 std::unique_ptr<CallGraph> createCG(FInfoMap& fInfoMap);
 
 
-#endif //INSTCONTROL_CALLGRAPH_H
+#endif //CAPI_CALLGRAPH_H

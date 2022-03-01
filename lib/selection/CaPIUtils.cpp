@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
         // Run MPI filtering on first CG
         SelectorRunner runner(*cg);
         auto mpiSelector = selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
-        auto selector = selector::byWhiteList(subtreeFns, std::move(mpiSelector));
+        auto selector = selector::byIncludeList(subtreeFns, std::move(mpiSelector));
         auto result = runner.run(*selector);
 
         std::cout << "Found " << result.size() << " selected functions that are called from " << targetFn << ".\n";

@@ -2,8 +2,8 @@
 // Created by sebastian on 14.10.21.
 //
 
-#ifndef INSTCONTROL_READMETACG_H
-#define INSTCONTROL_READMETACG_H
+#ifndef CAPI_READMETACG_H
+#define CAPI_READMETACG_H
 
 #include "llvm/Pass.h"
 #include "MetaCGReader.h"
@@ -32,4 +32,4 @@ private:
 };
 
 
-#endif //INSTCONTROL_READMETACG_H
+#endif //CAPI_READMETACG_H

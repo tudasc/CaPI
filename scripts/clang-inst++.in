@@ -10,14 +10,7 @@ for arg in "$@" ; do
     esac
 done
 
-
-#if [ $linking == yes ] ; then
-#    LDFLAGS="-L@CMAKE_INSTALL_PREFIX@/lib/ \
-#             -Wl,-rpath,@INSTCONTROL_LIB_DIR@/lib/ \
-#             -ltypeart-rt"
-#fi
-
 @LLVM_TOOLS_BINARY_DIR@/clang++ \
-    -Xclang -load -Xclang @INSTCONTROL_LIB_DIR@/instrumentation_filter/instfilter.so \
+    -Xclang -load -Xclang @CAPI_LIB_DIR@/instrumentation_filter/instfilter.so \
 	$LDFLAGS \
 	$@

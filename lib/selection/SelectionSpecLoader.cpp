@@ -33,7 +33,7 @@ SelectorPtr parseSelector(json& j) {
             return nullptr;
         }
         auto regex = jRegex.get<std::string>();
-        auto jInput = j["selector"];
+        auto jInput = j["input"];
         if (jInput.is_null()) {
             std::cerr << "Selector expects input field\n";
             return nullptr;

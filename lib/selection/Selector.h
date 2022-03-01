@@ -2,8 +2,8 @@
 // Created by sebastian on 28.10.21.
 //
 
-#ifndef INSTCONTROL_SELECTOR_H
-#define INSTCONTROL_SELECTOR_H
+#ifndef CAPI_SELECTOR_H
+#define CAPI_SELECTOR_H
 
 #include <regex>
 #include <iostream>
@@ -88,10 +88,19 @@ public:
 
 };
 
-class WhiteListSelector: public FilterSelector {
+class IncludeListSelector: public FilterSelector {
     std::vector<std::string> names;
 public:
-    WhiteListSelector(SelectorPtr in, std::vector<std::string> names) : FilterSelector(std::move(in)), names(names) {
+    IncludeListSelector(SelectorPtr in, std::vector<std::string> names) : FilterSelector(std::move(in)), names(names) {
+    }
+
+    bool accept(const std::string& fName) override;
+};
+
+class ExcludeListSelector: public FilterSelector {
+    std::vector<std::string> names;
+public:
+    ExcludeListSelector(SelectorPtr in, std::vector<std::string> names) : FilterSelector(std::move(in)), names(names) {
     }
 
     bool accept(const std::string& fName) override;
@@ -262,4 +271,4 @@ public:
 };
 
 
-#endif //INSTCONTROL_SELECTOR_H
+#endif //CAPI_SELECTOR_H

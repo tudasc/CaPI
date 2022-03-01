@@ -1,6 +1,6 @@
 
 set(PASS_SOURCES
-        process_cg/SelectionSpecLoader.cpp
+        selection/SelectionSpecLoader.cpp
         ReadMetaCG.cpp
         MetaCGReader.cpp)
 
@@ -23,6 +23,5 @@ install(
 )
 
 add_subdirectory(instrumentation_filter)
-add_subdirectory(process_cg)
+add_subdirectory(selection)
 add_subdirectory(calltree_verifier)
-add_subdirectory(scorep_helper)

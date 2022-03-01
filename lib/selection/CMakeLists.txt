@@ -1,19 +1,19 @@
 
 set(SOURCES CallGraph.cpp
-        PrepareCallgraph.cpp
+        CaPI.cpp
         MetaCGReader.cpp
         DOTWriter.cpp
         Selector.cpp
         FunctionFilter.cpp
         SelectionSpecLoader.cpp)
 
-add_executable(preparecg ${SOURCES})
-target_link_libraries(preparecg nlohmann_json::nlohmann_json)
+add_executable(capi ${SOURCES})
+target_link_libraries(capi nlohmann_json::nlohmann_json)
 
 set(UTILS_SOURCES CallGraph.cpp
         MetaCGReader.cpp
         DOTWriter.cpp
         Selector.cpp
-        CGUtils.cpp)
+        CaPIUtils.cpp)
 add_executable(cgutils ${UTILS_SOURCES})
 target_link_libraries(cgutils nlohmann_json::nlohmann_json)

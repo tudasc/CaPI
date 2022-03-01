@@ -10,8 +10,8 @@ macro(make_executable input output)
 endmacro()
 
 function(configure_script input output)
-    set(INSTCONTROL_BIN_DIR ${CMAKE_BINARY_DIR})
-    set(INSTCONTROL_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
+    set(CAPI_BIN_DIR ${CMAKE_BINARY_DIR})
+    set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
     # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
     make_executable(${input} ${output})

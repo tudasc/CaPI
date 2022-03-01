@@ -2,11 +2,10 @@
 // Created by sebastian on 14.10.21.
 //
 
-#ifndef INSTCONTROL_METACGREADER_H
-#define INSTCONTROL_METACGREADER_H
+#ifndef CAPI_METACGREADER_H
+#define CAPI_METACGREADER_H
 
-//#include "llvm/ADT/DenseMap.h"
-//#include "llvm/ADT/StringMap.h"
+
 
 #include <unordered_map>
 #include <string>
@@ -46,4 +45,4 @@ private:
 };
 
 
-#endif //INSTCONTROL_METACGREADER_H
+#endif //CAPI_METACGREADER_H

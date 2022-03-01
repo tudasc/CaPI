@@ -86,19 +86,6 @@ bool MetaCGReader::read() {
             }
         }
 
-
-
-//        auto jMeta = it.value()["meta"];
-//        if (!jMeta.is_null()) {
-//            auto jInstrument = jMeta["instrument"];
-//            if (jInstrument.is_boolean()) {
-//                fi.instrument = jInstrument.get<bool>();
-//            } else {
-//                llvm::outs() << "Instrumentation not specified for function " << it.key() << ": not instrumenting.\n";
-//            }
-//        } else {
-//            llvm::outs() << "No metadata for function " << it.key() << ": not instrumenting.\n";
-//        }
     }
     return true;
 }

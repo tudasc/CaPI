@@ -2,8 +2,8 @@
 // Created by sebastian on 15.10.21.
 //
 
-#ifndef INSTCONTROL_TEST_RT_H
-#define INSTCONTROL_TEST_RT_H
+#ifndef CAPI_TEST_RT_H
+#define CAPI_TEST_RT_H
 
 #include <fstream>
 #include <string>
@@ -58,4 +58,4 @@ public:
     void onFunctionExit(void* fn, void* caller, int callDepth);
 };
 
-#endif //INSTCONTROL_TEST_RT_H
+#endif //CAPI_TEST_RT_H

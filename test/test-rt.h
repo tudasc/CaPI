@@ -2,9 +2,9 @@
 // Created by sebastian on 15.10.21.
 //
 
-#ifndef INSTCONTROL_TEST_RT_H
-#define INSTCONTROL_TEST_RT_H
+#ifndef CAPI_TEST_RT_H
+#define CAPI_TEST_RT_H
 
 void init_verifier_rt(int argc, char** argv);
 
-#endif //INSTCONTROL_TEST_RT_H
+#endif //CAPI_TEST_RT_H
