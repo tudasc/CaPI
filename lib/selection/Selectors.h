@@ -53,5 +53,9 @@ namespace selector {
         return std::make_unique<FilePathSelector>(std::move(in), std::move(regex));
     }
 
+    inline std::unique_ptr<InlineSelector> inlineSpecified(SelectorPtr in) {
+        return std::make_unique<InlineSelector>(std::move(in));
+    }
+
 
 }

@@ -21,6 +21,7 @@ struct FunctionInfo {
     bool containsPointerCall{false};
     std::string fileName;
     bool definedInSystemInclude{false};
+    bool isInlined{false};
 };
 
 class MetaCGReader {

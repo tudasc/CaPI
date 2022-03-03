@@ -97,7 +97,8 @@ int main(int argc, char** argv) {
                 selector = selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
             case SelectionPreset::OPENFOAM_MPI:
                 selector = selector::subtract(selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
-                                              selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()));
+                                              selector::join(selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
+                                                             selector::inlineSpecified(selector::all())));
             default:
                 assert(false && "Preset not implemented");
         }

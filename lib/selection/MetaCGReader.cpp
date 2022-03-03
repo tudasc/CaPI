@@ -84,6 +84,10 @@ bool MetaCGReader::read() {
                     fi.definedInSystemInclude = jSystemInclude.get<bool>();
                 }
             }
+            auto jInlined = jMeta["inlineSpecified"];
+            if (jInlined.is_boolean()) {
+                fi.isInlined = jInlined.get<bool>();
+            }
         }
 
     }

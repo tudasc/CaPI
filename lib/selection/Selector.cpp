@@ -32,6 +32,14 @@ bool NameSelector::accept(const std::string &fName) {
     return matches;
 }
 
+bool InlineSelector::accept(const std::string &fName) {
+    if (auto node = this->cg->get(fName); node) {
+        return node->getFunctionInfo().isInlined;
+    }
+    return false;
+}
+
+
 bool FilePathSelector::accept(const std::string &fName) {
     if (auto node = this->cg->get(fName); node) {
 

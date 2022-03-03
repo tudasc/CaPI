@@ -115,6 +115,14 @@ public:
     bool accept(const std::string& fName) override;
 };
 
+class InlineSelector : public FilterSelector {
+public:
+    InlineSelector(SelectorPtr in) : FilterSelector(std::move(in)) {
+    }
+
+    bool accept(const std::string& fName) override;
+};
+
 class FilePathSelector : public FilterSelector{
     std::regex nameRegex;
 public:
