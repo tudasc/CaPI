@@ -1,4 +1,4 @@
-# CaPI: Compiler-assisted Program Instrumentation
+# CaPI: Compiler-assisted Performance Instrumentation
 
 Selective instrumentation tool based on InstRO.
 
