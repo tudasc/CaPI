@@ -1,0 +1,6 @@
+spec := selectorDec | spec selectorDecl
+selectorDecl := selectorName '=' selectorDef | selectorDef
+selectorDef := '%' selectorName | selectorType '(' params ')'
+selectorType := onCallPathTo | inlineSpecified | byName | byPath | join | ...
+params := param | params ',' param
+param := string | int | float | bool | '%' selectorName

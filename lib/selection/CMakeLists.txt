@@ -5,7 +5,8 @@ set(SOURCES CallGraph.cpp
         DOTWriter.cpp
         Selector.cpp
         FunctionFilter.cpp
-        SelectionSpecLoader.cpp)
+        SelectionSpecLoader.cpp
+        SpecParser.cpp)
 
 add_executable(capi ${SOURCES})
 target_link_libraries(capi nlohmann_json::nlohmann_json)
