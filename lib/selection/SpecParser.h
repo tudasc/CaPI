@@ -9,6 +9,12 @@
 #include <sstream>
 #include <optional>
 #include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+#include "SelectionSpecAST.h"
+#include "Utils.h"
 
 namespace capi {
 
@@ -22,28 +28,35 @@ public:
 */
 
 
+
+
+
 class CharReader {
   std::string input;
   int pos;
+  std::vector<int> markers;
 public:
   explicit CharReader(std::string input) : input(std::move(input)) {
     pos = 0;
   }
 
-  bool eof() const {
-    return pos == input.size();
+  std::string getInput() const {
+    return input;
   }
 
-  char get() {
+  int getPos() const {
+    return pos;
+  }
+
+  bool eof() const {
+    return pos >= input.size();
+  }
+
+  char consume() {
     if (eof()) {
       return 0;
     }
     return input[pos++];
-  }
-
-  void consume() {
-    if (pos < input.size())
-      pos++;
   }
 
   char next() {
@@ -51,15 +64,36 @@ public:
     return peek();
   }
 
-
   char peek(unsigned i = 0) {
     return pos + i < input.size() ? input[pos+i] : 0;
+  }
+
+  void pushMarker() {
+    markers.push_back(pos);
+  }
+
+  void discardMarker() {
+    if (markers.empty()) {
+      std::cerr << "Cannot discard marker: no markers saved.\n";
+    }
+    markers.pop_back();
+  }
+
+  bool backtrack() {
+    if (markers.empty()) {
+      std::cerr << "Cannot backtrack: no markers saved.\n";
+      return false;
+    }
+    pos = markers.back();
+    markers.pop_back();
+    return true;
   }
 };
 
 struct Token {
   enum Kind {
-    UNKNOWN, END_OF_FILE, IDENTIFIER, LITERAL, INT, FLOAT, BOOL, LEFT_PARAN, RIGHT_PARAN, PERCENT, EQUALS, COMMA
+    UNKNOWN, END_OF_FILE, IDENTIFIER, STR_LITERAL, INT_LITERAL, FLOAT_LITERAL,
+    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA
   };
 
   Token(Kind kind, std::string spelling) : kind(kind), spelling(spelling){
@@ -67,10 +101,10 @@ struct Token {
 
   explicit Token(Kind kind) : kind(kind) {
     switch(kind) {
-      case LEFT_PARAN:
+      case LEFT_PAREN:
         spelling = '(';
         break;
-      case RIGHT_PARAN:
+      case RIGHT_PAREN:
         spelling = ')';
         break;
       case PERCENT:
@@ -110,6 +144,11 @@ struct LexResult {
     return &token.value();
   }
 
+  Token get() {
+    return token.value();
+  }
+
+
   std::optional<Token> token{};
   std::string msg;
 };
@@ -128,24 +167,30 @@ public:
     return reader.eof();
   }
 
-  LexResult next() {
-    char c = reader.peek();
+  std::string getInput() const {
+    return reader.getInput();
+  }
 
-    if (c == '-' || std::isdigit(c)) {
-      return parseNumber();
-    }
+  int getPos() const {
+    return reader.getPos();
+  }
+
+  LexResult next() {
+    skipWhitespace();
+
+    char c = reader.peek();
 
     switch(c) {
       case '\0':
         return Token(Token::END_OF_FILE);
       case QUOTE_CHAR:
-        return parseLiteral();
+        return parseStringLiteral();
       case '(':
         reader.consume();
-        return Token(Token::LEFT_PARAN);
+        return Token(Token::LEFT_PAREN);
       case ')':
         reader.consume();
-        return Token(Token::RIGHT_PARAN);
+        return Token(Token::RIGHT_PAREN);
       case '%':
         reader.consume();
         return Token(Token::PERCENT);
@@ -159,9 +204,25 @@ public:
         break;
     }
 
-    if (isalpha(c)) {
-      return parseIdentifier();
+
+    if (c == '-' || std::isdigit(c)) {
+      return parseNumber();
     }
+
+    if (isalpha(c)) {
+      auto id = parseIdentifier();
+      if (!id) {
+        return {"Unable to parse identifier"};
+      }
+      if (id->spelling == "true") {
+        return Token(Token::BOOL_LITERAL, "true");
+      }
+      if (id->spelling == "false") {
+        return Token(Token::BOOL_LITERAL, "false");
+      }
+      return id;
+    }
+
 
     std::string errMsg = "Encountered unexpected character: ";
     errMsg += c;
@@ -185,12 +246,12 @@ public:
     identifier << c;
 
     c = reader.next();
-    while (isalpha(c) || c == '_') {
+    while (isalpha(c) || isdigit(c) || c == '_') {
       identifier << c;
       c = reader.next();
     }
 
-    return Token(Token::LITERAL, identifier.str());
+    return Token(Token::IDENTIFIER, identifier.str());
   }
 
   LexResult parseNumber() {
@@ -209,14 +270,14 @@ public:
       c = reader.next();
     }
 
-    return Token(isFloat ? Token::FLOAT : Token::INT, numberStr.str());
+    return Token(isFloat ? Token::FLOAT_LITERAL : Token::INT_LITERAL, numberStr.str());
 
   }
 
 
-  LexResult parseLiteral() {
+  LexResult parseStringLiteral() {
     std::stringstream literal;
-    char c = reader.get();
+    char c = reader.consume();
     if (c != QUOTE_CHAR) {
       return {"Expected literal"};
     }
@@ -224,9 +285,9 @@ public:
     do {
       if (reader.eof())
         return {"Unexpected end"};
-      c = reader.get();
+      c = reader.consume();
       if (c == '\\') {
-        c = reader.get();
+        c = reader.consume();
         switch(c) {
           case '\\':
             literal << '\\';
@@ -235,7 +296,7 @@ public:
             literal << QUOTE_CHAR;
             break;
           default:
-            return {"Escape char \\ must be followed by \\ or \""};
+            return {R"(Escape char \ must be followed by \ or ")"};
         }
       }
       if (c == QUOTE_CHAR) {
@@ -244,19 +305,45 @@ public:
         literal << c;
       }
     } while(!done);
-    return Token(Token::LITERAL, literal.str());
+    return Token(Token::STR_LITERAL, literal.str());
+  }
+
+  void pushMarker() {
+    reader.pushMarker();
+  }
+
+  void discardMarker() {
+    reader.discardMarker();
+  }
+
+  bool backtrack() {
+    return reader.backtrack();
   }
 
 
 };
 
-class SpecNode {
+inline void printErrorMessage(std::string msg) {
+  std::cerr << "[Error] " << msg << "\n";
+}
 
-  enum Kind {
-    SPEC, SELECTOR_DECL, SELECTOR_DEF,
-  };
+inline void printErrorPosition(std::string input, int pos) {
+  std::cerr << "[Error] " << input << "\n[Error] ";
+  for (int i = 0; i < pos; ++i) {
+    std::cerr << " ";
+  }
+  std::cerr << "^\n";
+}
 
-};
+inline void printErrorMessageExpected(int pos, std::string input, std::string expected) {
+  std::cerr << "[Error] At index " << pos << ": Expected " << expected << ".\n";
+  printErrorPosition(input, pos);
+}
+
+inline void printErrorMessageExpected(int pos, std::string input, std::string expected, std::string actual) {
+  std::cerr << "[Error] At index " << pos << ": Expected " << expected << ", got " << actual << " instead.\n";
+  printErrorPosition(input, pos);
+}
 
 class SpecParser
 {
@@ -269,33 +356,172 @@ public:
     return lexer.eof();
   }
 
-  void parse() {
+  ASTPtr parse() {
+    std::vector<DeclPtr> decls;
     do {
-      lexer.skipWhitespace();
-      parseSelectorDecl();
-      lexer.skipWhitespace();
-    } while(eof());
+      auto decl = parseSelectorDecl();
+      if (decl) {
+        decls.emplace_back(std::move(decl));
+      } else {
+        printErrorMessage("Parsing failed.");
+        return nullptr;
+      }
+    } while(!eof());
+    return std::make_unique<SpecAST>(std::move(decls));
+  }
+
+protected:
+
+  NodePtr parseParam() {
+
+    // BNF: param := string | int | float | bool | selectorRef | selectorDef
+
+    lexer.pushMarker();
+
+    auto nextToken = lexer.next();
+    if (!nextToken) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector parameter");
+      return {};
+    }
+
+    switch(nextToken->kind) {
+    case Token::STR_LITERAL:
+      lexer.discardMarker();
+      return std::make_unique<StringLiteral>(nextToken->spelling);
+    case Token::INT_LITERAL:
+      lexer.discardMarker();
+      return IntLiteral::fromString(nextToken->spelling);
+    case Token::FLOAT_LITERAL:
+      lexer.discardMarker();
+      return FloatLiteral::fromString(nextToken->spelling);
+    case Token::BOOL_LITERAL:
+      lexer.discardMarker();
+      return BoolLiteral::fromString(nextToken->spelling);
+    case Token::IDENTIFIER:
+      // Go back to the last token
+      lexer.backtrack();
+      return parseSelectorDef();
+    case Token::PERCENT:
+    {
+      lexer.discardMarker();
+      auto idToken = lexer.next();
+      if (!idToken) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier");
+        return {};
+      }
+      if (idToken->kind != Token::IDENTIFIER && idToken->kind != Token::PERCENT) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier", idToken->spelling);
+        return {};
+      }
+      return std::make_unique<SelectorRef>(idToken->spelling);
+    }
+    default:
+      break;
+    }
+
+    printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector parameter", nextToken->spelling);
+    return {};
+  }
+
+  DefPtr parseSelectorDef() {
+
+    // BNF: selectorDef := selectorType '(' params ')' | selectorType '(' ')'
+    //      params := param | params ',' param
+
+    auto selectorToken = lexer.next();
+    if (!selectorToken) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier");
+      return {};
+    }
+    if (selectorToken->kind != Token::IDENTIFIER) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "an identifier", selectorToken->spelling);
+      return {};
+    }
+    auto leftParen = lexer.next();
+    if (!leftParen) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "'('");
+      return {};
+    }
+    if (leftParen->kind != Token::LEFT_PAREN) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "'('", leftParen->spelling);
+      return {};
+    }
+
+    lexer.pushMarker();
+    auto nextToken = lexer.next();
+    if (!nextToken) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "selector parameters or ')'");
+      return {};
+    }
+    SelectorDef::Params params;
+    if (nextToken->kind != nextToken->RIGHT_PAREN) {
+      // Backtrack so that the next token is the start of the first argument
+      lexer.backtrack();
+      do {
+        auto arg = parseParam();
+        if (!arg) {
+          printErrorMessage("Could not parse selector parameter.");
+          return {};
+        }
+        params.emplace_back(std::move(arg));
+        nextToken = lexer.next();
+        if (!nextToken) {
+          printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "',' or ')'");
+          return {};
+        }
+      } while (nextToken->kind == Token::COMMA);
+
+      // Make sure that the last token was ')'
+      if (nextToken->kind != nextToken->RIGHT_PAREN) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "')'", nextToken->spelling);
+        return {};
+      }
+    } else {
+      lexer.discardMarker();
+    }
+
+    return std::make_unique<SelectorDef>(selectorToken->spelling, std::move(params));
   }
 
 
 
-  void parseSelectorDecl() {
+  DeclPtr parseSelectorDecl() {
+
+    // BNF: selectorDecl := selectorName '=' selectorDef | selectorDef
+
+    lexer.pushMarker();
+
     auto t1 = lexer.next();
     if (!t1) {
-      std::cerr << "Expected selector declaration\n";
-      return;
+      std::cerr << "Expected selector declaration.\n";
+      return nullptr;
     }
     auto t2 = lexer.next();
     if (!t2) {
-      std::cerr << "Expected '=' or selector definition\n";
+      std::cerr << "Expected '=' or selector definition.\n";
+      return nullptr;
     }
+
+    std::string selectorId = "";
+
     if (t2->kind==Token::EQUALS) {
-      // TODO: Parse definition
+      // Name is in t1
+      lexer.discardMarker();
+      if (t1->kind != Token::IDENTIFIER) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "an identifier", t1->spelling);
+      }
+      selectorId = t1->spelling;
+    } else {
+      // Selector is not named -> backtrack to start
+      lexer.backtrack();
     }
-  }
 
-  void parseSelectorDef() {
-
+    auto def = parseSelectorDef();
+    if (!def) {
+      std::cerr << "Failed to parse selector definition.\n";
+      return nullptr;
+    }
+    return  std::make_unique<SelectorDecl>(std::move(selectorId), std::move(def));
   }
 
 

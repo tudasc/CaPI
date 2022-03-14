@@ -7,7 +7,6 @@
 
 #include "CallGraph.h"
 
-bool writeDOT(const CallGraph& cg, std::ostream& out);
+bool writeDOT(const CallGraph &cg, std::ostream &out);
 
-
-#endif //CAPI_CGTRAITS_H
+#endif // CAPI_CGTRAITS_H

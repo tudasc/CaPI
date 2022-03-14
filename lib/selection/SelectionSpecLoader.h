@@ -5,21 +5,18 @@
 #ifndef CAPI_CONFIGLOADER_H
 #define CAPI_CONFIGLOADER_H
 
-#include <string>
 #include "Selector.h"
 #include "nlohmann/json.hpp"
+#include <string>
 using json = nlohmann::json;
 
 class SelectionSpecLoader {
-    std::string filename;
+  std::string filename;
+
 public:
-    SelectionSpecLoader(const std::string& filename);
+  SelectionSpecLoader(const std::string &filename);
 
-    SelectorPtr buildSelector();
-
+  SelectorPtr buildSelector();
 };
 
-
-
-
-#endif //CAPI_CONFIGLOADER_H
+#endif // CAPI_CONFIGLOADER_H

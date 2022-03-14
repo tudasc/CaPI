@@ -5,128 +5,107 @@
 #ifndef CAPI_CALLGRAPH_H
 #define CAPI_CALLGRAPH_H
 
-
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <memory>
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "MetaCGReader.h"
 
 using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
 
-template<typename T>
-struct IterRange {
-    IterRange(T begin, T end) : beginIt(begin), endIt(end) {
-    }
-    T begin() {
-        return beginIt;
-    }
-    T end() {
-        return endIt;
-    }
+template <typename T> struct IterRange {
+  IterRange(T begin, T end) : beginIt(begin), endIt(end) {}
+  T begin() { return beginIt; }
+  T end() { return endIt; }
+
 private:
-    T beginIt, endIt;
+  T beginIt, endIt;
 };
 
 class CGNode {
-    std::string name;
-    std::vector<CGNode*> callers;
+  std::string name;
+  std::vector<CGNode *> callers;
 
-    std::vector<CGNode*> callees;
-    FunctionInfo info;
+  std::vector<CGNode *> callees;
+  FunctionInfo info;
 
 public:
-    CGNode(std::string name): name(name) {
-    }
+  CGNode(std::string name) : name(name) {}
 
-    void setFunctionInfo(FunctionInfo fi) {
-        this->info = fi;
-    }
+  void setFunctionInfo(FunctionInfo fi) { this->info = fi; }
 
-    FunctionInfo& getFunctionInfo() {
-        return info;
-    }
+  FunctionInfo &getFunctionInfo() { return info; }
 
-    const std::string& getName() const {
-        return name;
-    }
+  const std::string &getName() const { return name; }
 
-    void addCallee(CGNode* callee) {
-        callees.push_back(callee);
-    }
+  void addCallee(CGNode *callee) { callees.push_back(callee); }
 
-    void removeCallee(CGNode* callee) {
-        callees.erase(std::remove(callees.begin(), callees.end(), callee), callees.end());
-    }
+  void removeCallee(CGNode *callee) {
+    callees.erase(std::remove(callees.begin(), callees.end(), callee),
+                  callees.end());
+  }
 
-    void addCaller(CGNode* caller) {
-        callers.push_back(caller);
-    }
+  void addCaller(CGNode *caller) { callers.push_back(caller); }
 
-    void removeCaller(CGNode* caller) {
-        callers.erase(std::remove(callers.begin(), callers.end(), caller), callers.end());
-    }
+  void removeCaller(CGNode *caller) {
+    callers.erase(std::remove(callers.begin(), callers.end(), caller),
+                  callers.end());
+  }
 
-    IterRange<decltype(callees.begin())> getCallees() {
-        return IterRange(callees.begin(), callees.end());
-    }
+  IterRange<decltype(callees.begin())> getCallees() {
+    return IterRange(callees.begin(), callees.end());
+  }
 
-    IterRange<decltype(callers.begin())> getCallers() {
-        return IterRange(callers.begin(), callers.end());
-    }
+  IterRange<decltype(callers.begin())> getCallers() {
+    return IterRange(callers.begin(), callers.end());
+  }
 
-    IterRange<decltype(callees.cbegin())> getCallees() const {
-        return IterRange(callees.cbegin(), callees.cend());
-    }
+  IterRange<decltype(callees.cbegin())> getCallees() const {
+    return IterRange(callees.cbegin(), callees.cend());
+  }
 
-    IterRange<decltype(callers.cbegin())> getCallers() const {
-        return IterRange(callers.cbegin(), callers.cend());
-    }
+  IterRange<decltype(callers.cbegin())> getCallers() const {
+    return IterRange(callers.cbegin(), callers.cend());
+  }
 };
-
-
 
 class CallGraph {
 
-    std::vector<std::unique_ptr<CGNode>> nodes;
-    std::unordered_map<std::string, size_t> nodeMap;
+  std::vector<std::unique_ptr<CGNode>> nodes;
+  std::unordered_map<std::string, size_t> nodeMap;
 
 public:
-    CallGraph() = default;
+  CallGraph() = default;
 
-    CallGraph(const CallGraph*) = delete;
-    CallGraph& operator=(const CallGraph&) = delete;
+  CallGraph(const CallGraph *) = delete;
+  CallGraph &operator=(const CallGraph &) = delete;
 
-    CallGraph(CallGraph&&) = default;
-    CallGraph& operator=(CallGraph&&) = default;
+  CallGraph(CallGraph &&) = default;
+  CallGraph &operator=(CallGraph &&) = default;
 
-    ~CallGraph() = default;
+  ~CallGraph() = default;
 
-    size_t size() const {
-        return nodes.size();
-    }
+  size_t size() const { return nodes.size(); }
 
-    CGNode& getOrCreate(const std::string& name);
-    CGNode* get(const std::string& name);
+  CGNode &getOrCreate(const std::string &name);
+  CGNode *get(const std::string &name);
 
-//    bool deleteNode(const std::string& name);
+  //    bool deleteNode(const std::string& name);
 
-    void addCallee(CGNode& parent, CGNode& child);
-    void removeCallee(CGNode& parent, CGNode& child);
+  void addCallee(CGNode &parent, CGNode &child);
+  void removeCallee(CGNode &parent, CGNode &child);
 
-    IterRange<decltype(nodes.begin())> getNodes() {
-        return IterRange(nodes.begin(), nodes.end());
-    }
+  IterRange<decltype(nodes.begin())> getNodes() {
+    return IterRange(nodes.begin(), nodes.end());
+  }
 
-    IterRange<decltype(nodes.cbegin())> getNodes() const {
-        return IterRange(nodes.cbegin(), nodes.cend());
-    }
-
+  IterRange<decltype(nodes.cbegin())> getNodes() const {
+    return IterRange(nodes.cbegin(), nodes.cend());
+  }
 };
 
-std::unique_ptr<CallGraph> createCG(FInfoMap& fInfoMap);
+std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap);
 
-
-#endif //CAPI_CALLGRAPH_H
+#endif // CAPI_CALLGRAPH_H

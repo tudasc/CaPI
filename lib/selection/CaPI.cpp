@@ -4,151 +4,211 @@
 
 #include "CaPI.h"
 
-#include <string>
-#include <map>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <map>
+#include <string>
 
-#include "MetaCGReader.h"
 #include "CallGraph.h"
 #include "DOTWriter.h"
-#include "Selectors.h"
 #include "FunctionFilter.h"
+#include "MetaCGReader.h"
 #include "SelectionSpecLoader.h"
+#include "Selectors.h"
+#include "SpecParser.h"
+
+using namespace capi;
+
+namespace {
 
 void printHelp() {
-    std::cout << "Usage: capi [options] cg_file\n";
-    std::cout << "Options:\n";
-    std::cout << " -p <preset>  Use a selection preset, where <preset> is one of 'MPI','FOAM'.}\n";
-    std::cout << " -f <file>    Use a selection spec file.\n";
-    std::cout << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
+  std::cout << "Usage: capi [options] cg_file\n";
+  std::cout << "Options:\n";
+  std::cout
+      << " -p <preset>    Use a selection preset, where <preset> is one of "
+         "'MPI','FOAM'.}\n";
+  std::cout << " -f <file>      Use a selection spec file.\n";
+  std::cout
+      << " -i <specstr>   Parse the selection spec from the given string.\n";
+  std::cout
+      << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
 }
 
+enum class InputMode { PRESET, FILE, STRING };
 
 enum class SelectionPreset {
-    MPI, OPENFOAM_MPI,
+  MPI,
+  OPENFOAM_MPI,
 };
 
 namespace {
-    std::map<std::string, SelectionPreset> presetNames = {{"MPI", SelectionPreset::MPI}, {"FOAM", SelectionPreset::OPENFOAM_MPI}};
+std::map<std::string, SelectionPreset> presetNames = {
+    {"MPI", SelectionPreset::MPI}, {"FOAM", SelectionPreset::OPENFOAM_MPI}};
+}
+
+SelectorPtr loadFromFile(std::string_view filename) {
+  if (filename.empty()) {
+    std::cerr << "Need to specify either a preset or pass a selection file.\n";
+    printHelp();
+    return nullptr;
+  }
+
+  return nullptr;
+}
+
+SelectorPtr parseSelectionSpec(std::string specStr) {
+    SpecParser parser(specStr);
+    auto ast = parser.parse();
+    std::cout << "AST for " << specStr << ":\n";
+    ast->dump(std::cout);
+    std::cout << "\n";
+    return nullptr;
+}
+
+SelectorPtr getPreset(SelectionPreset preset) {
+  switch (preset) {
+  case SelectionPreset::MPI:
+    return selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
+  case SelectionPreset::OPENFOAM_MPI:
+    return selector::subtract(
+        selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
+        selector::join(
+            selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
+            selector::inlineSpecified(selector::all())));
+  default:
+    assert(false && "Preset not implemented");
+  }
+  return nullptr;
+}
+
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
-    if (argc < 3) {
-        std::cerr << "Missing input file argument\n";
-        return 1;
-    }
+  if (argc < 3) {
+    std::cerr << "Missing input arguments.\n";
+    printHelp();
+    return 1;
+  }
 
-    bool shouldWriteDOT{false};
-    std::string cgfile, specfile;
-    SelectionPreset preset;
-    bool usePreset{false};
+  bool shouldWriteDOT{false};
+  std::string cgfile, specfile;
+  std::string specStr;
+  SelectionPreset preset;
 
-    for (int i = 1; i < argc; i++) {
-        std::string arg = argv[i];
-        if (arg.length() > 1 && arg[0] == '-') {
-            if (arg.length() > 2 && arg[1] == '-') {
-                auto option = arg.substr(2);
-                if (option.compare("write-dot") == 0) {
-                    shouldWriteDOT = true;
-                }
-            } else {
-                auto option = arg.substr(1);
-                if (option.compare("p") == 0) {
-                    if (++i >= argc) {
-                        std::cerr << "Need to pass a selection preset after -p\n";
-                        printHelp();
-                        return EXIT_FAILURE;
-                    }
-                    auto presetStr = argv[i];
-                    if (auto it = presetNames.find(presetStr); it != presetNames.end()) {
-                        usePreset = true;
-                        preset = it->second;
-                    }
+  InputMode mode = InputMode::FILE;
 
-                } else if (option.compare("f") == 0) {
-                    if (++i >= argc) {
-                        std::cerr << "Need to pass a selection spec file after -f\n";
-                        printHelp();
-                        return EXIT_FAILURE;
-                    }
-                    specfile = argv[i];
-                }
-            }
-            continue;
+  for (int i = 1; i < argc; i++) {
+    std::string arg = argv[i];
+    if (arg.length() > 1 && arg[0] == '-') {
+      if (arg.length() > 2 && arg[1] == '-') {
+        auto option = arg.substr(2);
+        if (option.compare("write-dot") == 0) {
+          shouldWriteDOT = true;
         }
-        if (cgfile.empty()) {
-            cgfile = arg;
-            continue;
-        }
-    }
-
-    if (!usePreset && specfile.empty()) {
-        std::cerr << "Need to specify either a preset or pass a selection file.\n";
-        printHelp();
-    }
-
-    SelectorPtr selector;
-    if (usePreset) {
-        switch(preset) {
-            case SelectionPreset::MPI:
-                selector = selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
-            case SelectionPreset::OPENFOAM_MPI:
-                selector = selector::subtract(selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
-                                              selector::join(selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
-                                                             selector::inlineSpecified(selector::all())));
-            default:
-                assert(false && "Preset not implemented");
-        }
-    } else {
-        SelectionSpecLoader specLoader(specfile);
-        selector = specLoader.buildSelector();
-        if (!selector) {
-            std::cerr << "Unable to load selection specs.\n";
+      } else {
+        auto option = arg.substr(1);
+        if (option.compare("p") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Need to pass a selection preset after -p\n";
+            printHelp();
             return EXIT_FAILURE;
+          }
+          auto presetStr = argv[i];
+          if (auto it = presetNames.find(presetStr); it != presetNames.end()) {
+            mode = InputMode::PRESET;
+            preset = it->second;
+          } else {
+            std::cerr << "Invalid preset '" << presetStr << "'\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+
+        } else if (option.compare("f") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Need to pass a selection spec file after -f\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          mode = InputMode::FILE;
+          specfile = argv[i];
+        } else if (option.compare("i") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Need to pass a selection spec string after -i\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          mode = InputMode::STRING;
+          specStr = argv[i];
         }
+      }
+      continue;
     }
-
-    std::cout << "Loading call graph from " << cgfile << "\n";
-
-    MetaCGReader reader(cgfile);
-    if (!reader.read()) {
-        std::cerr << "Unable to load call graph!\n";
-        return EXIT_FAILURE;
+    if (cgfile.empty()) {
+      cgfile = arg;
+      continue;
     }
-
-    auto functionInfo = reader.getFunctionInfo();
-
-    auto cg = createCG(functionInfo);
-
-    std::cout << "Loaded CG with " << cg->size() << " nodes\n";
+  }
 
 
-    SelectorRunner runner(*cg);
-    auto result = runner.run(*selector);
+  SelectorPtr selector;
+  switch (mode) {
+  case InputMode::FILE:
+    selector = loadFromFile(specfile);
+    break;
+  case InputMode::PRESET:
+    selector = getPreset(preset);
+    break;
+  case InputMode::STRING:
+    selector = parseSelectionSpec(specStr);
+    break;
+  default:
+    break;
+  }
 
-    std::cout << "Selected " << result.size() << " functions.\n";
+  if (!selector) {
+    std::cerr << "Could not build selector.\n";
+    return EXIT_FAILURE;
+  }
 
-    auto outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+  std::cout << "Loading call graph from " << cgfile << "\n";
 
-    {
-        FunctionFilter filter;
-        for (auto& f : result) {
-            filter.addIncludedFunction(f);
-        }
-        if (!writeScorePFilterFile(filter, outfile)) {
-            std::cerr << "Error: Writing filter file failed.\n";
-        }
+  MetaCGReader reader(cgfile);
+  if (!reader.read()) {
+    std::cerr << "Unable to load call graph!\n";
+    return EXIT_FAILURE;
+  }
+
+  auto functionInfo = reader.getFunctionInfo();
+
+  auto cg = createCG(functionInfo);
+
+  std::cout << "Loaded CG with " << cg->size() << " nodes\n";
+
+  SelectorRunner runner(*cg);
+  auto result = runner.run(*selector);
+
+  std::cout << "Selected " << result.size() << " functions.\n";
+
+  auto outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+
+  {
+    FunctionFilter filter;
+    for (auto &f : result) {
+      filter.addIncludedFunction(f);
     }
-
-    if (shouldWriteDOT) {
-        std::ofstream os("cg.dot");
-        if (os.is_open()) {
-            writeDOT(*cg, os);
-        }
+    if (!writeScorePFilterFile(filter, outfile)) {
+      std::cerr << "Error: Writing filter file failed.\n";
     }
+  }
 
-    return EXIT_SUCCESS;
+  if (shouldWriteDOT) {
+    std::ofstream os("cg.dot");
+    if (os.is_open()) {
+      writeDOT(*cg, os);
+    }
+  }
+
+  return EXIT_SUCCESS;
 }

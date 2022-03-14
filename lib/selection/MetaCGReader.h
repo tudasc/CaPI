@@ -5,45 +5,38 @@
 #ifndef CAPI_METACGREADER_H
 #define CAPI_METACGREADER_H
 
-
-
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 struct FunctionInfo {
-    std::string name;
+  std::string name;
 
-    std::vector<std::string> callees;
-    std::vector<std::string> callers;
+  std::vector<std::string> callees;
+  std::vector<std::string> callers;
 
-    bool instrument{false};
-    bool containsPointerCall{false};
-    std::string fileName;
-    bool definedInSystemInclude{false};
-    bool isInlined{false};
+  bool instrument{false};
+  bool containsPointerCall{false};
+  std::string fileName;
+  bool definedInSystemInclude{false};
+  bool isInlined{false};
 };
 
 class MetaCGReader {
 public:
-    using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
+  using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
 
-    MetaCGReader(std::string filename) : filename(filename)
-    {}
+  MetaCGReader(std::string filename) : filename(filename) {}
 
-    bool read();
+  bool read();
 
-    const FInfoMap& getFunctionInfo() const {
-        return functions;
-    }
+  const FInfoMap &getFunctionInfo() const { return functions; }
 
 private:
-    std::string filename;
-    FInfoMap functions;
+  std::string filename;
+  FInfoMap functions;
 
-    FInfoMap::mapped_type& getOrInsert(const std::string &key);
-
+  FInfoMap::mapped_type &getOrInsert(const std::string &key);
 };
 
-
-#endif //CAPI_METACGREADER_H
+#endif // CAPI_METACGREADER_H
