@@ -7,6 +7,10 @@
 
 #include "CallGraph.h"
 
+namespace capi {
+
 bool writeDOT(const CallGraph &cg, std::ostream &out);
+
+}
 
 #endif // CAPI_CGTRAITS_H

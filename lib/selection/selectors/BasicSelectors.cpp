@@ -1,19 +1,10 @@
 //
-// Created by sebastian on 28.10.21.
+// Created by sebastian on 15.03.22.
 //
 
-#include "Selector.h"
+#include "BasicSelectors.h"
 
-#include <iostream>
-#include <set>
-
-#include "CallGraph.h"
-
-FunctionSet SelectorRunner::run(Selector &selector) {
-  selector.init(cg);
-  return selector.apply();
-}
-
+namespace capi {
 bool IncludeListSelector::accept(const std::string &fName) {
   return std::find(names.begin(), names.end(), fName) != names.end();
 }
@@ -75,4 +66,5 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
   }
 
   return out;
+}
 }

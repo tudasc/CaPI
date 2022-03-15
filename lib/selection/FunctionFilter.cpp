@@ -7,19 +7,25 @@
 #include <fstream>
 #include <iostream>
 
-FunctionFilter::FunctionFilter() {}
+namespace capi {
 
-void FunctionFilter::addIncludedFunction(const std::string &f) {
+FunctionFilter::FunctionFilter()
+{}
+
+void FunctionFilter::addIncludedFunction(const std::string &f)
+{
   includedFunctionsMangled.push_back(f);
 }
 
-void FunctionFilter::removeIncludedFunction(const std::string &f) {
+void FunctionFilter::removeIncludedFunction(const std::string &f)
+{
   includedFunctionsMangled.erase(std::remove(includedFunctionsMangled.begin(),
                                              includedFunctionsMangled.end(), f),
                                  includedFunctionsMangled.end());
 }
 
-bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename) {
+bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename)
+{
   std::ifstream is(filename);
   if (!is) {
     return false;
@@ -63,7 +69,8 @@ bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename) {
 }
 
 bool writeScorePFilterFile(FunctionFilter &filter,
-                           const std::string &filename) {
+                           const std::string &filename)
+{
   std::ofstream os(filename);
   if (!os) {
     return false;
@@ -76,4 +83,6 @@ bool writeScorePFilterFile(FunctionFilter &filter,
   }
   os << "SCOREP_REGION_NAMES_END\n";
   return true;
+}
+
 }

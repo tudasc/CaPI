@@ -1,6 +1,5 @@
 
 set(PASS_SOURCES
-        selection/SelectionSpecLoader.cpp
         ReadMetaCG.cpp
         MetaCGReader.cpp)
 

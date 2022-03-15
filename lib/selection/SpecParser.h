@@ -96,19 +96,25 @@ struct Token {
     BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA
   };
 
-  Token(Kind kind, std::string spelling) : kind(kind), spelling(spelling){
+  Token(Kind kind, std::string spelling) : kind(kind), spelling(std::move(spelling)){
   }
 
   explicit Token(Kind kind) : kind(kind) {
     switch(kind) {
+      case UNKNOWN:
+        spelling = "UNKNOWN";
+        break;
+      case END_OF_FILE:
+        spelling = "EOF";
+        break;
       case LEFT_PAREN:
-        spelling = '(';
+        spelling = "(";
         break;
       case RIGHT_PAREN:
-        spelling = ')';
+        spelling = ")";
         break;
       case PERCENT:
-        spelling = '%';
+        spelling = "%";
         break;
       case EQUALS:
         spelling = "=";
@@ -329,7 +335,7 @@ inline void printErrorMessage(std::string msg) {
 
 inline void printErrorPosition(std::string input, int pos) {
   std::cerr << "[Error] " << input << "\n[Error] ";
-  for (int i = 0; i < pos; ++i) {
+  for (int i = 1; i < pos; ++i) {
     std::cerr << " ";
   }
   std::cerr << "^\n";
@@ -493,13 +499,13 @@ protected:
 
     auto t1 = lexer.next();
     if (!t1) {
-      std::cerr << "Expected selector declaration.\n";
-      return nullptr;
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector declaration");
+      return {};
     }
     auto t2 = lexer.next();
     if (!t2) {
-      std::cerr << "Expected '=' or selector definition.\n";
-      return nullptr;
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "'=' or a selector definiiton");
+      return {};
     }
 
     std::string selectorId = "";
@@ -518,7 +524,7 @@ protected:
 
     auto def = parseSelectorDef();
     if (!def) {
-      std::cerr << "Failed to parse selector definition.\n";
+      printErrorMessage("Failed to parse selector definition.\n");
       return nullptr;
     }
     return  std::make_unique<SelectorDecl>(std::move(selectorId), std::move(def));

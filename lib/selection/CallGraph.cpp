@@ -7,7 +7,10 @@
 #include <cassert>
 #include <iostream>
 
-CGNode &CallGraph::getOrCreate(const std::string &name) {
+namespace capi {
+
+CGNode &CallGraph::getOrCreate(const std::string &name)
+{
   auto it = nodeMap.find(name);
   if (it == nodeMap.end()) {
     auto idx = nodes.size();
@@ -19,7 +22,8 @@ CGNode &CallGraph::getOrCreate(const std::string &name) {
   return *nodes[it->second];
 }
 
-CGNode *CallGraph::get(const std::string &name) {
+CGNode *CallGraph::get(const std::string &name)
+{
   auto it = nodeMap.find(name);
   if (it == nodeMap.end())
     return nullptr;
@@ -35,17 +39,20 @@ CGNode *CallGraph::get(const std::string &name) {
 //    for (auto& callee : )
 //}
 
-void CallGraph::addCallee(CGNode &parent, CGNode &child) {
+void CallGraph::addCallee(CGNode &parent, CGNode &child)
+{
   parent.addCallee(&child);
   child.addCaller(&parent);
 }
 
-void CallGraph::removeCallee(CGNode &parent, CGNode &child) {
+void CallGraph::removeCallee(CGNode &parent, CGNode &child)
+{
   parent.removeCallee(&child);
   child.removeCaller(&parent);
 }
 
-std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap) {
+std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap)
+{
   auto cg = std::make_unique<CallGraph>();
   for (auto &[name, info] : fInfoMap) {
     auto &node = cg->getOrCreate(name);
@@ -57,4 +64,6 @@ std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap) {
                   });
   }
   return cg;
+}
+
 }

@@ -62,6 +62,7 @@ public:
 
   SelectorNode* createNode(const std::string& name, SelectorPtr selector) {
     nodes[name] = std::make_unique<SelectorNode>(name, std::move(selector));
+    return nodes[name].get();
   }
 
   void setEntryNode(std::string name) {
@@ -75,11 +76,17 @@ public:
   bool hasNode(const std::string& name) {
     return getNode(name) != nullptr;
   }
+
+  const decltype(nodes)& getNodes() const {
+    return nodes;
+  }
 };
 
 using SelectorGraphPtr = std::unique_ptr<SelectorGraph>;
 
 FunctionSet runSelectorPipeline(SelectorGraph& graph, CallGraph &cg);
+
+void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph);
 
 }
 

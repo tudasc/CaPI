@@ -2,9 +2,12 @@
 // Created by sebastian on 15.03.22.
 //
 
+#include <selectors/BasicSelectors.h>
 #include "SelectorBuilder.h"
 #include "SelectionSpecAST.h"
-#include "utils.h"
+#include "Utils.h"
+#include "SelectorRegistry.h"
+
 
 namespace capi {
 
@@ -13,6 +16,7 @@ std::unordered_map<std::string, SelectorFactoryFn> selectorRegistry;
 }
 
 RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn) {
+  //std::cout << "Registered selector: " << selectorType << "\n";
   selectorRegistry[selectorType] = std::move(fn);
 }
 
@@ -45,14 +49,8 @@ public:
 
   SelectorEmitter(SpecAST& ast, SelectorGraph& graph) : ast(ast), graph(graph), nameGen("anon_") {
     selectorDeclName = "";
+    graph.createNode("%", std::make_unique<EverythingSelector>());
   }
-
-  void reportError(std::string_view msg) {
-    encounteredError = true;
-    logError() << msg << "\n";
-  }
-
-
 
   struct SelectorBuilder {
     std::string name;
@@ -104,7 +102,7 @@ public:
       stack.pop_back();
       auto selector = builder.emitSelector();
       if (!selector) {
-        logError() << "Could not instantiate selector.\n.";
+        logError() << "Could not instantiate selector.\n";
         return false;
       }
       if (graph.hasNode(builder.name)) {
@@ -115,6 +113,7 @@ public:
       for (auto& ref: builder.refs) {
         node->addInputDependency(ref);
       }
+      return true;
     }
 
     bool empty() const {
@@ -159,7 +158,10 @@ public:
     }
     builderStack.beginSelector(name, def.getType());
     visitChildren(def);
-    builderStack.finalizeSelector(graph);
+    if (!builderStack.finalizeSelector(graph)) {
+      encounteredError = true;
+    }
+
   }
 
   void visitRef(SelectorRef &ref) override {
@@ -187,12 +189,18 @@ public:
     builderStack.addParam(Param::makeString(val));
   }
 
+  bool hasEncounteredError() {
+    return encounteredError;
+  }
+
 };
 
 SelectorGraphPtr buildSelectorGraph(SpecAST& ast) {
   auto graph = std::make_unique<SelectorGraph>();
   SelectorEmitter emitter(ast, *graph);
   emitter.visitAST(ast);
+  if (emitter.hasEncounteredError())
+    return {};
   return graph;
 }
 

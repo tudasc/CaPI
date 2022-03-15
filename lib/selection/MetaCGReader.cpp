@@ -11,6 +11,8 @@ using json = nlohmann::json;
 #include <fstream>
 #include <iostream>
 
+namespace capi {
+
 MetaCGReader::FInfoMap::mapped_type &
 MetaCGReader::getOrInsert(const std::string &key) {
   if (functions.find(key) != functions.end()) {
@@ -92,4 +94,5 @@ bool MetaCGReader::read() {
     }
   }
   return true;
+}
 }

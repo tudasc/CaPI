@@ -6,11 +6,15 @@
 
 #include <ostream>
 
-static inline std::string getNodeId(CGNode &node) {
+namespace capi {
+
+static inline std::string getNodeId(CGNode &node)
+{
   return "n_" + std::to_string(reinterpret_cast<uintptr_t>(&node));
 }
 
-bool writeDOT(const CallGraph &cg, std::ostream &out) {
+bool writeDOT(const CallGraph &cg, std::ostream &out)
+{
   out << "digraph {\n";
   for (auto &node : cg.getNodes()) {
     out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
@@ -23,4 +27,6 @@ bool writeDOT(const CallGraph &cg, std::ostream &out) {
   }
   out << "}\n";
   return true;
+}
+
 }

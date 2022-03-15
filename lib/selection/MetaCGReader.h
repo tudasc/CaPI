@@ -9,7 +9,10 @@
 #include <unordered_map>
 #include <vector>
 
-struct FunctionInfo {
+namespace capi {
+
+struct FunctionInfo
+{
   std::string name;
 
   std::vector<std::string> callees;
@@ -22,15 +25,18 @@ struct FunctionInfo {
   bool isInlined{false};
 };
 
-class MetaCGReader {
+class MetaCGReader
+{
 public:
   using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
 
-  MetaCGReader(std::string filename) : filename(filename) {}
+  MetaCGReader(std::string filename) : filename(filename)
+  {}
 
   bool read();
 
-  const FInfoMap &getFunctionInfo() const { return functions; }
+  const FInfoMap &getFunctionInfo() const
+  { return functions; }
 
 private:
   std::string filename;
@@ -38,5 +44,6 @@ private:
 
   FInfoMap::mapped_type &getOrInsert(const std::string &key);
 };
+}
 
 #endif // CAPI_METACGREADER_H

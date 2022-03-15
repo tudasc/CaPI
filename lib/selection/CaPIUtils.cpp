@@ -5,14 +5,18 @@
 #include "CallGraph.h"
 #include "DOTWriter.h"
 #include "MetaCGReader.h"
-#include "Selectors.h"
 
 #include <fstream>
 #include <iostream>
 
+using namespace capi;
+
+namespace {
+
 // erase_if for maps is only available in C++20
-template <typename ContainerT, typename PredicateT>
-void erase_if(ContainerT &items, const PredicateT &predicate) {
+template<typename ContainerT, typename PredicateT>
+void erase_if(ContainerT &items, const PredicateT &predicate)
+{
   for (auto it = items.begin(); it != items.end();) {
     if (predicate(*it))
       it = items.erase(it);
@@ -21,14 +25,21 @@ void erase_if(ContainerT &items, const PredicateT &predicate) {
   }
 }
 
-enum class Tool { CHECK_CONNECTED, WRITE_DOT };
+enum class Tool
+{
+  CHECK_CONNECTED, WRITE_DOT
+};
 
 std::vector<std::string> getSubtreeFunctions(CallGraph &cg,
-                                             const std::string &targetFn) {
-  SelectorRunner runner(cg);
-  auto selector =
-      selector::onCallPathFrom(selector::byName(targetFn, selector::all()));
-  return runner.run(*selector);
+                                             const std::string &targetFn)
+{
+//  SelectorRunner runner(cg);
+//  auto selector =
+//      selector::onCallPathFrom(selector::byName(targetFn, selector::all()));
+//  return runner.run(*selector);
+  return {};
+}
+
 }
 
 int main(int argc, char **argv) {
@@ -129,11 +140,13 @@ int main(int argc, char **argv) {
               << subtreeFns.size() << "\n";
 
     // Run MPI filtering on first CG
-    SelectorRunner runner(*cg);
-    auto mpiSelector =
-        selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
-    auto selector = selector::byIncludeList(subtreeFns, std::move(mpiSelector));
-    auto result = runner.run(*selector);
+//    SelectorRunner runner(*cg);
+//    auto mpiSelector =
+//        selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
+//    auto selector = selector::byIncludeList(subtreeFns, std::move(mpiSelector));
+//    auto result = runner.run(*selector);
+
+    auto result = subtreeFns;
 
     std::cout << "Found " << result.size()
               << " selected functions that are called from " << targetFn
