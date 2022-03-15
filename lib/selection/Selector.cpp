@@ -57,8 +57,13 @@ bool SystemIncludeSelector::accept(const std::string &fName) {
   return false;
 }
 
-FunctionSet UnresolvedCallSelector::apply() {
-  FunctionSet in = input->apply();
+FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
+  if (input.size() != 1) {
+    logError() << "Expected exactly one input set, got " << input.size() << "instead.\n";
+    return {};
+  }
+
+  FunctionSet in = input.front();
   FunctionSet out;
 
   for (auto &f : in) {

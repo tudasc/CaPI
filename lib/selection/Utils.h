@@ -5,6 +5,9 @@
 #ifndef CAPI_UTILS_H
 #define CAPI_UTILS_H
 
+#include <cstddef>
+#include <iostream>
+
 // https://jonasdevlieghere.com/containers-of-unique-pointers/
 template <class BaseIterator> class DereferenceIterator : public BaseIterator {
 public:
@@ -23,6 +26,10 @@ public:
 
 template <typename Iterator> DereferenceIterator<Iterator> dereference_iterator(Iterator t) {
   return DereferenceIterator<Iterator>(t);
+}
+
+inline std::ostream& logError() {
+  return std::cerr << "[Error] ";
 }
 
 #endif // CAPI_UTILS_H

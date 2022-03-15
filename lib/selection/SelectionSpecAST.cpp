@@ -6,11 +6,16 @@
 
 namespace capi {
 
-void ASTVisitor::traversePreOrder(ASTNode &node) {
-  node.accept(*this);
-  for (auto &&child : node) {
-    traversePreOrder(child)
+ void ASTVisitor::visitAST(SpecAST &ast){visitChildren(ast);};
+ void ASTVisitor::visitDecl(SelectorDecl &decl){visitChildren(decl);};
+ void ASTVisitor::visitDef(SelectorDef &def){visitChildren(def);};
+ void ASTVisitor::visitRef(SelectorRef &ref){visitChildren(ref);};
+
+void ASTVisitor::visitChildren(ASTNode& node) {
+  for (auto &child : node) {
+    child.accept(*this);
   }
 }
+
 
 }

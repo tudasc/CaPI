@@ -7,6 +7,10 @@
 
 #include "Utils.h"
 
+#include <memory>
+#include <iostream>
+#include <algorithm>
+
 namespace capi {
 
 class ASTNode;
@@ -27,12 +31,12 @@ using ASTPtr = std::unique_ptr<SpecAST>;
 
 class ASTVisitor {
 public:
-  virtual void visitAST(SpecAST &ast){};
-  virtual void visitDecl(SelectorDecl &decl){};
-  virtual void visitDef(SelectorDef &def){};
-  virtual void visitRef(SelectorRef &ref){};
+  virtual void visitAST(SpecAST &ast);
+  virtual void visitDecl(SelectorDecl &decl);
+  virtual void visitDef(SelectorDef &def);
+  virtual void visitRef(SelectorRef &ref);
 
-#define VISIT_LITERAL(name, type) virtual void visit##name##Literal(Literal<type> &) {}
+#define VISIT_LITERAL(name, type) virtual void visit##name##Literal(Literal<type> &l) {}
 
   VISIT_LITERAL(Bool, bool);
   VISIT_LITERAL(Int, int);
@@ -41,7 +45,7 @@ public:
 
 #undef VISIT_LITERAL
 
-  void traversePreOrder(ASTNode &node);
+  void visitChildren(ASTNode& node);
 };
 
 class ASTNode {
@@ -60,9 +64,9 @@ protected:
 public:
   virtual void accept(ASTVisitor &visitor) = 0;
 
-  auto begin() { return dereference_iterator(children.begin()); }
+  decltype(dereference_iterator(children.begin())) begin() { return dereference_iterator(children.begin()); }
 
-  auto end() { return dereference_iterator(children.end()); }
+  decltype(dereference_iterator(children.end())) end() { return dereference_iterator(children.end()); }
 
   decltype(children) &getChildren() { return children; }
 
@@ -176,8 +180,12 @@ public:
   using Params = std::vector<NodePtr>;
 
   SelectorDef(std::string selectorType, Params params)
-      : selectorType(selectorType) {
+      : selectorType(std::move(selectorType)) {
     addChildren(params.begin(), params.end());
+  }
+
+  std::string getType() {
+    return selectorType;
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitDef(*this); }
@@ -193,12 +201,16 @@ class SelectorDecl : public ASTNode {
 
 public:
   SelectorDecl(std::string identifier, std::unique_ptr<SelectorDef> def)
-      : identifier(identifier) {
+      : identifier(std::move(identifier)) {
     addChild(std::move(def));
   }
 
   explicit SelectorDecl(std::unique_ptr<SelectorDef> def)
       : SelectorDecl("", std::move(def)) {}
+
+  std::string getName() const {
+    return identifier;
+  }
 
   void accept(ASTVisitor &visitor) override { visitor.visitDecl(*this); }
 

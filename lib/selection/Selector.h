@@ -10,14 +10,19 @@
 
 #include "CallGraph.h"
 #include "MetaCGReader.h"
+#include "Utils.h"
 
 using FunctionSet = std::vector<std::string>;
+
+using FunctionSetList = std::vector<FunctionSet>;
 
 class Selector {
 public:
   virtual void init(CallGraph &cg) {}
 
-  virtual FunctionSet apply() = 0;
+  virtual FunctionSet apply(const FunctionSetList&) = 0;
+
+  virtual std::string getName() = 0;
 };
 
 using SelectorPtr = std::unique_ptr<Selector>;
@@ -32,27 +37,33 @@ public:
     }
   }
 
-  FunctionSet apply() override { return allFunctions; }
+  FunctionSet apply(const FunctionSetList&) override { return allFunctions; }
+
+  std::string getName() {
+    return "%%";
+  }
 };
 
 class FilterSelector : public Selector {
-  SelectorPtr input;
 
 protected:
   CallGraph *cg;
 
 public:
-  FilterSelector(SelectorPtr in) : input(std::move(in)) {}
+  FilterSelector() = default;
 
   void init(CallGraph &cg) override {
-    input->init(cg);
     this->cg = &cg;
   }
 
   virtual bool accept(const std::string &) = 0;
 
-  FunctionSet apply() override {
-    FunctionSet in = input->apply();
+  FunctionSet apply(const FunctionSetList& input) override {
+    if (input.size() != 1) {
+      logError() << "Expected exactly one input set, got " << input.size() << "instead.\n";
+      return {};
+    }
+    FunctionSet in = input.front();
     //        std::cout << "Input contains " << in.size() << " elements\n";
     in.erase(std::remove_if(
                  in.begin(), in.end(),
@@ -65,107 +76,143 @@ public:
 enum class SetOperation { UNION, INTERSECTION, COMPLEMENT };
 
 template <SetOperation Op> class SetOperationSelector : public Selector {
-  SelectorPtr inputA;
-  SelectorPtr inputB;
-
 public:
-  SetOperationSelector(SelectorPtr inA, SelectorPtr inB)
-      : inputA(std::move(inA)), inputB(std::move(inB)) {}
+  SetOperationSelector() = default;
 
   void init(CallGraph &cg) override {
-    inputA->init(cg);
-    inputB->init(cg);
   }
 
-  FunctionSet apply() override;
+  FunctionSet apply(const FunctionSetList& input) override;
+
+  std::string getName() override {
+    switch(Op) {
+    case SetOperation::UNION:
+      return "join";
+    case SetOperation::INTERSECTION:
+      return "intersect";
+    case SetOperation::COMPLEMENT:
+      return "subtract";
+    }
+    return "invalid";
+  }
 };
 
 class IncludeListSelector : public FilterSelector {
   std::vector<std::string> names;
 
 public:
-  IncludeListSelector(SelectorPtr in, std::vector<std::string> names)
-      : FilterSelector(std::move(in)), names(names) {}
+  explicit IncludeListSelector(std::vector<std::string> names)
+      : names(names) {}
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "include";
+  }
 };
 
 class ExcludeListSelector : public FilterSelector {
   std::vector<std::string> names;
 
 public:
-  ExcludeListSelector(SelectorPtr in, std::vector<std::string> names)
-      : FilterSelector(std::move(in)), names(names) {}
+  ExcludeListSelector(std::vector<std::string> names)
+      :  names(std::move(names)) {}
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "exclude";
+  }
 };
 
 class NameSelector : public FilterSelector {
   std::regex nameRegex;
 
 public:
-  NameSelector(SelectorPtr in, std::string regexStr)
-      : FilterSelector(std::move(in)), nameRegex(regexStr) {}
+  NameSelector(std::string regexStr): nameRegex(regexStr) {}
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "byName";
+  }
 };
 
 class InlineSelector : public FilterSelector {
 public:
-  InlineSelector(SelectorPtr in) : FilterSelector(std::move(in)) {}
+  InlineSelector() = default;
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "isInlined";
+  }
 };
 
 class FilePathSelector : public FilterSelector {
   std::regex nameRegex;
 
 public:
-  FilePathSelector(SelectorPtr in, std::string regexStr)
-      : FilterSelector(std::move(in)), nameRegex(regexStr) {}
+  FilePathSelector(std::string regexStr)
+      : nameRegex(regexStr) {}
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "byPath";
+  }
 };
 
 class SystemIncludeSelector : public FilterSelector {
   std::regex nameRegex;
 
 public:
-  SystemIncludeSelector(SelectorPtr in) : FilterSelector(std::move(in)) {}
+  SystemIncludeSelector() = default;
 
   bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "isInSystemHeader";
+  }
 };
 
 class UnresolvedCallSelector : public Selector {
-  SelectorPtr input;
   CallGraph *cg;
 
 public:
-  explicit UnresolvedCallSelector(SelectorPtr in) : input(std::move(in)) {}
+  UnresolvedCallSelector() = default;
 
   void init(CallGraph &cg) override {
-    input->init(cg);
     this->cg = &cg;
   }
 
-  FunctionSet apply() override;
+  FunctionSet apply(const FunctionSetList& input) override;
+
+  std::string getName() override {
+    return "isUnresolved";
+  }
 };
 
 enum class TraverseDir { TraverseUp, TraverseDown };
 
 template <TraverseDir dir> class CallPathSelector : public Selector {
-  SelectorPtr input;
   CallGraph *cg;
 
 public:
-  CallPathSelector(SelectorPtr input) : input(std::move(input)) {}
+  CallPathSelector() = default;
 
   void init(CallGraph &cg) override {
-    input->init(cg);
     this->cg = &cg;
   }
 
-  FunctionSet apply() override;
+  FunctionSet apply(const FunctionSetList& input) override;
+
+  std::string getName() override {
+    if constexpr (dir == TraverseDir::TraverseUp) {
+      return "onCallPathTo";
+    }
+    return "onCallPathFrom";
+  }
 };
 
 /**
@@ -206,11 +253,17 @@ int traverseCallGraph(CGNode &node, TraverseFn &&selectNextNodes,
   return alreadyVisited.size();
 }
 
-template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply() {
+template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const FunctionSetList& input) {
   static_assert(Dir == TraverseDir::TraverseDown ||
                 Dir == TraverseDir::TraverseUp);
 
-  FunctionSet in = input->apply();
+  if (input.size() != 1) {
+    logError() << "Expected exactly one input sets, got " << input.size() << "instead.\n";
+    return {};
+  }
+
+
+  FunctionSet in = input.front();
   FunctionSet out(in);
 
   auto visitFn = [&out](CGNode &node) {
@@ -226,23 +279,28 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply() {
       int count = traverseCallGraph(
           *fnNode, [](CGNode & node) -> auto { return node.getCallees(); },
           visitFn);
-      std::cout << "Functions on callpath from " << fn << ": " << count << "\n";
+      std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
           *fnNode, [](CGNode & node) -> auto { return node.getCallers(); },
           visitFn);
-      std::cout << "Functions on callpath to " << fn << ": " << count << "\n";
+      std::cout << "Functions on call path to " << fn << ": " << count << "\n";
     }
   }
   return out;
 }
 
-template <SetOperation Op> FunctionSet SetOperationSelector<Op>::apply() {
+template <SetOperation Op> FunctionSet SetOperationSelector<Op>::apply(const FunctionSetList& input) {
   static_assert(Op == SetOperation::UNION || Op == SetOperation::INTERSECTION ||
                 Op == SetOperation::COMPLEMENT);
 
-  FunctionSet inA = inputA->apply();
-  FunctionSet inB = inputB->apply();
+  if (input.size() != 2) {
+    logError() << "Expected exactly two input sets, got " << input.size() << "instead.\n";
+    return {};
+  }
+
+  FunctionSet inA = input[0];
+  FunctionSet inB = input[1];
 
   FunctionSet out;
 

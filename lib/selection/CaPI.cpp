@@ -16,6 +16,8 @@
 #include "SelectionSpecLoader.h"
 #include "Selectors.h"
 #include "SpecParser.h"
+#include "SelectorGraph.h"
+#include "SelectorBuilder.h"
 
 using namespace capi;
 
@@ -46,7 +48,7 @@ std::map<std::string, SelectionPreset> presetNames = {
     {"MPI", SelectionPreset::MPI}, {"FOAM", SelectionPreset::OPENFOAM_MPI}};
 }
 
-SelectorPtr loadFromFile(std::string_view filename) {
+SelectorGraphPtr loadFromFile(std::string_view filename) {
   if (filename.empty()) {
     std::cerr << "Need to specify either a preset or pass a selection file.\n";
     printHelp();
@@ -56,28 +58,26 @@ SelectorPtr loadFromFile(std::string_view filename) {
   return nullptr;
 }
 
-SelectorPtr parseSelectionSpec(std::string specStr) {
+ASTPtr parseSelectionSpec(std::string specStr) {
     SpecParser parser(specStr);
     auto ast = parser.parse();
-    std::cout << "AST for " << specStr << ":\n";
-    ast->dump(std::cout);
-    std::cout << "\n";
-    return nullptr;
+    return ast;
 }
 
-SelectorPtr getPreset(SelectionPreset preset) {
-  switch (preset) {
-  case SelectionPreset::MPI:
-    return selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
-  case SelectionPreset::OPENFOAM_MPI:
-    return selector::subtract(
-        selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
-        selector::join(
-            selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
-            selector::inlineSpecified(selector::all())));
-  default:
-    assert(false && "Preset not implemented");
-  }
+
+SelectorGraphPtr getPreset(SelectionPreset preset) {
+//  switch (preset) {
+//  case SelectionPreset::MPI:
+//    return selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
+//  case SelectionPreset::OPENFOAM_MPI:
+//    return selector::subtract(
+//        selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
+//        selector::join(
+//            selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
+//            selector::inlineSpecified(selector::all())));
+//  default:
+//    assert(false && "Preset not implemented");
+//  }
   return nullptr;
 }
 
@@ -152,23 +152,31 @@ int main(int argc, char **argv) {
   }
 
 
-  SelectorPtr selector;
+  SelectorGraphPtr selectorGraph;
   switch (mode) {
   case InputMode::FILE:
-    selector = loadFromFile(specfile);
+    selectorGraph = loadFromFile(specfile);
     break;
   case InputMode::PRESET:
-    selector = getPreset(preset);
+    selectorGraph = getPreset(preset);
     break;
-  case InputMode::STRING:
-    selector = parseSelectionSpec(specStr);
+  case InputMode::STRING: {
+    auto ast = parseSelectionSpec(specStr);
+
+    std::cout << "AST for " << specStr << ":\n";
+    ast->dump(std::cout);
+    std::cout << "\n";
+
+    selectorGraph = buildSelectorGraph(*ast);
+
     break;
+  }
   default:
     break;
   }
 
-  if (!selector) {
-    std::cerr << "Could not build selector.\n";
+  if (!selectorGraph) {
+    std::cerr << "Could not build selectors.\n";
     return EXIT_FAILURE;
   }
 
@@ -186,8 +194,7 @@ int main(int argc, char **argv) {
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
-  SelectorRunner runner(*cg);
-  auto result = runner.run(*selector);
+  auto result = runSelectorPipeline(*selectorGraph, *cg);
 
   std::cout << "Selected " << result.size() << " functions.\n";
 

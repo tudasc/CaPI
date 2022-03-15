@@ -6,7 +6,10 @@ set(SOURCES CallGraph.cpp
         Selector.cpp
         FunctionFilter.cpp
         SelectionSpecLoader.cpp
-        SpecParser.cpp)
+        SpecParser.cpp
+        SelectionSpecAST.cpp
+        SelectorBuilder.cpp
+        SelectorGraph.cpp)
 
 add_executable(capi ${SOURCES})
 target_link_libraries(capi nlohmann_json::nlohmann_json)
