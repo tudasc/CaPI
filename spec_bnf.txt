@@ -1,0 +1,10 @@
+spec := selectorDec | spec selectorDecl
+selectorDecl := selectorName '=' selectorDef | selectorDef
+selectorDef := selectorType '(' params ')' | selectorType '(' ')'
+selectorRef := '%' selectorName
+selectorType := onCallPathTo | inlineSpecified | byName | byPath | join | ...
+params := param | params ',' param
+param := string | int | float | bool | selectorRef | selectorDef
+
+MPI Example:
+mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excudethis\", %%), inlined(%%)) subtract(%mpi, %exclude)

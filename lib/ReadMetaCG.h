@@ -5,31 +5,28 @@
 #ifndef CAPI_READMETACG_H
 #define CAPI_READMETACG_H
 
-#include "llvm/Pass.h"
 #include "MetaCGReader.h"
+#include "llvm/Pass.h"
 
 namespace llvm {
-    class Module;
-    class Function;
-    class AnalysisUsage;
-}  // namespace llvm
-
+class Module;
+class Function;
+class AnalysisUsage;
+} // namespace llvm
 
 class ReadMetaCG : public llvm::FunctionPass {
 
 public:
-    static char ID;  // used to identify pass
+  static char ID; // used to identify pass
 
-    ReadMetaCG();
-    bool doInitialization(llvm::Module&) override;
-    bool runOnFunction(llvm::Function&) override;
-    bool doFinalization(llvm::Module&) override;
-    void getAnalysisUsage(llvm::AnalysisUsage&) const override;
+  ReadMetaCG();
+  bool doInitialization(llvm::Module &) override;
+  bool runOnFunction(llvm::Function &) override;
+  bool doFinalization(llvm::Module &) override;
+  void getAnalysisUsage(llvm::AnalysisUsage &) const override;
 
 private:
-    MetaCGReader::FInfoMap functionInfo;
-
+  MetaCGReader::FInfoMap functionInfo;
 };
 
-
-#endif //CAPI_READMETACG_H
+#endif // CAPI_READMETACG_H

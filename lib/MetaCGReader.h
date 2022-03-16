@@ -11,30 +11,25 @@
 #include <string>
 
 struct FunctionInfo {
-    std::string name;
-    bool instrument{false};
+  std::string name;
+  bool instrument{false};
 };
 
 class MetaCGReader {
 public:
-    using FInfoMap = llvm::StringMap<FunctionInfo>;
+  using FInfoMap = llvm::StringMap<FunctionInfo>;
 
-    MetaCGReader(std::string filename) : filename(filename)
-    {}
+  MetaCGReader(std::string filename) : filename(filename) {}
 
-    bool read();
+  bool read();
 
-    const FInfoMap& getFunctionInfo() const {
-        return functions;
-    }
+  const FInfoMap &getFunctionInfo() const { return functions; }
 
 private:
-    std::string filename;
-    FInfoMap functions;
+  std::string filename;
+  FInfoMap functions;
 
-    FInfoMap::mapped_type& getOrInsert(const std::string &key);
-
+  FInfoMap::mapped_type &getOrInsert(const std::string &key);
 };
 
-
-#endif //CAPI_METACGREADER_H
+#endif // CAPI_METACGREADER_H

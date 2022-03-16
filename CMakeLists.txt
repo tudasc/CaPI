@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.15)
 project(instro-llvm VERSION 0.1)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

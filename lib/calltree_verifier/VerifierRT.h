@@ -6,56 +6,57 @@
 #define CAPI_TEST_RT_H
 
 #include <fstream>
-#include <string>
-#include <vector>
 #include <map>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 using SymbolTable = std::map<std::uintptr_t, std::string>;
 
 struct MemMapEntry {
-    std::string path;
-    uintptr_t addrBegin;
-    uint64_t offset;
+  std::string path;
+  uintptr_t addrBegin;
+  uint64_t offset;
 };
 
 struct MappedSymTable {
-    SymbolTable table;
-    MemMapEntry memMap;
+  SymbolTable table;
+  MemMapEntry memMap;
 };
 
 struct RTInitializer {
-    RTInitializer();
+  RTInitializer();
 };
 
 class FunctionNameCache {
-    std::string execFile;
-    std::unordered_map<const void*, std::string> nameCache;
+  std::string execFile;
+  std::unordered_map<const void *, std::string> nameCache;
 
-    std::map<uintptr_t, MappedSymTable> addrToSymTable;
+  std::map<uintptr_t, MappedSymTable> addrToSymTable;
 
-    std::vector<std::pair<std::string, MappedSymTable>> symTables;
-    std::vector<std::pair<std::string, int>> objFiles;
+  std::vector<std::pair<std::string, MappedSymTable>> symTables;
+  std::vector<std::pair<std::string, int>> objFiles;
 
-    void collectSharedLibs();
+  void collectSharedLibs();
 
-    void loadSymTables();
+  void loadSymTables();
 
 public:
-    FunctionNameCache(std::string execFile);
+  FunctionNameCache(std::string execFile);
 
-    std::string resolve(const void* addr);
+  std::string resolve(const void *addr);
 };
 
 class CallTreeLogger {
-    std::ofstream out;
-    FunctionNameCache& cache;
+  std::ofstream out;
+  FunctionNameCache &cache;
+
 public:
-    CallTreeLogger(std::string filename, FunctionNameCache& cache);
+  CallTreeLogger(std::string filename, FunctionNameCache &cache);
 
-    void onFunctionEnter(void* fn, void* caller, int callDepth);
+  void onFunctionEnter(void *fn, void *caller, int callDepth);
 
-    void onFunctionExit(void* fn, void* caller, int callDepth);
+  void onFunctionExit(void *fn, void *caller, int callDepth);
 };
 
-#endif //CAPI_TEST_RT_H
+#endif // CAPI_TEST_RT_H
