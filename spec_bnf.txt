@@ -7,4 +7,4 @@ params := param | params ',' param
 param := string | int | float | bool | selectorRef | selectorDef
 
 MPI Example:
-mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excudethis\", %%), inlined(%%)) subtract(%mpi, %exclude)
+mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excudethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)

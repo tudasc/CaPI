@@ -41,7 +41,7 @@ bool FilePathSelector::accept(const std::string &fName) {
   return false;
 }
 
-bool SystemIncludeSelector::accept(const std::string &fName) {
+bool SystemHeaderSelector::accept(const std::string &fName) {
   if (auto node = this->cg->get(fName); node) {
     return node->getFunctionInfo().definedInSystemInclude;
   }

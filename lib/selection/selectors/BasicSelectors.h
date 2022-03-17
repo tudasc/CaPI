@@ -97,16 +97,14 @@ public:
   }
 };
 
-class SystemIncludeSelector : public FilterSelector {
-  std::regex nameRegex;
-
+class SystemHeaderSelector : public FilterSelector {
 public:
-  SystemIncludeSelector() = default;
+  SystemHeaderSelector() = default;
 
   bool accept(const std::string &fName) override;
 
   std::string getName() override {
-    return "SystemIncludeSelector";
+    return "SystemHeaderSelector";
   }
 };
 

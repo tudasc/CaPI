@@ -73,6 +73,12 @@ RegisterSelector registerIntersectionSelector("intersect", createSimpleSelector<
 // ComplementSelector
 RegisterSelector registerComplementSelector("subtract", createSimpleSelector<SetOperationSelector<SetOperation::COMPLEMENT>>);
 
+// SystemIncludeSelector
+RegisterSelector registerSystemHeaderSelector("inSystemHeader", createSimpleSelector<SystemHeaderSelector>);
+
+// UnresolveCallSelector
+RegisterSelector registerUnresolvedCallSelector("containsUnresolvedCalls", createSimpleSelector<UnresolvedCallSelector>);
+
 
 
 }
