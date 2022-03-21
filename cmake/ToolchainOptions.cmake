@@ -27,6 +27,8 @@ if (SCOREP_SUPPORT)
 endif()
 
 
+
+
 if (NOT CMAKE_BUILD_TYPE)
   # set default build type
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
