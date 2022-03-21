@@ -25,7 +25,7 @@ public:
 
   FunctionSet apply(const FunctionSetList&) override { return allFunctions; }
 
-  std::string getName() {
+  std::string getName() override {
     return "EverythingSelector";
   }
 };

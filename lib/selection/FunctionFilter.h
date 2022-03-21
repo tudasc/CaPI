@@ -17,6 +17,12 @@ class FunctionFilter
 public:
   FunctionFilter();
 
+  size_t size() const {
+    return includedFunctionsMangled.size();
+  }
+
+  bool accepts(const std::string& f) const;
+
   void addIncludedFunction(const std::string &f);
 
   void removeIncludedFunction(const std::string &f);

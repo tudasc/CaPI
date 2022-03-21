@@ -7,9 +7,9 @@
 
 #include <iostream>
 
+#include "../Utils.h"
 #include "CallGraph.h"
 #include "MetaCGReader.h"
-#include "Utils.h"
 
 namespace capi {
 
@@ -20,6 +20,9 @@ using FunctionSetList = std::vector<FunctionSet>;
 class Selector
 {
 public:
+
+  virtual ~Selector() = default;
+
   virtual void init(CallGraph &cg)
   {}
 

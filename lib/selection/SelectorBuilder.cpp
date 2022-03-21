@@ -2,12 +2,11 @@
 // Created by sebastian on 15.03.22.
 //
 
-#include <selectors/BasicSelectors.h>
 #include "SelectorBuilder.h"
+#include "../Utils.h"
 #include "SelectionSpecAST.h"
-#include "Utils.h"
 #include "SelectorRegistry.h"
-
+#include <selectors/BasicSelectors.h>
 
 namespace capi {
 

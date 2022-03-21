@@ -5,7 +5,7 @@
 #ifndef CAPI_SELECTIONSPECAST_H
 #define CAPI_SELECTIONSPECAST_H
 
-#include "Utils.h"
+#include "../Utils.h"
 
 #include <memory>
 #include <iostream>
@@ -62,6 +62,8 @@ protected:
   }
 
 public:
+  virtual ~ASTNode() = default;
+
   virtual void accept(ASTVisitor &visitor) = 0;
 
   decltype(dereference_iterator(children.begin())) begin() { return dereference_iterator(children.begin()); }
