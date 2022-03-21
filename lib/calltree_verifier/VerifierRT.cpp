@@ -175,22 +175,22 @@ void print_process_map() {
 RTInitializer::RTInitializer() {
   exec_path = get_exec_path();
   auto execFilename = exec_path.substr(exec_path.find_last_of('/') + 1);
-  if (auto val = getenv("INSTRO_TRACK_EXE"); val) {
+  if (auto val = getenv("CAPI_EXE"); val) {
     if (strcmp(val, execFilename.c_str()) != 0) {
       return;
     }
-    std::cout << "Executable will be tracked: INSTRO_TRACK_EXE is set to "
+    std::cout << "Executable will be tracked: CAPI_EXE is set to "
               << val << " and matches the current executable filename "
               << execFilename << "\n";
   } else {
-    std::cout << "Please set INSTRO_TRACK_EXE=" << execFilename
+    std::cout << "Please set CAPI_EXE=" << execFilename
               << ", if you want to track calls in this application.\n";
     return;
   }
   std::cout << "Retrieving symbols for executable " << exec_path << "\n";
-  print_process_map();
+  //print_process_map();
   name_cache = std::make_unique<FunctionNameCache>(exec_path);
-  auto logFile = execFilename + ".instro.log";
+  auto logFile = execFilename + ".capi.log";
   logger = std::make_unique<CallTreeLogger>(logFile, *name_cache);
 }
 

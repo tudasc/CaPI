@@ -2,9 +2,9 @@
 // Created by sebastian on 15.03.22.
 //
 
-#include <cassert>
 #include "SelectorGraph.h"
-#include "Utils.h"
+#include "../Utils.h"
+#include <cassert>
 
 namespace capi {
 
