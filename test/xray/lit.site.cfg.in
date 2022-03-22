@@ -4,6 +4,8 @@ import sys
 
 config.capi_lib_dir = "@CAPI_LIB_DIR@"
 
+config.capi_scorep_support = @CAPI_SCOREP_SUPPORT@
+
 # Let the main config do the real work.
 config.loaded_site_config = True
 lit_config.load_config(config, "@CAPI_PROJECT_DIR@/test/xray/lit.cfg")
