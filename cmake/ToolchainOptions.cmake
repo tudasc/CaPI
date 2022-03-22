@@ -15,7 +15,16 @@ include(clang-format)
 include(llvm-util)
 include(talp)
 
+option(SCOREP_SUPPORT "Enable Score-P support" ON)
 
+if (SCOREP_SUPPORT)
+  set(SCOREP_PATH "" CACHE PATH "Path to ScoreP installation")
+
+  find_library(scorep_mgmt  NAMES scorep_adapter_compiler_mgmt HINTS "${SCOREP_PATH}/lib"  REQUIRED)
+  find_library(scorep_measurement  NAMES scorep_measurement HINTS "${SCOREP_PATH}/lib" REQUIRED)
+
+  message(STATUS "Score-P libs: ${scorep_mgmt} ${scorep_measurement}")
+endif()
 
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -26,7 +35,7 @@ endif ()
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   # set default install path
-  set(CMAKE_INSTALL_PREFIX "${instro-llvm_SOURCE_DIR}/install/instro-llvm" CACHE PATH "Default install path" FORCE)
+  set(CMAKE_INSTALL_PREFIX "${capi_SOURCE_DIR}/install/capi" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
 
