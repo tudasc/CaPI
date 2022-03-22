@@ -26,8 +26,8 @@
 extern "C" {
 void __cyg_profile_func_enter(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
 void __cyg_profile_func_exit(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
-};
 
+};
 
 namespace capi {
 

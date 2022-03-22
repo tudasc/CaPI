@@ -26,7 +26,16 @@ if (SCOREP_SUPPORT)
   message(STATUS "Score-P libs: ${scorep_mgmt} ${scorep_measurement}")
 endif()
 
+option(SCOREP_SUPPORT "Enable Score-P support" ON)
 
+if (SCOREP_SUPPORT)
+  set(SCOREP_PATH "" CACHE PATH "Path to ScoreP installation")
+
+  find_library(scorep_mgmt  NAMES scorep_adapter_compiler_mgmt HINTS "${SCOREP_PATH}/lib"  REQUIRED)
+  find_library(scorep_measurement  NAMES scorep_measurement HINTS "${SCOREP_PATH}/lib" REQUIRED)
+
+  message(STATUS "Score-P libs: ${scorep_mgmt} ${scorep_measurement}")
+endif()
 
 
 if (NOT CMAKE_BUILD_TYPE)
