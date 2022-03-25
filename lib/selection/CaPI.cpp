@@ -85,7 +85,7 @@ std::string getPreset(SelectionPreset preset) {
   default:
     assert(false && "Preset not implemented");
   }
-  return nullptr;
+  return "";
 }
 
 }
