@@ -8,11 +8,13 @@
 // RUN: clang++ -v -g -fxray-instrument -L `scorep-config --prefix`/lib -Wl,-start-group -Wl,--whole-archive -L %lib_dir/xray -l %dyncapi_scorep_lib -Wl,--no-whole-archive `scorep-config --libs --mpp=none --compiler` -Wl,-end-group  scorep_init.o basic.o -o basic
 
 // No filtering
+// RUN: rm -r scorep-test-profile*
 // RUN: SCOREP_EXPERIMENT_DIRECTORY=scorep-test-profile SCOREP_ENABLE_PROFILING=true CAPI_EXE=basic XRAY_OPTIONS="patch_premain=false verbosity=1" ./basic
 // RUN: scorep-score -r -s name scorep-test-profile/profile.cubex | FileCheck %s
 // RUN: rm -r scorep-test-profile/
 
 // Filtering
+// RUN: rm -r scorep-test-profile*
 // RUN: SCOREP_EXPERIMENT_DIRECTORY=scorep-test-profile SCOREP_ENABLE_PROFILING=true CAPI_EXE=basic CAPI_FILTERING_FILE="basic.filt" XRAY_OPTIONS="patch_premain=false verbosity=1" ./basic
 // RUN: scorep-score -r -s name scorep-test-profile/profile.cubex | FileCheck -check-prefix=CHECK-FILTERED %s
 // RUN: rm -r scorep-test-profile/ basic.o basic scorep_init.c scorep_init.o
