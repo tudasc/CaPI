@@ -29,7 +29,7 @@ add_lit_testsuite(capi-xray-test
     ${CMAKE_CURRENT_SOURCE_DIR}
     ARGS -v -j 1
     PARAMS site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
-    DEPENDS dyncapi
+    DEPENDS capixray
     )
 
 add_test(
