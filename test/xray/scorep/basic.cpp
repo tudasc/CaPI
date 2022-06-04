@@ -5,7 +5,7 @@
 // RUN: scorep-config --mpp=none --adapter-init > scorep_init.c
 // RUN: clang -c scorep_init.c -o scorep_init.o
 // RUN: clang++ -c -v -g -fxray-instrument -fxray-instruction-threshold=1 basic.cpp -o basic.o
-// RUN: clang++ -v -g -fxray-instrument -L `scorep-config --prefix`/lib -Wl,-start-group -Wl,--whole-archive -L %lib_dir/xray -l %dyncapi_scorep_lib -Wl,--no-whole-archive `scorep-config --libs --mpp=none --compiler` -Wl,-end-group  scorep_init.o basic.o -o basic
+// RUN: clang++ -fuse-ld=lld -v -g -fxray-instrument -L `scorep-config --prefix`/lib -Wl,-start-group -Wl,--whole-archive -L %lib_dir/xray -l %capi_xray_scorep_lib -Wl,--no-whole-archive `scorep-config --libs --mpp=none --compiler` -Wl,-end-group  scorep_init.o basic.o -o basic
 
 // No filtering
 // RUN: rm -r scorep-test-profile*
@@ -22,6 +22,7 @@
 
 #define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
 
+#include <cstdio>
 
 void foo(int n) {
   if (--n > 0)
@@ -36,5 +37,8 @@ void foo(int n) {
 
 int main(int argc, char** argv) {
   foo(3);
+  printf("Done");
 }
+
+
 

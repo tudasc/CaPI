@@ -1,4 +1,4 @@
-find_package(LLVM 10 REQUIRED CONFIG)
+find_package(LLVM 13 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 #find_package(Clang REQUIRED CONFIG)
