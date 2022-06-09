@@ -11,6 +11,7 @@ for arg in "$@" ; do
 done
 
 @LLVM_TOOLS_BINARY_DIR@/clang \
-    -Xclang -load -Xclang @CAPI_LIB_DIR@/instrumentation_filter/instfilter.so \
+    -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so \
+    -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/talp/talp_inst.so \
 	$LDFLAGS \
 	$@

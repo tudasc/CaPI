@@ -2,7 +2,7 @@
 // Created by sebastian on 14.10.21.
 //
 
-#include "ApplyInstrumentationFilter.h"
+#include "CaPIInstrumenter.h"
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -16,39 +16,52 @@
 using namespace llvm;
 
 namespace {
-static llvm::RegisterPass<ApplyInstrumentationFilter>
-    passreg("instfilter", "Read and apply instrumentation filter", false,
+static llvm::RegisterPass<CaPIInstrumenter>
+    passreg("capi-inst", "Read and apply CaPI instrumentation configuration", false,
             false);
 }
 
 static cl::opt<std::string>
-    ClFilterFile("instrument-filter",
+    ClFilterFile("inst-filter",
                  cl::desc("Location of instrumentation filter file"),
                  cl::Hidden, cl::init("inst.filt"));
 
+static cl::opt<std::string>
+    ClInstAPI("inst-api",
+                 cl::desc("Instrumentation API. Select \"gnu\" or \"talp\""),
+                 cl::Hidden, cl::init("gnu"));
+
 // Used by LLVM pass manager to identify passes in memory
-char ApplyInstrumentationFilter::ID = 0;
+char CaPIInstrumenter::ID = 0;
 
-ApplyInstrumentationFilter::ApplyInstrumentationFilter() : FunctionPass(ID) {}
+CaPIInstrumenter::CaPIInstrumenter() : FunctionPass(ID) {}
 
-void ApplyInstrumentationFilter::getAnalysisUsage(
+void CaPIInstrumenter::getAnalysisUsage(
     llvm::AnalysisUsage &AU) const {
   AU.setPreservesCFG();
 }
 
-bool ApplyInstrumentationFilter::doInitialization(llvm::Module &m) {
+bool CaPIInstrumenter::doInitialization(llvm::Module &m) {
 
-  if (ClFilterFile.empty()) {
+  if (ClInstAPI == "talp") {
+    api = InstAPI::TALP;
+  } else if (ClInstAPI == "gnu") {
+    api = InstAPI::GNU;
+  } else {
+    llvm::errs() << "Invalid instrumentation API: " << ClInstAPI << ". Defaulting to GNU interface.\n";
+    api = InstAPI::GNU;
+  }
+
+  auto filterEnv = std::getenv("CAPI_FILTER_FILE");
+  if (ClFilterFile.empty() && !filterEnv) {
     errs() << "Need to specify the location of the filter file.\n";
     return false;
   }
 
   std::string infile = ClFilterFile.getValue();
-
   {
     std::ifstream in(infile);
     if (!in.is_open()) {
-      auto filterEnv = std::getenv("INST_FILTER_FILE");
       if (filterEnv) {
         in.open(filterEnv);
         if (!in.is_open()) {
@@ -70,7 +83,7 @@ bool ApplyInstrumentationFilter::doInitialization(llvm::Module &m) {
   return false;
 }
 
-bool markForInstrumentation(llvm::Function &f) {
+bool markForGNUInstrumentation(llvm::Function &f) {
   llvm::errs() << "Instrumenting function: " << f.getName() << "\n";
   StringRef entryAttr = "instrument-function-entry-inlined";
   StringRef exitAttr = "instrument-function-exit-inlined";
@@ -88,22 +101,42 @@ bool markForInstrumentation(llvm::Function &f) {
   return true;
 }
 
-bool ApplyInstrumentationFilter::runOnFunction(llvm::Function &f) {
+
+
+bool markForTALPInstrumentation(llvm::Function &f) {
+  llvm::errs() << "Instrumenting function: " << f.getName() << "\n";
+  StringRef talpAttr = "instrument-talp-region";
+  if (f.hasFnAttribute(talpAttr) ) {
+    llvm::errs() << "Function is already marked for TALP region instrumentation: "
+                 << f.getName() << "\n";
+    return false;
+  }
+
+  f.addFnAttr(talpAttr, "true");
+  return true;
+}
+
+bool CaPIInstrumenter::runOnFunction(llvm::Function &f) {
   llvm::errs() << "Running on function: " << f.getName() << "\n";
   auto it = std::find(filterList.begin(), filterList.end(), f.getName());
   if (it == filterList.end()) {
     return false;
   }
-  return markForInstrumentation(f);
+  switch(api) {
+  case InstAPI::GNU:
+    return markForGNUInstrumentation(f);
+  case InstAPI::TALP:
+    return markForTALPInstrumentation(f);
+  }
 }
 
-bool ApplyInstrumentationFilter::doFinalization(llvm::Module &) {
+bool CaPIInstrumenter::doFinalization(llvm::Module &) {
   return false;
 }
 
 static void registerClangPass(const llvm::PassManagerBuilder &,
                               llvm::legacy::PassManagerBase &PM) {
-  PM.add(new ApplyInstrumentationFilter());
+  PM.add(new CaPIInstrumenter());
 }
 static RegisterStandardPasses
     RegisterClangPass(PassManagerBuilder::EP_EarlyAsPossible,

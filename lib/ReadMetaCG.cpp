@@ -66,7 +66,7 @@ bool ReadMetaCG::doInitialization(llvm::Module &m) {
   //    return changed;
 }
 
-bool markForInstrumentation(llvm::Function &f) {
+bool markForGNUInstrumentation(llvm::Function &f) {
   StringRef entryAttr = "instrument-function-entry";
   StringRef exitAttr = "instrument-function-exit";
   if (f.hasFnAttribute(entryAttr) || f.hasFnAttribute(exitAttr)) {
@@ -92,7 +92,7 @@ bool ReadMetaCG::runOnFunction(llvm::Function &f) {
   }
   auto info = it->second;
   if (info.instrument) {
-    return markForInstrumentation(f);
+    return markForGNUInstrumentation(f);
   }
   return false;
 }
