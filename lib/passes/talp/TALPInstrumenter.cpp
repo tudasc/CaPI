@@ -80,11 +80,23 @@ bool TALPInstrumenter::doInitialization(llvm::Module &M) {
   return false;
 }
 
+static bool RegionContainsMPIInitOrFinalize(llvm::Function &F) {
+  for (auto& BB : F) {
+    for (auto& I : BB) {
+      if (auto CI = dyn_cast<CallBase>(&I); CI) {
+        auto Callee = CI->getCalledFunction()->getName();
+        if (Callee == "MPI_Init" || Callee == "MPI_Finalize") {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 bool TALPInstrumenter::runOnFunction(llvm::Function &F) {
 
   // This is partially copied from EntryExitInstrumenter
-
-  llvm::outs() << "Running TALP instrumenter on function " << F.getName() << "\n";
 
   StringRef TALPAttr = "instrument-talp-region";
   auto AttrVal = F.getFnAttribute(TALPAttr).getValueAsString();
@@ -93,6 +105,13 @@ bool TALPInstrumenter::runOnFunction(llvm::Function &F) {
   if (!ShouldInstrument) {
     return false;
   }
+
+  if (RegionContainsMPIInitOrFinalize(F)) {
+    llvm::outs() << "Unable to create TALP region for " << F.getName() << ": Function is partially outside of MPI scope.\n";
+    return false;
+  }
+
+  llvm::outs() << "Running TALP region instrumenter on function " << F.getName() << "\n";
 
   F.removeAttribute(AttributeList::FunctionIndex, TALPAttr);
 

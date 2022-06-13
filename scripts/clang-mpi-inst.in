@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+
+linking=yes
+for arg in "$@" ; do
+    case "$arg" in
+    	-c|-S|-E|-M|-MM|-MMD)
+            linking=no
+    	    ;;
+    esac
+done
+
+OMPI_CC=@LLVM_TOOLS_BINARY_DIR@/clang mpicc \
+    -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so \
+    -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/talp/talp_inst.so \
+	$LDFLAGS \
+	$@

@@ -117,6 +117,9 @@ bool markForTALPInstrumentation(llvm::Function &f) {
 }
 
 bool CaPIInstrumenter::runOnFunction(llvm::Function &f) {
+  if (f.isDeclaration()) {
+    return false;
+  }
   llvm::errs() << "Running on function: " << f.getName() << "\n";
   auto it = std::find(filterList.begin(), filterList.end(), f.getName());
   if (it == filterList.end()) {
