@@ -19,3 +19,6 @@ endfunction()
 
 configure_script(clang-inst.in clang-inst)
 configure_script(clang-inst++.in clang-inst++)
+
+configure_script(clang-mpi-inst.in clang-mpi-inst)
+configure_script(clang-mpi-inst++.in clang-mpi-inst++)

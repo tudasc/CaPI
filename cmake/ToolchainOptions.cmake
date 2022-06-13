@@ -10,6 +10,7 @@ include(llvm-lit)
 include(clang-tidy)
 include(clang-format)
 include(llvm-util)
+include(talp)
 
 
 if (NOT CMAKE_BUILD_TYPE)

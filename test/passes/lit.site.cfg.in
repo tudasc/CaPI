@@ -1,0 +1,15 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+import sys
+
+config.llvm_bin_dir = "@LLVM_TOOLS_BINARY_DIR@"
+config.capi_lib_dir = "@CAPI_LIB_DIR@"
+config.capi_cc = "@CAPI_CC@"
+config.capi_cxx = "@CAPI_CXX@"
+config.capi_mpicc = "@CAPI_MPICC@"
+config.capi_mpicxx = "@CAPI_MPICXX@"
+config.dlb_lib_dir = "@DLB_LIB_DIR@"
+
+# Let the main config do the real work.
+config.loaded_site_config = True
+lit_config.load_config(config, "@CAPI_PROJECT_DIR@/test/passes/lit.cfg")

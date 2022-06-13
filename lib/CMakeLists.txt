@@ -21,6 +21,6 @@ install(
         ARCHIVE DESTINATION lib
 )
 
-add_subdirectory(instrumentation_filter)
+add_subdirectory(passes)
 add_subdirectory(selection)
 add_subdirectory(calltree_verifier)
