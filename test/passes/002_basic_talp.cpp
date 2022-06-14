@@ -26,13 +26,13 @@ int __attribute__((noinline)) bar(int x) {
   return x * 2;
 }
 
-// CHECK: define dso_local i32 @_Z3fooi(i32 %0) local_unnamed_addr #4 {
-// CHECK-NEXT:  %2 = call %dlb_monitor_t* @DLB_MonitoringRegionRegister(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @0, i32 0, i32 0))
-// CHECK-NEXT:  %3 = call i32 @DLB_MonitoringRegionStart(%dlb_monitor_t* %2)
-// CHECK-NEXT:  %4 = tail call i32 @_Z3bari(i32 %0
-// CHECK-NEXT:  %5 = add nsw i32 %4, 5
-// CHECK-NEXT:  %6 = call i32 @DLB_MonitoringRegionStop(%dlb_monitor_t* %2)
-// CHECK-NEXT:  ret i32 %5
+// CHECK: define dso_local i32 @_Z3fooi(i32 %x) local_unnamed_addr #4 {
+// CHECK:  %0 = call %dlb_monitor_t* @DLB_MonitoringRegionRegister(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @0, i32 0, i32 0))
+// CHECK-NEXT:  %1 = call i32 @DLB_MonitoringRegionStart(%dlb_monitor_t* %0)
+// CHECK-NEXT:  %call = tail call i32 @_Z3bari(i32 %x
+// CHECK-NEXT:  %add = add nsw i32 %call, 5
+// CHECK-NEXT:  %2 = call i32 @DLB_MonitoringRegionStop(%dlb_monitor_t* %0)
+// CHECK-NEXT:  ret i32 %add
 // CHECK-NEXT: }
 int __attribute__((noinline))  foo(int x) {
   return bar(x) + 5;

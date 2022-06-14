@@ -14,5 +14,7 @@ done
 OMPI_CXX=@LLVM_TOOLS_BINARY_DIR@/clang++ mpic++ \
     -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so \
     -Xclang -load -Xclang @CAPI_LIB_DIR@/passes/talp/talp_inst.so \
+    -fpass-plugin=@CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so \
+    -fpass-plugin=@CAPI_LIB_DIR@/passes/talp/talp_inst.so \
 	$LDFLAGS \
 	$@
