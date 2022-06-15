@@ -9,6 +9,8 @@ config.capi_cxx = "@CAPI_CXX@"
 config.capi_mpicc = "@CAPI_MPICC@"
 config.capi_mpicxx = "@CAPI_MPICXX@"
 config.dlb_lib_dir = "@DLB_LIB_DIR@"
+config.capi_scorep_support = @CAPI_SCOREP_SUPPORT@
+
 
 # Let the main config do the real work.
 config.loaded_site_config = True
