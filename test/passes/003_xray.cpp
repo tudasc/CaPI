@@ -2,14 +2,14 @@
 // Created by sebastian on 21.03.22.
 //
 
-// RUN: clang++ -c -v -g -fxray-instrument -fxray-instruction-threshold=1 basic.cpp -o basic.o
-// RUN: clang++ -v -g -fxray-instrument -Wl,--whole-archive -L %lib_dir/xray -l %dyncapi_lib -Wl,--no-whole-archive basic.o -L %lib_dir/calltree_verifier -lcalltreeverifier_static -o basic
-// RUN: CAPI_EXE=basic XRAY_OPTIONS="patch_premain=false verbosity=1" ./basic
-// RUN: cat basic.capi.log | FileCheck %s
-// RUN: rm basic.capi.log
-// RUN: CAPI_EXE=basic CAPI_FILTERING_FILE="basic.filt" XRAY_OPTIONS="patch_premain=false verbosity=1" ./basic
-// RUN: cat basic.capi.log | FileCheck -check-prefix=CHECK-FILTERED %s
-// : rm basic.capi.log basic.o basic
+// RUN: %clang_cc -c -v -g -fxray-instrument -fxray-instruction-threshold=1 %s -o %s.o
+// RUN: %clang_cxx -v -g -fxray-instrument -Wl,--whole-archive -L %lib_dir/xray -l %capi_xray_lib -Wl,--no-whole-archive %s.o -L %lib_dir/calltree_verifier -lcalltreeverifier_static -o %s.exe
+// RUN: CAPI_EXE=$(basename %s.exe) XRAY_OPTIONS="patch_premain=false verbosity=1" %s.exe
+// RUN: cat %s.exe.capi.log | FileCheck %s
+// RUN: rm %s.exe.capi.log
+// RUN: CAPI_EXE=$(basename %s.exe) CAPI_FILTERING_FILE="003_xray.filt" XRAY_OPTIONS="patch_premain=false verbosity=1" %s.exe
+// RUN: cat %s.exe.capi.log | FileCheck -check-prefix=CHECK-FILTERED %s
+// RUN: rm %s.exe.capi.log %s.o %s.exe
 
 #include <iostream>
 

@@ -7,10 +7,10 @@
 // basic.filt: main and foo are instrumented, bar is not.
 
 // (1) Check if region instrumentation is inserted correctly.
-// RUN: %capi_mpicxx -O2 -mllvm -inst-api="talp" -mllvm -inst-filter="$(dirname %s)/basic.filt" -S -emit-llvm %s -o - | FileCheck %s
+// RUN: %capi_mpicxx -O2 -mllvm -inst-api="talp" -mllvm -inst-filter="$(dirname %s)/001_basic.filt" -S -emit-llvm %s -o - | FileCheck %s
 
 // (2) Run with TALP, check if region statistics are emitted.
-// RUN: %capi_mpicxx -O2 %talp_args -mllvm -inst-api="talp" -mllvm -inst-filter="$(dirname %s)/basic.filt" %s -o %s.o
+// RUN: %capi_mpicxx -O2 %talp_args -mllvm -inst-api="talp" -mllvm -inst-filter="$(dirname %s)/001_basic.filt" %s -o %s.o
 // RUN: DLB_ARGS="--talp --talp-summary=pop-metrics" mpirun -n 2 %s.o 2>&1 | FileCheck %s -check-prefix=CHECK-TALP
 
 // CHECK-TALP: DLB{{.*}} ### Name: MPI Execution
