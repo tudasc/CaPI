@@ -1,10 +1,27 @@
-spec := selectorDec | spec selectorDecl
-selectorDecl := selectorName '=' selectorDef | selectorDef
-selectorDef := selectorType '(' params ')' | selectorType '(' ')'
-selectorRef := '%' selectorName
-selectorType := onCallPathTo | inlineSpecified | byName | byPath | join | ...
-params := param | params ',' param
-param := string | int | float | bool | selectorRef | selectorDef
+<spec> ::= <selectorDecl> | <spec> <selectorDecl>
+<selectorDecl> ::= <selectorName> '=' <selectorDef> | <selectorDef>
+<selectorDef> ::= <selectorType> '(' <params> ')' | <selectorType> '(' ')'
+<selectorRef> ::= '%' <selectorName> | '%%'
+<selectorType> ::= <identifier>
+<params> ::= <param> | <params> ',' <param>
+<param> ::= <string> | <int> | <float> | <bool> | <selectorRef> | <selectorDef>
+
+<selectorName> ::= <identifier>
+<identifier> ::= <letter> | <letter> <idRest>
+<idRest> ::= <idChar> | <idChar> <idRest>
+<idChar> ::= '_' | <letter> | <digit>
+<letter> ::= [a-z] | [A-Z]
+
+<char> ::= any character
+<string> ::= '"' <char>+ '"'
+<bool> ::= 'true' | 'false'
+<digit> ::= [0-9]
+<int> ::= '-' <digit>+ | <digit>+
+<float> ::= <neg_float> | <pos_float>
+<neg_float> ::= '-' <pos_float>
+<pos_float> ::= <digit>* '.' <digit>+
+
+
 
 MPI Example:
-mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excudethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)
+mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excludethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)
