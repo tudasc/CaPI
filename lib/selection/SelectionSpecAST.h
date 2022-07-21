@@ -7,6 +7,7 @@
 
 #include "Utils.h"
 
+#include <vector>
 #include <memory>
 #include <iostream>
 #include <algorithm>
@@ -62,6 +63,8 @@ protected:
   }
 
 public:
+  virtual ~ASTNode() = default;
+
   virtual void accept(ASTVisitor &visitor) = 0;
 
   decltype(dereference_iterator(children.begin())) begin() { return dereference_iterator(children.begin()); }

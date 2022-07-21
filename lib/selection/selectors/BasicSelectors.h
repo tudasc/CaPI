@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <regex>
+#include <optional>
 
 #include "Selector.h"
 
@@ -25,7 +26,7 @@ public:
 
   FunctionSet apply(const FunctionSetList&) override { return allFunctions; }
 
-  std::string getName() {
+  std::string getName() override {
     return "EverythingSelector";
   }
 };
@@ -124,6 +125,69 @@ public:
     return "UnresolvedCallSelector";
   }
 };
+
+enum class MetricCmpOp {
+  Smaller, Greater, Equals, NotEquals, EqualsSmaller, EqualsGreater
+};
+
+inline std::optional<MetricCmpOp> getCmpOp(const std::string& opStr) {
+  MetricCmpOp cmpOp;
+  if (opStr == "==") {
+    cmpOp = MetricCmpOp::Equals;
+  } else if (opStr == "<=") {
+    cmpOp = MetricCmpOp::EqualsSmaller;
+  }else if (opStr == ">=") {
+    cmpOp = MetricCmpOp::EqualsGreater;
+  }else if (opStr == "<") {
+    cmpOp = MetricCmpOp::Smaller;
+  }else if (opStr == ">") {
+    cmpOp = MetricCmpOp::Greater;
+  }else if (opStr == "!=") {
+    cmpOp = MetricCmpOp::NotEquals;
+  } else {
+    return {};
+  }
+  return cmpOp;
+}
+
+class MetricSelector : public FilterSelector {
+public:
+
+  MetricSelector(std::string selectorName, std::vector<std::string> fieldName, MetricCmpOp op, int val) : selectorName(std::move(selectorName)), fieldName(std::move(fieldName)), cmpOp(op), val(val){
+  }
+
+  bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return selectorName;
+  }
+
+private:
+  std::string selectorName;
+  std::vector<std::string> fieldName;
+  MetricCmpOp cmpOp;
+  int val;
+};
+
+class FlopSelector : public MetricSelector {
+public:
+  FlopSelector(MetricCmpOp op, int val) : MetricSelector("FlopSelector", {"numOperations", "numberOfFloatOps"}, op, val) {
+  }
+};
+
+class MemOpSelector : public MetricSelector {
+public:
+  MemOpSelector(MetricCmpOp op, int val) : MetricSelector("MemOpSelector", {"numOperations", "numberOfMemoryAccesses"}, op, val) {
+  }
+};
+
+class LoopDepthSelector: public MetricSelector {
+public:
+  LoopDepthSelector(MetricCmpOp op, int val) : MetricSelector("LoopDepthSelector", {"loopDepth"}, op, val) {
+  }
+};
+
+
 
 }
 

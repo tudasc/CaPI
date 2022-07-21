@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
+
 namespace capi {
 
 struct FunctionInfo
@@ -23,6 +26,9 @@ struct FunctionInfo
   std::string fileName;
   bool definedInSystemInclude{false};
   bool isInlined{false};
+
+  json metaData;
+
 };
 
 class MetaCGReader

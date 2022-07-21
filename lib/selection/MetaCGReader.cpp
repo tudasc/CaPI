@@ -5,8 +5,7 @@
 #include "MetaCGReader.h"
 
 //#include "llvm/Support/raw_ostream.h"
-#include "nlohmann/json.hpp"
-using json = nlohmann::json;
+
 
 #include <fstream>
 #include <iostream>
@@ -71,7 +70,9 @@ bool MetaCGReader::read() {
     }
 
     auto jMeta = it.value()["meta"];
+    fi.metaData = jMeta;
     if (!jMeta.is_null()) {
+
       auto jPointerCall = jMeta["containsPointerCall"];
       if (jPointerCall.is_boolean()) {
         fi.containsPointerCall = jPointerCall.template get<bool>();

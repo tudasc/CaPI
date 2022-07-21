@@ -20,6 +20,9 @@ using FunctionSetList = std::vector<FunctionSet>;
 class Selector
 {
 public:
+
+  virtual ~Selector() = default;
+
   virtual void init(CallGraph &cg)
   {}
 

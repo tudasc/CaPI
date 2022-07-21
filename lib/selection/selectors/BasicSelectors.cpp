@@ -67,4 +67,54 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
 
   return out;
 }
+
+
+bool MetricSelector::accept(const std::string &fName) {
+  auto node = this->cg->get(fName);
+  if (!node) {
+    return false;
+  }
+  auto& meta =  node->getFunctionInfo().metaData;
+  if (meta.is_null()) {
+    return false;
+  }
+
+  json j = meta;
+  auto fields = fieldName;
+  while (!fields.empty()) {
+    auto& name = fields.front();
+    fields.erase(fields.begin());
+    j = j[name];
+  }
+
+  if (j.is_null()) {
+    return false;
+  }
+
+//  bool requiresNumber = Op != MetricCmpOp::StrEquals;
+
+//  int numVal = requiresNumber ? 0 : j.get<int>();
+
+  int numVal = j.get<int>();
+
+  switch(cmpOp) {
+  case MetricCmpOp::Equals:
+    return numVal == val;
+  case MetricCmpOp::EqualsGreater:
+    return numVal >= val;
+  case MetricCmpOp::EqualsSmaller:
+    return numVal <= val;
+  case MetricCmpOp::Greater:
+    return numVal > val;
+  case MetricCmpOp::Smaller:
+    return numVal < val;
+  case MetricCmpOp::NotEquals:
+    return numVal != val;
+  default:
+    assert("Unhandled cmp op");
+    break;
+  }
+  return false;
+}
+
 }
