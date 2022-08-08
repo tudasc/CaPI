@@ -76,18 +76,26 @@ bool MetricSelector::accept(const std::string &fName) {
   }
   auto& meta =  node->getFunctionInfo().metaData;
   if (meta.is_null()) {
+    logError() << "Metadata for function " << fName << " not available.\n";
     return false;
   }
 
   json j = meta;
-  auto fields = fieldName;
-  while (!fields.empty()) {
-    auto& name = fields.front();
-    fields.erase(fields.begin());
+
+  for (auto& name : fieldName) {
+    if (j.is_null())
+      break;
     j = j[name];
   }
+//  while (!fields.empty()) {
+//    auto& name = fields.front();
+//    fields.erase(fields.begin());
+//    j = j[name];
+//    logError() << "Looking for " << name << ": " << j.dump() <<"\n";
+//  }
 
   if (j.is_null()) {
+    logError() << "Unable to find metadata entry for function " << fName << ": " << getFieldsAsString() << "\n";
     return false;
   }
 

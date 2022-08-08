@@ -95,12 +95,12 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
       int count = traverseCallGraph(
               *fnNode, [](CGNode & node) -> auto { return node.getCallees(); },
               visitFn);
-      std::cout << "Functions on call path from " << fn << ": " << count << "\n";
+      //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
               *fnNode, [](CGNode & node) -> auto { return node.getCallers(); },
               visitFn);
-      std::cout << "Functions on call path to " << fn << ": " << count << "\n";
+      //std::cout << "Functions on call path to " << fn << ": " << count << "\n";
     }
   }
   return out;

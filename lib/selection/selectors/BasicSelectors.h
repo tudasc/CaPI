@@ -163,6 +163,15 @@ public:
   }
 
 private:
+  std::string getFieldsAsString() const {
+    std::stringstream ss;
+    for (auto& f : fieldName) {
+      ss << f << ", ";
+    }
+    return ss.str();
+  }
+
+private:
   std::string selectorName;
   std::vector<std::string> fieldName;
   MetricCmpOp cmpOp;

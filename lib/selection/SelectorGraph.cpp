@@ -8,6 +8,24 @@
 
 namespace capi {
 
+static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<SelectorNode*>& execOrder, std::vector<SelectorNode*>& visited) {
+  visited.push_back(node);
+  for (auto&& inputName : node->getInputDependencies()) {
+    auto input = graph.getNode(inputName);
+    if (!input) {
+      logError() << "Invalid selector node: " << inputName << "\n";
+      return false;
+    }
+    if (std::find(visited.begin(), visited.end(), input) == visited.end()) {
+      if (!dfsSort(input, graph, execOrder, visited)) {
+        return false;
+      }
+    }
+  }
+  execOrder.push_back(node);
+  return true;
+}
+
 FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
   auto entry = selectorGraph.getEntryNode();
   if (!entry) {
@@ -15,31 +33,45 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
     return {};
   }
 
+//  std::vector<SelectorNode*> executionOrder;
+//  std::vector<SelectorNode*> workingSet;
+
+//  workingSet.push_back(entry);
+//
+//  while (!workingSet.empty()) {
+//    auto node = workingSet.back();
+//    workingSet.pop_back();
+//    executionOrder.push_back(node);
+//    logError() << "Added " << node->getName() << "\n";
+//    for (auto&& inputName : node->getInputDependencies()) {
+//      auto input = selectorGraph.getNode(inputName);
+//      if (!input) {
+//        logError() << "Invalid selector node: " << inputName << "\n";
+//        return {};
+//      }
+//      if (std::find(executionOrder.begin(), executionOrder.end(), input) != executionOrder.end()) {
+//        logError() << "Cyclic dependency! " << input->getName() << "\n";
+//        return {};
+//      }
+//      if (std::find(workingSet.begin(), workingSet.end(), input) == workingSet.end()) {
+//        workingSet.insert(workingSet.begin(), input);
+//      }
+//
+//    }
+//  }
+
+
   std::vector<SelectorNode*> executionOrder;
-  std::vector<SelectorNode*> workingSet;
+  std::vector<SelectorNode*> visited;
 
-  workingSet.push_back(entry);
+  bool success = dfsSort(entry, selectorGraph, executionOrder, visited);
 
-  while (!workingSet.empty()) {
-    auto node = workingSet.back();
-    workingSet.pop_back();
-    executionOrder.push_back(node);
-    for (auto&& inputName : node->getInputDependencies()) {
-      auto input = selectorGraph.getNode(inputName);
-      if (!input) {
-        logError() << "Invalid selector node: " << inputName << "\n";
-        return {};
-      }
-      if (std::find(executionOrder.begin(), executionOrder.end(), input) != executionOrder.end()) {
-        logError() << "Cyclic dependency!\n";
-        return {};
-      }
-      if (std::find(workingSet.begin(), workingSet.end(), input) == workingSet.end()) {
-        workingSet.insert(workingSet.begin(), input);
-      }
-
-    }
+  if (!success) {
+    logError() << "Invalid selector pipeline.\n";
+    return {};
   }
+
+
 
 //  std::cout << "Execution order: \n";
 //  for (auto it = executionOrder.rbegin(); it != executionOrder.rend(); ++it) {
@@ -50,7 +82,7 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
 
   std::unordered_map<std::string, FunctionSet> resultsMap;
 
-  for (auto it = executionOrder.rbegin(); it != executionOrder.rend(); ++it) {
+  for (auto it = executionOrder.begin(); it != executionOrder.end(); ++it) {
     auto node = *it;
     auto& selector = *node->getSelector();
     logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << "...\n";
@@ -62,6 +94,7 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
       inputList.push_back(resultIt->second);
     }
     auto output = selector.apply(inputList);
+    logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
     resultsMap[node->getName()] = std::move(output);
   }
 
