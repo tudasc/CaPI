@@ -1,4 +1,7 @@
-<spec> ::= <selectorDecl> | <spec> <selectorDecl>
+<spec> ::= <stmt> | <spec> <stmt>
+<stmt> ::= <selectorDecl> | <directive>
+<directive> ::= '!' <directiveType> | '!' <directiveType> '(' <directiveParams> ')'
+<directiveType> ::= 'import'
 <selectorDecl> ::= <selectorName> '=' <selectorDef> | <selectorDef>
 <selectorDef> ::= <selectorType> '(' <params> ')' | <selectorType> '(' ')'
 <selectorRef> ::= '%' <selectorName> | '%%'

@@ -50,7 +50,7 @@ bool SystemHeaderSelector::accept(const std::string &fName) {
 
 FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
   if (input.size() != 1) {
-    logError() << "Expected exactly one input set, got " << input.size() << "instead.\n";
+    logError() << "Expected exactly one input set, got " << input.size() << " instead.\n";
     return {};
   }
 

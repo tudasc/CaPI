@@ -134,6 +134,14 @@ public:
     graph.setEntryNode(lastDeclName);
   }
 
+  void visitDirective(Directive &directive) override {
+    // Skip parameters
+    logError() << "The AST still contains a directive, which should have been processed before building the selection pipeline.\n";
+    logError() << "Directive: ";
+    directive.dump(std::cerr);
+    std::cerr << "\n";
+  }
+
   void visitDecl(SelectorDecl &decl) override {
     selectorDeclName = decl.getName();
     if (selectorDeclName.empty()) {

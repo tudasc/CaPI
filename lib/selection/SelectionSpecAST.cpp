@@ -10,6 +10,7 @@ namespace capi {
  void ASTVisitor::visitDecl(SelectorDecl &decl){visitChildren(decl);};
  void ASTVisitor::visitDef(SelectorDef &def){visitChildren(def);};
  void ASTVisitor::visitRef(SelectorRef &ref){visitChildren(ref);};
+ void ASTVisitor::visitDirective(Directive& directive){ visitChildren(directive);}
 
 void ASTVisitor::visitChildren(ASTNode& node) {
   for (auto &child : node) {

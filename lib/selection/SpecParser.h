@@ -93,7 +93,7 @@ public:
 struct Token {
   enum Kind {
     UNKNOWN, END_OF_FILE, IDENTIFIER, STR_LITERAL, INT_LITERAL, FLOAT_LITERAL,
-    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA
+    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA, EXCLAM
   };
 
   Token(Kind kind, std::string spelling) : kind(kind), spelling(std::move(spelling)){
@@ -122,6 +122,9 @@ struct Token {
       case COMMA:
         spelling = ",";
         break;
+      case EXCLAM:
+        spelling = "!";
+        break;
       default:
         break;
     }
@@ -143,7 +146,7 @@ struct LexResult {
   LexResult(std::string msg) : msg(std::move(msg)) {}
 
   operator bool() const {
-    return token->valid();
+    return token && token->valid();
   }
 
   Token* operator->() {
@@ -206,6 +209,9 @@ public:
       case ',':
         reader.consume();
         return Token(Token::COMMA);
+      case '!':
+        reader.consume();
+        return Token(Token::EXCLAM);
       default:
         break;
     }
@@ -363,17 +369,17 @@ public:
   }
 
   ASTPtr parse() {
-    std::vector<DeclPtr> decls;
+    std::vector<NodePtr> stmts;
     do {
-      auto decl = parseSelectorDecl();
-      if (decl) {
-        decls.emplace_back(std::move(decl));
+      auto stmt = parseStmt();
+      if (stmt) {
+        stmts.emplace_back(std::move(stmt));
       } else {
         printErrorMessage("Parsing failed.");
         return nullptr;
       }
     } while(!eof());
-    return std::make_unique<SpecAST>(std::move(decls));
+    return std::make_unique<SpecAST>(std::move(stmts));
   }
 
 protected:
@@ -453,20 +459,62 @@ protected:
       return {};
     }
 
+    auto params = parseParams();
+
+//    lexer.pushMarker();
+//    auto nextToken = lexer.next();
+//    if (!nextToken) {
+//      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "selector parameters or ')'");
+//      return {};
+//    }
+//    SelectorDef::Params params;
+//    if (nextToken->kind != nextToken->RIGHT_PAREN) {
+//      // Backtrack so that the next token is the start of the first argument
+//      lexer.backtrack();
+//      do {
+//        auto arg = parseParam();
+//        if (!arg) {
+//          printErrorMessage("Could not parse selector parameter.");
+//          return {};
+//        }
+//        params.emplace_back(std::move(arg));
+//        nextToken = lexer.next();
+//        if (!nextToken) {
+//          printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "',' or ')'");
+//          return {};
+//        }
+//      } while (nextToken->kind == Token::COMMA);
+//
+//      // Make sure that the last token was ')'
+//      if (nextToken->kind != nextToken->RIGHT_PAREN) {
+//        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "')'", nextToken->spelling);
+//        return {};
+//      }
+//    } else {
+//      lexer.discardMarker();
+//    }
+
+    return std::make_unique<SelectorDef>(selectorToken->spelling, std::move(params));
+  }
+
+  std::vector<NodePtr> parseParams() {
+
+    // Note: Assumes that the leading parenthesis has already been parsed.
+
     lexer.pushMarker();
     auto nextToken = lexer.next();
     if (!nextToken) {
-      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "selector parameters or ')'");
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "parameters or ')'");
       return {};
     }
-    SelectorDef::Params params;
+    std::vector<NodePtr> params;
     if (nextToken->kind != nextToken->RIGHT_PAREN) {
       // Backtrack so that the next token is the start of the first argument
       lexer.backtrack();
       do {
         auto arg = parseParam();
         if (!arg) {
-          printErrorMessage("Could not parse selector parameter.");
+          printErrorMessage("Could not parse parameter.");
           return {};
         }
         params.emplace_back(std::move(arg));
@@ -485,11 +533,59 @@ protected:
     } else {
       lexer.discardMarker();
     }
-
-    return std::make_unique<SelectorDef>(selectorToken->spelling, std::move(params));
+    return params;
   }
 
+  NodePtr parseStmt() {
+    lexer.pushMarker();
+    auto t = lexer.next();
+    if (!t) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a directive or selector declaration");
+      return {};
+    }
+    if (t->kind == Token::EXCLAM) {
+      lexer.discardMarker();
+      return parseDirective();
+    } else {
+      lexer.backtrack();
+      return parseSelectorDecl();
+    }
+  }
 
+  DirectivePtr parseDirective() {
+
+    // BNF: <directive> ::= '!' <directiveType> | '!' <directiveType> '(' <directiveParams> ')'
+    // Note: The '!' is already parsed here.
+
+    auto name = lexer.next();
+    if (!name) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a directive");
+      return {};
+    }
+
+    if (name->kind != Token::IDENTIFIER) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "an identifier", name->spelling);
+      return {};
+    }
+
+    lexer.pushMarker();
+    auto t = lexer.next();
+    if (!t) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "directive parameters or a new statement");
+      return {};
+    }
+    std::vector<NodePtr> params {};
+    if (t->kind == Token::LEFT_PAREN) {
+      lexer.discardMarker();
+      params = parseParams();
+    } else {
+      // Token is start of new statement
+      lexer.backtrack();
+    }
+
+    return std::make_unique<Directive>(name->spelling, std::move(params));
+
+  }
 
   DeclPtr parseSelectorDecl() {
 

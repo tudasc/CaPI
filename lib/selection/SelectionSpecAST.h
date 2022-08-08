@@ -19,12 +19,13 @@ template <typename T> class Literal;
 class SelectorDef;
 class SelectorRef;
 class SelectorDecl;
+class Directive;
 class SpecAST;
 
 class ASTVisitor;
 
 using NodePtr = std::unique_ptr<ASTNode>;
-
+using DirectivePtr = std::unique_ptr<Directive>;
 using DeclPtr = std::unique_ptr<SelectorDecl>;
 using DefPtr = std::unique_ptr<SelectorDef>;
 using RefPtr = std::unique_ptr<SelectorRef>;
@@ -36,6 +37,8 @@ public:
   virtual void visitDecl(SelectorDecl &decl);
   virtual void visitDef(SelectorDef &def);
   virtual void visitRef(SelectorRef &ref);
+  virtual void visitDirective(Directive &directive);
+
 
 #define VISIT_LITERAL(name, type) virtual void visit##name##Literal(Literal<type> &l) {}
 
@@ -175,6 +178,44 @@ public:
   }
 };
 
+class Directive : public ASTNode {
+
+  std::string name;
+
+public:
+  using Params = std::vector<NodePtr>;
+
+  Directive(std::string name, Params params)
+      : name(std::move(name)) {
+    addChildren(params.begin(), params.end());
+  }
+
+  std::string getName() {
+    return name;
+  }
+
+  void accept(ASTVisitor &visitor) override {
+    visitor.visitDirective(*this);
+  }
+
+  void dump(std::ostream &os) override {
+    os << "<Directive> type=" << name << ", params=";
+    dumpChildren(os);
+  }
+};
+
+//class ImportDirective : public Directive {
+//public:
+//  explicit ImportDirective(Params params) : Directive("ImportDirective", std::move(params)) {
+//  }
+//
+//  void accept(ASTVisitor &visitor) override {
+//    visitor.visitImportDirective(*this);
+//  }
+//
+//};
+
+
 class SelectorDef : public ASTNode {
 
   std::string selectorType;
@@ -225,14 +266,14 @@ public:
 
 class SpecAST : public ASTNode {
 public:
-  explicit SpecAST(std::vector<std::unique_ptr<SelectorDecl>> decls) {
-    addChildren(decls.begin(), decls.end());
+  explicit SpecAST(std::vector<NodePtr> stmts) {
+    addChildren(stmts.begin(), stmts.end());
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitAST(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SpecAST> decls=";
+    os << "<SpecAST> stmts=";
     dumpChildren(os);
   }
 };

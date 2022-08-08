@@ -74,7 +74,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
                 Dir == TraverseDir::TraverseUp);
 
   if (input.size() != 1) {
-    logError() << "Expected exactly one input sets, got " << input.size() << "instead.\n";
+    logError() << "Expected exactly one input sets, got " << input.size() << " instead.\n";
     return {};
   }
 
