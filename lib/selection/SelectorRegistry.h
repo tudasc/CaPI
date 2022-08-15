@@ -7,6 +7,8 @@
 
 #include <variant>
 
+#include "Selector.h"
+
 namespace capi {
 
 struct Param {

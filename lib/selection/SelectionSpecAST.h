@@ -59,6 +59,22 @@ protected:
 
   void addChild(NodePtr ptr) { children.emplace_back(std::move(ptr)); }
 
+  bool addChildAfter(NodePtr ptr, ASTNode* insertAfter) {
+    auto insertPos = children.begin();
+    bool insert = false;
+    while (insertPos != children.end()) {
+      if (insertPos->get() == insertAfter) {
+        insert = true;
+        break;
+      }
+      ++insertPos;
+    }
+    if (insert) {
+      children.insert(insertPos+1, std::move(ptr));
+    }
+    return insert;
+  }
+
   template <typename Iterator> void addChildren(Iterator begin, Iterator end) {
     std::for_each(begin, end, [this](auto &child) {
       children.emplace_back(std::move(child));
@@ -75,6 +91,18 @@ public:
   decltype(dereference_iterator(children.end())) end() { return dereference_iterator(children.end()); }
 
   decltype(children) &getChildren() { return children; }
+
+  const decltype(children) &getChildren() const {return children; }
+
+  NodePtr removeChild(ASTNode* child) {
+    auto it = std::find_if(children.begin(), children.end(), [&child](NodePtr& n) {return n && n.get() == child;});
+    if (it != children.end()) {
+      auto node = std::move(*it);
+      children.erase(it);
+      return node;
+    }
+    return nullptr;
+  }
 
   void dumpChildren(std::ostream &os) {
     os << "{";
@@ -276,7 +304,25 @@ public:
     os << "<SpecAST> stmts=";
     dumpChildren(os);
   }
+
+  bool insertStmt(NodePtr stmt, ASTNode* insertAfter) {
+    return addChildAfter(std::move(stmt), insertAfter);
+  }
+
 };
+
+inline ASTNode* findParent(ASTNode& root, ASTNode& node) {
+  for (auto& child : root.getChildren()) {
+    if (child.get() == &node) {
+      return &root;
+    }
+    auto childParent = findParent(*child, node);
+    if (childParent) {
+      return childParent;
+    }
+  }
+  return nullptr;
+}
 
 }
 

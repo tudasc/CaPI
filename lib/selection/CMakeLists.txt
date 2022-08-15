@@ -4,6 +4,7 @@ set(SOURCES CallGraph.cpp
         MetaCGReader.cpp
         DOTWriter.cpp
         FunctionFilter.cpp
+        Preprocessor.cpp
         SpecParser.cpp
         SelectionSpecAST.cpp
         SelectorBuilder.cpp

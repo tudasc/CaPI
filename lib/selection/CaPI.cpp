@@ -11,9 +11,10 @@
 #include "DOTWriter.h"
 #include "FunctionFilter.h"
 #include "MetaCGReader.h"
-#include "SpecParser.h"
-#include "SelectorGraph.h"
+#include "Preprocessor.h"
 #include "SelectorBuilder.h"
+#include "SelectorGraph.h"
+#include "SpecParser.h"
 
 using namespace capi;
 
@@ -179,6 +180,14 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "AST for " << specStr << ":\n";
+  std::cout << "------------------\n";
+  ast->dump(std::cout);
+  std::cout << "\n";
+  std::cout << "------------------\n";
+
+  preprocessAST(*ast);
+
+  std::cout << "AST after pre-processing:\n";
   std::cout << "------------------\n";
   ast->dump(std::cout);
   std::cout << "\n";
