@@ -15,6 +15,13 @@
 
 namespace capi {
 
+//using DirectiveReplacement = std::pair<Directive*, NodePtr>;
+
+struct DirectiveReplacement {
+  Directive* directive{nullptr};
+  NodePtr replacement{};
+  bool replaceWithChildren{false};
+};
 
 struct DirectiveHandler {
 
@@ -24,7 +31,7 @@ struct DirectiveHandler {
 
   virtual bool finalize() = 0;
 
-  virtual bool transform(Directive &directive, SpecAST &ast) = 0;
+  virtual DirectiveReplacement transform(Directive &directive, SpecAST &ast) = 0;
 };
 
 using HandlerPtr = std::unique_ptr<DirectiveHandler>;
@@ -53,20 +60,19 @@ struct ImportHandler : public DirectiveHandler{
     return complete && !error;
   }
 
-  bool transform(Directive& directive, SpecAST &ast) override {
+
+  DirectiveReplacement transform(Directive& directive, SpecAST &ast) override {
     assert((complete && !error) && "Can't transform invalid import directive.");
     auto parent = findParent(ast, directive);
     // Directive must always be direct child of root AST node.
     if (!parent || parent != &ast) {
       logError() << "Unable to determine parent of directive node.\n";
-      return false;
+      return {};
     }
-
-    // TODO: Import file and parse AST
 
     if (filename.empty()) {
       logError() << "Empty import path.\n";
-      return false;
+      return {};
     }
 
     std::ifstream in(filename);
@@ -85,22 +91,12 @@ struct ImportHandler : public DirectiveHandler{
 
     if (!subAST) {
       logError() << "Unable to parse specified module file.\n";
-      return false;
+      return {};
     }
 
-    bool inserted = ast.insertStmt(std::move(subAST), &directive);
+    return {&directive, std::move(subAST), true};
 
-    if (!inserted) {
-      logError() << "Could not insert the loaded module into the AST.\n";
-      return false;
-    }
 
-    auto directivePtr = parent->removeChild(&directive);
-    if (!directivePtr) {
-      logError() << "Could not remove directive node from AST\n";
-    }
-
-    return true;
   }
 
 private:
@@ -145,7 +141,10 @@ public:
     visitChildren(directive);
     bool valid = handler->finalize();
     if (valid) {
-      handler->transform(directive, *ast);
+      auto repment = handler->transform(directive, *ast);
+      if (repment.directive && repment.replacement) {
+        replacements.push_back(std::move(repment));
+      }
     }
     handler.release();
   }
@@ -187,15 +186,48 @@ public:
     handler->consumeParameter(Param::makeString(val));
   }
 
+  void applyReplacements() {
+
+    //auto applyReplacement = []()
+
+    for (auto& r : replacements) {
+      bool inserted{false};
+      ASTNode* insertPoint = r.directive;
+      if (r.replaceWithChildren) {
+        for (auto& child : r.replacement->getChildren()) {
+          auto nextInsertPoint = child.get();
+          inserted = ast->insertStmt(std::move(child), insertPoint);
+          insertPoint = nextInsertPoint;
+        }
+      } else {
+        inserted = ast->insertStmt(std::move(r.replacement), insertPoint);
+      }
+
+      if (!inserted) {
+        logError() << "Could not insert the directive replacement.\n";
+        return;
+      }
+      auto directivePtr = ast->removeChild(r.directive);
+      if (!directivePtr) {
+        logError() << "Could not remove directive node from AST\n";
+      }
+    }
+  }
+
 private:
   SpecAST* ast;
   std::unique_ptr<DirectiveHandler> handler;
+
+  std::vector<DirectiveReplacement> replacements;
 
 };
 
 bool preprocessAST(SpecAST &ast) {
   DirectiveProcessor dp;
   dp.visitAST(ast);
+
+  dp.applyReplacements();
+
   return true;
 }
 
