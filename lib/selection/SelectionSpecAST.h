@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <map>
 #include <iostream>
 #include <algorithm>
 
@@ -38,7 +39,6 @@ public:
   virtual void visitDef(SelectorDef &def);
   virtual void visitRef(SelectorRef &ref);
   virtual void visitDirective(Directive &directive);
-
 
 #define VISIT_LITERAL(name, type) virtual void visit##name##Literal(Literal<type> &l) {}
 
@@ -84,6 +84,8 @@ protected:
 public:
   virtual ~ASTNode() = default;
 
+  virtual NodePtr clone() = 0;
+
   virtual void accept(ASTVisitor &visitor) = 0;
 
   decltype(dereference_iterator(children.begin())) begin() { return dereference_iterator(children.begin()); }
@@ -117,6 +119,10 @@ public:
   }
 
   virtual void dump(std::ostream &) = 0;
+
+  void dumpToStdOut() {
+    dump(std::cout);
+  }
 };
 
 template <typename T> class Literal : public ASTNode {
@@ -151,6 +157,10 @@ public:
   void accept(ASTVisitor &visitor) override {
     visitor.visitBoolLiteral(*this);
   }
+
+  NodePtr clone() override {
+    return std::make_unique<BoolLiteral>(val);
+  }
 };
 
 class IntLiteral : public Literal<int> {
@@ -164,6 +174,10 @@ public:
 
   void accept(ASTVisitor &visitor) override {
     visitor.visitIntLiteral(*this);
+  }
+
+  NodePtr clone() override {
+    return std::make_unique<IntLiteral>(val);
   }
 };
 
@@ -179,6 +193,10 @@ public:
   void accept(ASTVisitor &visitor) override {
     visitor.visitFloatLiteral(*this);
   }
+
+  NodePtr clone() override {
+    return std::make_unique<FloatLiteral>(val);
+  }
 };
 
 class StringLiteral : public Literal<std::string> {
@@ -186,7 +204,12 @@ public:
   explicit StringLiteral(std::string val) : Literal<std::string>(val){}
 
   void accept(ASTVisitor &visitor) override {
+    std::cout << "Visiting string literal\n";
     visitor.visitStringLiteral(*this);
+  }
+
+  NodePtr clone() override {
+    return std::make_unique<StringLiteral>(val);
   }
 };
 
@@ -200,6 +223,10 @@ public:
   std::string getIdentifier() const { return identifier; }
 
   void accept(ASTVisitor &visitor) override { visitor.visitRef(*this); }
+
+  NodePtr clone() override {
+    return std::make_unique<SelectorRef>(identifier);
+  }
 
   void dump(std::ostream &os) override {
     os << "<SelectorRef> selector=%" << identifier;
@@ -224,6 +251,14 @@ public:
 
   void accept(ASTVisitor &visitor) override {
     visitor.visitDirective(*this);
+  }
+
+  NodePtr clone() override {
+    Params p;
+    for (auto& child : getChildren()) {
+      p.push_back(child->clone());
+    }
+    return std::make_unique<Directive>(name, std::move(p));
   }
 
   void dump(std::ostream &os) override {
@@ -262,6 +297,14 @@ public:
 
   void accept(ASTVisitor &visitor) override { visitor.visitDef(*this); }
 
+  NodePtr clone() override {
+    Params p;
+    for (auto& child : getChildren()) {
+      p.push_back(child->clone());
+    }
+    return std::make_unique<SelectorDef>(selectorType, std::move(p));
+  }
+
   void dump(std::ostream &os) override {
     os << "<SelectorDef> selector=" << selectorType << ", params=";
     dumpChildren(os);
@@ -285,6 +328,14 @@ public:
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitDecl(*this); }
+
+  NodePtr clone() override {
+    Params p;
+    for (auto& child : getChildren()) {
+      p.push_back(child->clone());
+    }
+    return std::make_unique<Directive>(selectorType, std::move(p));
+  }
 
   void dump(std::ostream &os) override {
     os << "<SelectorDecl> name=" << identifier << ", def=";
@@ -324,7 +375,34 @@ inline ASTNode* findParent(ASTNode& root, ASTNode& node) {
   return nullptr;
 }
 
-}
 
+struct ASTTransform {
+  virtual ~ASTTransform() = default;
+  virtual NodePtr execute(ASTNode* target) = 0;
+};
+
+struct NodeReplacement : public ASTTransform {
+  explicit NodeReplacement(NodePtr replacement) :  replacement(std::move(replacement)) {};
+
+  virtual NodePtr execute(ASTNode* target) override;
+
+private:
+  NodePtr replacement;
+};
+
+using TransformMap = std::map<ASTNode*, std::unique_ptr<NodeReplacement>>;
+
+struct ReplacementExecutor: public ASTVisitor {
+
+  using ReplacementMap = std::map<ASTNode*, NodePtr>;
+
+  explicit ReplacementExecutor(ReplacementMap replacements) : replacements(std::move(replacements)) {}
+
+  ASTPtr run(SpecAST& in);
+private:
+  ReplacementMap replacements;
+};
+
+}
 
 #endif // CAPI_SELECTIONSPECAST_H

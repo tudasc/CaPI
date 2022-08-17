@@ -53,6 +53,7 @@ struct ImportHandler : public DirectiveHandler{
       return;
     }
     filename = std::get<std::string>(p.val);
+    std::cout << "Reading import string: " << filename << "\n";
     complete = true;
   }
 
@@ -63,6 +64,7 @@ struct ImportHandler : public DirectiveHandler{
 
   DirectiveReplacement transform(Directive& directive, SpecAST &ast) override {
     assert((complete && !error) && "Can't transform invalid import directive.");
+    logError() << "Transforming directive\n";
     auto parent = findParent(ast, directive);
     // Directive must always be direct child of root AST node.
     if (!parent || parent != &ast) {
@@ -139,7 +141,10 @@ public:
       return;
     }
     visitChildren(directive);
+    logError() << "Directive visiting done\n";
     bool valid = handler->finalize();
+    logError() << "Directive finalize done\n";
+
     if (valid) {
       auto repment = handler->transform(directive, *ast);
       if (repment.directive && repment.replacement) {
@@ -179,10 +184,12 @@ public:
   }
 
   void visitStringLiteral(Literal<std::string> &l) override {
+    std::cout << "Actually visiting string literal\n";
     if (!handler) {
       return;
     }
     auto val = l.getValue();
+    std::cout << "Val is " << val << "\n";
     handler->consumeParameter(Param::makeString(val));
   }
 

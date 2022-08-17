@@ -1,5 +1,7 @@
 
-set(SOURCES CallGraph.cpp
+set(SOURCES
+        ASTTransform.cpp
+        CallGraph.cpp
         CaPI.cpp
         MetaCGReader.cpp
         DOTWriter.cpp

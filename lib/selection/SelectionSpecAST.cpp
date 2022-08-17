@@ -13,10 +13,12 @@ namespace capi {
  void ASTVisitor::visitDirective(Directive& directive){ visitChildren(directive);}
 
 void ASTVisitor::visitChildren(ASTNode& node) {
+  logInfo() << "Visiting node with " << node.getChildren().size() << " children: \n";
   for (auto &child : node) {
+    child.dump(std::cout);
+    std::cout << "\n";
     child.accept(*this);
   }
 }
-
 
 }
