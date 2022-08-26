@@ -101,32 +101,61 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   __xray_init();
   __xray_set_handler(handleXRayEvent);
 
-  size_t maxFID = __xray_max_function_id();
-  if (maxFID == 0) {
-    logError() << "No functions instrumented.\n";
-    return;
-  }
-
-  logInfo() << "Patching " << maxFID << " functions\n";
-
-  for (int fid = 1; fid <= maxFID; ++fid) {
-    uintptr_t addr = __xray_function_address(fid);
-    if (!addr) {
-      logError() << "Unable to determine address for function " << fid << "\n";
-      continue;
+  for (int objId = 0; objId < __xray_num_objects(); ++objId) {
+    size_t maxFID = __xray_max_function_id_in_object(objId);
+    if (maxFID == 0) {
+      logError() << "No functions instrumented.\n";
+      return;
     }
-    if (auto it = globalTable.find(addr); it != globalTable.end()) {
-      auto patchStatus = __xray_patch_function(fid);
-      if (patchStatus == SUCCESS) {
-        logInfo() << "Patched function: id=" << fid << ", name=" << it->second << "\n";
-        numPatched++;
-      } else {
-        logError() << "XRay patching failed: id=" << fid << ", name=" << it->second << "\n";
+
+    logInfo() << "Patching " << maxFID << " functions\n";
+
+    for (int fid = 1; fid <= maxFID; ++fid) {
+      uintptr_t addr = __xray_function_address_in_object(fid, objId);
+      if (!addr) {
+        logError() << "Unable to determine address for function " << fid << "\n";
+        continue;
       }
-    } else {
-      logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+      if (auto it = globalTable.find(addr); it != globalTable.end()) {
+        auto patchStatus = __xray_patch_function_in_object(fid, objId);
+        if (patchStatus == SUCCESS) {
+          logInfo() << "Patched function: id=" << fid << ", name=" << it->second << "\n";
+          numPatched++;
+        } else {
+          logError() << "XRay patching failed: id=" << fid << ", name=" << it->second << "\n";
+        }
+      } else {
+        logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+      }
     }
   }
+
+//  size_t maxFID = __xray_max_function_id();
+//  if (maxFID == 0) {
+//    logError() << "No functions instrumented.\n";
+//    return;
+//  }
+//
+//  logInfo() << "Patching " << maxFID << " functions\n";
+//
+//  for (int fid = 1; fid <= maxFID; ++fid) {
+//    uintptr_t addr = __xray_function_address(fid);
+//    if (!addr) {
+//      logError() << "Unable to determine address for function " << fid << "\n";
+//      continue;
+//    }
+//    if (auto it = globalTable.find(addr); it != globalTable.end()) {
+//      auto patchStatus = __xray_patch_function(fid);
+//      if (patchStatus == SUCCESS) {
+//        logInfo() << "Patched function: id=" << fid << ", name=" << it->second << "\n";
+//        numPatched++;
+//      } else {
+//        logError() << "XRay patching failed: id=" << fid << ", name=" << it->second << "\n";
+//      }
+//    } else {
+//      logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+//    }
+//  }
 
   logInfo() << "Functions found: " << numFound << "\n";
   logInfo() << "Functions registered: " << numInserted << "\n";
