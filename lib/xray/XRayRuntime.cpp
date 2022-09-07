@@ -7,54 +7,24 @@
 #include "../Utils.h"
 #include "../selection/FunctionFilter.h"
 
-#ifdef CAPI_SCOREP_SUPPORT
-#include "ScorePInit.h"
-#endif
+
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <unordered_set>
 #include <unistd.h>
 
 #include "xray/xray_interface.h"
 
-#define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
-
-
-extern "C" {
-void __cyg_profile_func_enter(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
-void __cyg_profile_func_exit(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
-
-};
 
 namespace capi {
 
+extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
-using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
-
-void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
-  uintptr_t addr = __xray_function_address(id);
-  if (!addr) {
-    return;
-  }
-
-  switch(type) {
-  case XRayEntryType::ENTRY:
-    __cyg_profile_func_enter(reinterpret_cast<void*>(addr), nullptr);
-    break;
-  case XRayEntryType::TAIL:
-  case XRayEntryType::EXIT:
-    __cyg_profile_func_exit(reinterpret_cast<void*>(addr), nullptr);
-    break;
-  default:
-    logError() << "Unhandled XRay event type.\n";
-    break;
-  }
-
-}
-
+extern void postXRayInit(const SymbolTable&);
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
 
@@ -71,6 +41,8 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       logError() << "Failed to read filter file from " << filterEnv << "\n";
       return;
     }
+  } else {
+    logInfo() << "No CaPI filtering file specified.\n";
   }
 
   auto execPath = getExecPath();
@@ -86,6 +58,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   size_t numPatched = 0;
 
   SymbolTable globalTable;
+  std::unordered_set<uintptr_t> filteredOut;
 
   for (auto&& [startAddr, table] : symTables) {
     for (auto&& [addr, symName] : table.table) {
@@ -93,6 +66,8 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       if (noFilter || filter.accepts(symName)) {
         globalTable[addrInProc] = symName;
         ++numInserted;
+      } else {
+        filteredOut.insert(addrInProc);
       }
       ++numFound;
     }
@@ -108,7 +83,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       return;
     }
 
-    logInfo() << "Patching " << maxFID << " functions\n";
+    logInfo() << "Detected " << maxFID << " patchable functions\n";
 
     for (int fid = 1; fid <= maxFID; ++fid) {
       uintptr_t addr = __xray_function_address_in_object(fid, objId);
@@ -116,13 +91,16 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         logError() << "Unable to determine address for function " << fid << "\n";
         continue;
       }
+      if (filteredOut.find(addr) != filteredOut.end()) {
+        continue;
+      }
       if (auto it = globalTable.find(addr); it != globalTable.end()) {
         auto patchStatus = __xray_patch_function_in_object(fid, objId);
         if (patchStatus == SUCCESS) {
-          logInfo() << "Patched function: id=" << fid << ", name=" << it->second << "\n";
+          //logInfo() << "Patched function " << std::hex << addr << std::dec << ": id=" << fid << ", name=" << it->second << "\n";
           numPatched++;
         } else {
-          logError() << "XRay patching failed: id=" << fid << ", name=" << it->second << "\n";
+          logError() << "XRay patching at " << std::hex << addr << std::dec << " failed: id=" << fid << ", name=" << it->second << "\n";
         }
       } else {
         logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
@@ -130,40 +108,11 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     }
   }
 
-//  size_t maxFID = __xray_max_function_id();
-//  if (maxFID == 0) {
-//    logError() << "No functions instrumented.\n";
-//    return;
-//  }
-//
-//  logInfo() << "Patching " << maxFID << " functions\n";
-//
-//  for (int fid = 1; fid <= maxFID; ++fid) {
-//    uintptr_t addr = __xray_function_address(fid);
-//    if (!addr) {
-//      logError() << "Unable to determine address for function " << fid << "\n";
-//      continue;
-//    }
-//    if (auto it = globalTable.find(addr); it != globalTable.end()) {
-//      auto patchStatus = __xray_patch_function(fid);
-//      if (patchStatus == SUCCESS) {
-//        logInfo() << "Patched function: id=" << fid << ", name=" << it->second << "\n";
-//        numPatched++;
-//      } else {
-//        logError() << "XRay patching failed: id=" << fid << ", name=" << it->second << "\n";
-//      }
-//    } else {
-//      logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
-//    }
-//  }
-
   logInfo() << "Functions found: " << numFound << "\n";
   logInfo() << "Functions registered: " << numInserted << "\n";
   logInfo() << "Functions patched: " << numPatched << "\n";
 
-#ifdef CAPI_SCOREP_SUPPORT
-  initScoreP(globalTable);
-#endif
+  postXRayInit(globalTable);
 
 }
 
