@@ -112,6 +112,10 @@ SymbolTable loadSymbolTable(const std::string& object_file) {
   }
   pclose(output);
 
+  if (table.empty()) {
+    logError() << "Unable to resolve symbol names for binary " << object_file << "\n";
+  }
+
   return table;
 
 }

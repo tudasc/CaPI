@@ -56,6 +56,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   size_t numFound = 0;
   size_t numInserted = 0;
   size_t numPatched = 0;
+  size_t numFailed = 0;
 
   SymbolTable globalTable;
   std::unordered_set<uintptr_t> filteredOut;
@@ -101,16 +102,18 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
           numPatched++;
         } else {
           logError() << "XRay patching at " << std::hex << addr << std::dec << " failed: id=" << fid << ", name=" << it->second << "\n";
+          numFailed++;
         }
       } else {
         logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+        numFailed++;
       }
     }
   }
 
   logInfo() << "Functions found: " << numFound << "\n";
   logInfo() << "Functions registered: " << numInserted << "\n";
-  logInfo() << "Functions patched: " << numPatched << "\n";
+  logInfo() << "Functions patched: " << numPatched << " (" << numFailed << " failed)\n";
 
   postXRayInit(globalTable);
 
