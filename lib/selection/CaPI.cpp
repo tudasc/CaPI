@@ -209,6 +209,7 @@ int main(int argc, char **argv) {
 
   std::cout << "Loading call graph from " << cgfile << "\n";
 
+
   MetaCGReader reader(cgfile);
   if (!reader.read()) {
     std::cerr << "Unable to load call graph!\n";

@@ -6,29 +6,30 @@
 #define CAPI_TALPINSTRUMENTER_H
 
 #include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 
 #include <string>
 
-namespace llvm {
-class Module;
-class Function;
-class AnalysisUsage;
-} // namespace llvm
 
-
-class TALPInstrumenter : public llvm::FunctionPass {
-
+class TALPInstrumenter : public llvm::PassInfoMixin<TALPInstrumenter> {
 public:
-  static char ID; // used to identify pass
-
   TALPInstrumenter();
-  bool doInitialization(llvm::Module &) override;
-  bool runOnFunction(llvm::Function &) override;
-  bool doFinalization(llvm::Module &) override;
-  void getAnalysisUsage(llvm::AnalysisUsage &) const override;
-
-private:
-
+  llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &);
 };
+
+//class TALPInstrumenter : public llvm::FunctionPass {
+//
+//public:
+//  static char ID; // used to identify pass
+//
+//  TALPInstrumenter();
+//  bool doInitialization(llvm::Module &) override;
+//  bool runOnFunction(llvm::Function &) override;
+//  bool doFinalization(llvm::Module &) override;
+//  void getAnalysisUsage(llvm::AnalysisUsage &) const override;
+//
+//private:
+//
+//};
 
 #endif // CAPI_TALPINSTRUMENTER_H

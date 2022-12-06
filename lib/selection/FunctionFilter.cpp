@@ -12,6 +12,10 @@ namespace capi {
 FunctionFilter::FunctionFilter()
 {}
 
+bool FunctionFilter::accepts(const std::string &f) const {
+  return std::find(includedFunctionsMangled.begin(), includedFunctionsMangled.end(), f) != includedFunctionsMangled.end();
+}
+
 void FunctionFilter::addIncludedFunction(const std::string &f)
 {
   includedFunctionsMangled.push_back(f);

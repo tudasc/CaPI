@@ -24,3 +24,5 @@ install(
 add_subdirectory(passes)
 add_subdirectory(selection)
 add_subdirectory(calltree_verifier)
+add_subdirectory(xray)
+add_subdirectory(dyncapi)

@@ -7,9 +7,9 @@
 
 #include <iostream>
 
+#include "../Utils.h"
 #include "CallGraph.h"
 #include "MetaCGReader.h"
-#include "Utils.h"
 
 namespace capi {
 
