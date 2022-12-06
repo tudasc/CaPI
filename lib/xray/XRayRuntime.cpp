@@ -25,7 +25,7 @@ namespace capi {
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
 extern void postXRayInit(const SymbolTable&);
-
+bool isDone(int i);
 void initXRay() XRAY_NEVER_INSTRUMENT {
 
   Timer timer("[Info] Initialization took ", std::cout);
@@ -84,7 +84,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       return;
     }
 
-    logInfo() << "Detected " << maxFID << " patchable functions\n";
+    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << "\n";
 
     for (int fid = 1; fid <= maxFID; ++fid) {
       uintptr_t addr = __xray_function_address_in_object(fid, objId);
@@ -105,7 +105,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
           numFailed++;
         }
       } else {
-        logError() << "Unable find symbol for function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+        logError() << "Unable to find symbol for patchable function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
         numFailed++;
       }
     }

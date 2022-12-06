@@ -209,20 +209,6 @@ int main(int argc, char **argv) {
 
   std::cout << "Loading call graph from " << cgfile << "\n";
 
-//  json j;
-//  {
-//    std::ifstream in(filename);
-//    if (!in.is_open()) {
-//      std::cerr << "Error: Opening file failed: " << filename << "\n";
-//      return false;
-//    }
-//    if (!json::accept(in)) {
-//      std::cerr << "Error: Invalid JSON file\n";
-//      return false;
-//    }
-//    in.clear();
-//    in.seekg(0, std::ios::beg);
-//  }
 
   MetaCGReader reader(cgfile);
   if (!reader.read()) {
