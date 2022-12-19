@@ -9,6 +9,7 @@ This project is currently in a pre-release state, frequent changes to the code a
 - LLVM 10
 - ScoreP 7
 - CMake >=3.15
+- DLB 3.3 (optional)
 
 If you use Score-P for profiling and want to measure shared libraries, we suggest using the [Score-P Symbol Injector](https://github.com/sebastiankreutzer/scorep-symbol-injector) library.
 
@@ -16,9 +17,11 @@ If you use Score-P for profiling and want to measure shared libraries, we sugges
 You can build CaPI as follows ([Ninja](https://github.com/ninja-build/ninja) is not required, you can use make instead).
 ```
 mkdir build && cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release 
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DDLB_DIR=/path/to/dlb -DSCOREP_PATH=/path/to/scorep .. 
 ninja
 ```
+Options
+- `ENABLE_TALP=ON/OFF`: Enable/Disable support for TALP interface. Default is `ON`.
 
 ## Usage
 
