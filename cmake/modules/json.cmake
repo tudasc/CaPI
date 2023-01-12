@@ -1,17 +1,23 @@
 option(USE_EXTERNAL_JSON "Use external JSON library" OFF)
 
-if (USE_EXTERNAL_JSON)
-    find_package(nlohmann_json REQUIRED)
-    message(STATUS "Found nlohmann_json ${nlohmann_json_PACKAGE_VERSION}")
+if(USE_EXTERNAL_JSON)
+    message("Using externally found json library")
+    # Taken from https://cmake.org/cmake/help/v3.16/command/find_package.html#version-selection Should enable to use the
+    # highest available version number, should the package provide sorting
+    set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
+    set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
+    find_package(
+            nlohmann_json
+            3.10
+            REQUIRED
+    )
 else()
-    FetchContent_Declare(json
-            GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git
-            GIT_TAG v3.10.4)
+    message("Using fetched release version of json library")
 
-    FetchContent_GetProperties(json)
-    if(NOT json_POPULATED)
-        FetchContent_Populate(json)
-        add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
-
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
+    FetchContent_MakeAvailable(json)
 endif()
+
+function(add_json target)
+    target_link_libraries(${target} nlohmann_json::nlohmann_json)
+endfunction()
