@@ -1,4 +1,5 @@
 option(USE_EXTERNAL_JSON "Use external JSON library" OFF)
+cmake_policy(SET CMP0135 NEW)
 
 if(USE_EXTERNAL_JSON)
     message("Using externally found json library")
@@ -14,7 +15,7 @@ if(USE_EXTERNAL_JSON)
 else()
     message("Using fetched release version of json library")
 
-    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP false)
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
     FetchContent_MakeAvailable(json)
 endif()
 
