@@ -52,7 +52,7 @@ CaPI defines a DSL for the user-defined instrumentation selection.
 This specifications is passed in as string along with the `-i` flag:
 
 ```
-capi -i <selection_spec> callgraph.ipcg
+capi -i '<selection_spec>' callgraph.ipcg
 ```
 
 The specification consists of a sequence of selector definitions, which can be named or anonymous.
@@ -64,16 +64,37 @@ The selector `%%` is pre-defined and refers to an instance of the `EverythingSel
 
 The last definition in the sequence is used as the entry point for the selection pipeline.
 
-
-Example for MPI call path selection:
+For example, the following selector, named `mpi`, finds all functions starting with `MPI_`.
 ```
-mpi=onCallPathTo(byName(\"MPI_.*\", %%))
+mpi = byName("MPI_.*", %%)
 ```
 
-Example for MPI call path selection combined with excluding functions from directory "foo", as well as inlined functions:
+This can be used to find all functions that are on a callpath to a MPI call:
 
 ```
-mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"foo/.*\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)
+mpi          = byName("MPI_.*", %%)
+mpi_callpath = onCallPathTo(%mpi)
+```
+
+To reduce overhead, it is typically sensible to exclude functions that are marked as `inline`.
+Adding this to the previous spec, the result might look like this:
+
+```
+mpi          = byName("MPI_.*", %%)
+mpi_callpath = onCallPathTo(%mpi)
+final        = subtract(%mpi_callpath, inlineSpecified(%%))
+```
+or shortened:
+```
+subtract(onCallPathTo(byName("MPI_.*", %%)),inlineSpecified(%%))
+```
+
+Recently, support for loading pre-defined selection modules via the `!import` statement was added.
+This allows to build and re-use selectors that are useful across multiple applications.
+For example, the `mpi_callpath` selector from the previous example could be moved to a separate file:
+```
+!include "mpi.capi"
+subtract(%mpi_callpath, inlineSpecified(%%))
 ```
 
 List of available selectors:
@@ -93,7 +114,7 @@ List of available selectors:
 
 ### Instrumentation with CaPI
 You can use the provided compiler wrappers `clang-inst`/`clang-inst++` to build and instrument program.
-Before building, set the environment variable `INST_FILTER_FILE` to the name of the generated IC file.
+Before building, set the environment variable `CAPI_FILTER_FILE` to the name of the generated IC file.
 
 Please note that the compiler wrapper will not automatically link any measurement library.
 You will need to define the corresponding build flags yourself.
@@ -102,6 +123,27 @@ You will need to define the corresponding build flags yourself.
 The generated filter file is compatible with Score-P.
 You can therefore use the Score-P instrumenter instead of the CaPI instrumenter, if desired.
 To do this, simply build with `scorep-g++` and set `SCOREP_WRAPPER_INSTRUMENTER_FLAGS="--instrument-filter=<filter-file>"`.
+
+### Dynamic Instrumentation with LLVM XRay
+CaPI now provides a runtime library compatible with [LLVM XRay](https://llvm.org/docs/XRay.html).
+Instead of using a statically instrumented build for each IC, this enables dynamic instrumentation during program initialization.
+With XRay, only one build is required and ICs can be changed without recompilation.
+
+You can toggle this feature by setting `ENABLE_XRAY=ON` on.
+When building the target application, you will need to use the Clang compiler and pass the flag `-fxray-instrument`.
+XRay uses a pre-filtering mechanism to exclude very small functions. If you want to be able to potentially instrument all functions, you need to pass `-fxray-instruction-threshold=1` as well.
+You will then need to link the XRay-compatible CaPI runtime library into your executable by adding the following:
+`-Wl,--whole-archive <capi_build_dir>/lib/xray/libcapixray_<capi_interface>.a -Wl,--no-whole-archive`.
+
+There are currently three different tool interfaces implemented in the following libraries:
+- `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and ``__cyg_profile_func_exit` on exit.
+- `libcapixray_scorep.a`: Compatible with the GNU interface of Score-P.
+- `libcapixray_talp.a`: Interface for the TALP tool.
+
+The upstream version of LLVM does currently not support XRay instrumentation of shared libraries.
+If you need this feature, you can use [this fork of LLVM 13](https://github.com/sebastiankreutzer/llvm-project-xray-dso).  
+The feature is enabled by passing the additional flag `-fxray-enable-shared` when building your application.
+
 
 
 
