@@ -30,6 +30,13 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   Timer timer("[Info] Initialization took ", std::cout);
 
+  bool shouldInit{false};
+
+  auto enableEnv = std::getenv("CAPI_ENABLE");
+  if (enableEnv) {
+    shouldInit = true;
+  }
+
   bool noFilter{true};
   FunctionFilter filter;
   auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
@@ -37,12 +44,17 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     if (readScorePFilterFile(filter, filterEnv)) {
       logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
       noFilter = false;
+      shouldInit = true;
     } else {
       logError() << "Failed to read filter file from " << filterEnv << "\n";
       return;
     }
   } else {
     logInfo() << "No CaPI filtering file specified.\n";
+  }
+
+  if (!shouldInit) {
+    logInfo() << "CaPI is inactive. Pass CAPI_FILTERING_FILE or set CAPI_ENABLE=1 if you want to active instrumentation.\n";
   }
 
   auto execPath = getExecPath();
