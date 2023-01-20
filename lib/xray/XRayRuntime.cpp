@@ -48,7 +48,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
-  SymbolRetriever symRetriever(execFilename);
+  SymbolRetriever symRetriever(execPath);
   symRetriever.run();
 
   auto& symTables = symRetriever.getMappedSymTables();
