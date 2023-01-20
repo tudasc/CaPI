@@ -1,5 +1,7 @@
 option(USE_EXTERNAL_JSON "Use external JSON library" OFF)
-cmake_policy(SET CMP0135 NEW)
+if (${CMAKE_VERSION} VERSION_GREATER "3.24")
+    cmake_policy(SET CMP0135 NEW)
+endif()
 
 if(USE_EXTERNAL_JSON)
     message("Using externally found json library")
