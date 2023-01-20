@@ -3,11 +3,9 @@
 //
 
 #include "XRayRuntime.h"
-#include "SymbolRetriever.h"
 #include "../Utils.h"
 #include "../selection/FunctionFilter.h"
-
-
+#include "SymbolRetriever.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -60,10 +58,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
-  SymbolRetriever symRetriever(execPath);
-  symRetriever.run();
-
-  auto& symTables = symRetriever.getMappedSymTables();
+  auto symTables = loadMappedSymTables(execPath);
 
   size_t numFound = 0;
   size_t numInserted = 0;

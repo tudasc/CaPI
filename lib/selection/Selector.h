@@ -17,6 +17,14 @@ using FunctionSet = std::vector<std::string>;
 
 using FunctionSetList = std::vector<FunctionSet>;
 
+inline bool addToSet(FunctionSet& fnSet, const std::string& entry) {
+  if (std::find(fnSet.begin(), fnSet.end(), entry) == fnSet.end()) {
+    fnSet.push_back(entry);
+    return true;
+  }
+  return false;
+}
+
 class Selector
 {
 public:

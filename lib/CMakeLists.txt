@@ -24,6 +24,7 @@ install(
 add_subdirectory(passes)
 add_subdirectory(selection)
 add_subdirectory(calltree_verifier)
+add_subdirectory(symbol_retriever)
 
 if (ENABLE_XRAY)
     add_subdirectory(xray)

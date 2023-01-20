@@ -2,8 +2,8 @@
 // Created by sebastian on 28.10.21.
 //
 
-#include "SymbolRetriever.h"
 #include "../Utils.h"
+#include "SymbolRetriever.h"
 
 #ifdef CAPI_SCOREP_SUPPORT
 #include "ScorePInit.h"
@@ -149,11 +149,13 @@ extern "C" {
 
   Timer timer("[Info] Initialization took ", std::cout);
 
-  MetaCGReader reader(cg_json);
+  MetaCGReader reader(cg_json); // FIXME: Interface changed, expects file now
   if (!reader.read()) {
     std::cerr << "Unable to load call graph!\n";
     return;
   }
+
+  // FIXME: This is all crappy legacy code. Needs to be updated to incorporate the changes from CaPI.cpp
 
   auto functionInfo = reader.getFunctionInfo();
 
@@ -206,10 +208,8 @@ extern "C" {
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
-  SymbolRetriever symRetriever(execFilename);
-  symRetriever.run();
 
-  auto &symTables = symRetriever.getMappedSymTables();
+  auto symTables = loadMappedSymTables(execPath);
 
   size_t numFound = 0;
   size_t numInserted = 0;
