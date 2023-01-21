@@ -5,6 +5,7 @@
 #include "SelectorGraph.h"
 #include "../Utils.h"
 #include <cassert>
+#include <fstream>
 
 namespace capi {
 
@@ -26,40 +27,12 @@ static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<Select
   return true;
 }
 
-FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
+FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, bool debugMode) {
   auto entry = selectorGraph.getEntryNode();
   if (!entry) {
     logError() << "No entry node specified!\n";
     return {};
   }
-
-//  std::vector<SelectorNode*> executionOrder;
-//  std::vector<SelectorNode*> workingSet;
-
-//  workingSet.push_back(entry);
-//
-//  while (!workingSet.empty()) {
-//    auto node = workingSet.back();
-//    workingSet.pop_back();
-//    executionOrder.push_back(node);
-//    logError() << "Added " << node->getName() << "\n";
-//    for (auto&& inputName : node->getInputDependencies()) {
-//      auto input = selectorGraph.getNode(inputName);
-//      if (!input) {
-//        logError() << "Invalid selector node: " << inputName << "\n";
-//        return {};
-//      }
-//      if (std::find(executionOrder.begin(), executionOrder.end(), input) != executionOrder.end()) {
-//        logError() << "Cyclic dependency! " << input->getName() << "\n";
-//        return {};
-//      }
-//      if (std::find(workingSet.begin(), workingSet.end(), input) == workingSet.end()) {
-//        workingSet.insert(workingSet.begin(), input);
-//      }
-//
-//    }
-//  }
-
 
   std::vector<SelectorNode*> executionOrder;
   std::vector<SelectorNode*> visited;
@@ -95,6 +68,32 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg) {
     }
     auto output = selector.apply(inputList);
     logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
+    if (debugMode) {
+      std::string setOutFile = node->getName() + ".txt";
+      logInfo() << "Press 'n' to continue, 'p' to print the last function set, or 's' to save it to '" << setOutFile << "'.\n";
+      char cmd;
+      bool cont{false};
+      do {
+        std::cin >> cmd;
+        if (cmd == 'n') {
+          cont = false;
+        } else if (cmd == 'p') {
+          std::cout << "===== Selection Begin ======\n";
+          dumpSelection(std::cout, output);
+          std::cout << "===== Selection End ======\n";
+          cont = false;
+        } else if (cmd == 's') {
+          std::ofstream of(setOutFile);
+          if (of.good()) {
+            dumpSelection(of, output);
+          } else {
+            std::cerr << "ERROR: Unable to write file.\n";
+          }
+        } else {
+          logInfo() << "Invalid command. Try again.\n";
+        }
+      } while (cont);
+    }
     resultsMap[node->getName()] = std::move(output);
   }
 
@@ -115,6 +114,12 @@ void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
       os << " [Entry]";
     }
     os << "\n";
+  }
+}
+
+void dumpSelection(std::ostream& os, FunctionSet& functions) {
+  for (auto& fn : functions) {
+    os << fn << "\n";
   }
 }
 

@@ -35,6 +35,8 @@ void printHelp() {
       << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
   std::cout
       << " --replace-inlined <binary>  Replaces inlined functions with parent. Requires passing the executable.\n";
+  std::cout
+      << " --debug  Enable debugging mode.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
@@ -154,6 +156,7 @@ int main(int argc, char **argv) {
   std::string specStr;
   SelectionPreset preset;
   std::string outfile;
+  bool debugMode{false};
 
   InputMode mode = InputMode::FILE;
 
@@ -164,6 +167,8 @@ int main(int argc, char **argv) {
         auto option = arg.substr(2);
         if (option.compare("write-dot") == 0) {
           shouldWriteDOT = true;
+        } if (option.compare("debug") == 0) {
+          debugMode = true;
         } else if (option.compare("replace-inlined") == 0) {
           replaceInlined = true;
           if (++i >= argc) {
@@ -286,7 +291,7 @@ int main(int argc, char **argv) {
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
-  auto result = runSelectorPipeline(*selectorGraph, *cg);
+  auto result = runSelectorPipeline(*selectorGraph, *cg, debugMode);
 
   std::cout << "Selected " << result.size() << " functions.\n";
 

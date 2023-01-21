@@ -196,7 +196,7 @@ extern "C" {
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
-  auto result = runSelectorPipeline(*selectorGraph, *cg);
+  auto result = runSelectorPipeline(*selectorGraph, *cg, false);
 
   std::cout << "Selected " << result.size() << " functions.\n";
 

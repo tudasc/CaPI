@@ -84,9 +84,11 @@ public:
 
 using SelectorGraphPtr = std::unique_ptr<SelectorGraph>;
 
-FunctionSet runSelectorPipeline(SelectorGraph& graph, CallGraph &cg);
+FunctionSet runSelectorPipeline(SelectorGraph& graph, CallGraph &cg, bool debugMode);
 
 void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph);
+
+void dumpSelection(std::ostream& os, FunctionSet& functions);
 
 }
 
