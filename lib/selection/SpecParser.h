@@ -505,6 +505,7 @@ protected:
     lexer.pushMarker();
     auto nextToken = lexer.next();
     if (!nextToken) {
+      printErrorMessage(nextToken.msg);
       printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "parameters or ')'");
       return {};
     }
