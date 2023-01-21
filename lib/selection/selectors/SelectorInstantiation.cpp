@@ -72,6 +72,24 @@ SelectorPtr createMetricSelector(const std::vector<Param>& params) {
     return std::make_unique<MetricSelectorT>(*cmpOp, intVal);
 }
 
+// TODO: Could probably use same function as createMetricSelector
+SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
+  CHECK_NUM_ARGS(MinCallDepthSelector, params, 2)
+  CHECK_KIND(params[0], Param::STRING)
+  CHECK_KIND(params[1], Param::INT)
+
+  auto opStr = std::get<std::string>(params[0].val);
+
+  auto cmpOp = getCmpOp(opStr);
+  if (!cmpOp.has_value()) {
+    logError() << "Invalid comparison operator: " << opStr << "\n";
+    return nullptr;
+  }
+
+  auto intVal = std::get<int>(params[1].val);
+  return std::make_unique<MinCallDepthSelector>(*cmpOp, intVal);
+}
+
 RegisterSelector registerFilePathSelector("byPath", createFilePathSelector);
 
 // InlineSelector
@@ -107,6 +125,11 @@ RegisterSelector registerMemOpSelector("memOps", createMetricSelector<MemOpSelec
 // LoopDepthSelector
 RegisterSelector registerLoopDepthSelector("loopDepth", createMetricSelector<LoopDepthSelector>);
 
+// SparseSelector
+RegisterSelector sparseSelector("sparse", createSimpleSelector<SparseSelector>);
+
+// MinCallDepthSelector
+RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector);
 
 }
 

@@ -2,9 +2,9 @@
 // Created by sebastian on 30.08.22.
 //
 
-#include "XRayRuntime.h"
-#include "SymbolRetriever.h"
 #include "../Utils.h"
+#include "SymbolRetriever.h"
+#include "XRayRuntime.h"
 
 #ifdef CAPI_SCOREP_INTERFACE
 #include "ScorePInit.h"

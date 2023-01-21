@@ -6,8 +6,8 @@
 
 #include <unordered_map>
 
-#include "SymbolRetriever.h"
 #include "../Utils.h"
+#include "SymbolRetriever.h"
 
 #include "dlb_talp.h"
 #include "dlb_errors.h"

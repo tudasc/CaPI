@@ -36,7 +36,7 @@ class MetaCGReader
 public:
   using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
 
-  MetaCGReader(std::string input) : input(input)
+  MetaCGReader(std::string inputFile) : inputFile(inputFile)
   {}
 
   bool read();
@@ -45,7 +45,7 @@ public:
   { return functions; }
 
 private:
-  std::string input;
+  std::string inputFile;
   FInfoMap functions;
 
   FInfoMap::mapped_type &getOrInsert(const std::string &key);

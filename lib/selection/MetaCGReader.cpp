@@ -30,23 +30,23 @@ MetaCGReader::getOrInsert(const std::string &key) {
 bool MetaCGReader::read() {
   functions.clear();
   json j;
-//  {
-//    std::ifstream in(filename);
-//    if (!in.is_open()) {
-//      std::cerr << "Error: Opening file failed: " << filename << "\n";
-//      return false;
-//    }
-//    if (!json::accept(in)) {
-//      std::cerr << "Error: Invalid JSON file\n";
-//      return false;
-//    }
-//    in.clear();
-//    in.seekg(0, std::ios::beg);
-//    in >> j;
-//  }
+  {
+    std::ifstream in(inputFile);
+    if (!in.is_open()) {
+      std::cerr << "Error: Opening file failed: " << inputFile << "\n";
+      return false;
+    }
+    if (!json::accept(in)) {
+      std::cerr << "Error: Invalid JSON file\n";
+      return false;
+    }
+    in.clear();
+    in.seekg(0, std::ios::beg);
+    in >> j;
+  }
 
-  std::stringstream ss(input);
-  ss >> j;
+//  std::stringstream ss(input);
+//  ss >> j;
 
   // TODO: Ignoring version information etc. for now
 

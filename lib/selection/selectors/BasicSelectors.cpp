@@ -3,6 +3,7 @@
 //
 
 #include "BasicSelectors.h"
+#include <unordered_set>
 
 namespace capi {
 bool IncludeListSelector::accept(const std::string &fName) {
@@ -68,6 +69,24 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
   return out;
 }
 
+bool evalCmpOp(IntCmpOp op, int val1, int val2) {
+  switch(op) {
+  case IntCmpOp::Equals:
+    return val1 == val2;
+  case IntCmpOp::EqualsGreater:
+    return val1 >= val2;
+  case IntCmpOp::EqualsSmaller:
+    return val1 <= val2;
+  case IntCmpOp::Greater:
+    return val1 > val2;
+  case IntCmpOp::Smaller:
+    return val1 < val2;
+  case IntCmpOp::NotEquals:
+    return val1 != val2;
+  default:
+    assert("Unhandled cmp op");
+  }
+}
 
 bool MetricSelector::accept(const std::string &fName) {
   auto node = this->cg->get(fName);
@@ -103,26 +122,89 @@ bool MetricSelector::accept(const std::string &fName) {
 
 //  int numVal = requiresNumber ? 0 : j.get<int>();
 
-  int numVal = j.get<int>();
+  int fnVal = j.get<int>();
 
-  switch(cmpOp) {
-  case MetricCmpOp::Equals:
-    return numVal == val;
-  case MetricCmpOp::EqualsGreater:
-    return numVal >= val;
-  case MetricCmpOp::EqualsSmaller:
-    return numVal <= val;
-  case MetricCmpOp::Greater:
-    return numVal > val;
-  case MetricCmpOp::Smaller:
-    return numVal < val;
-  case MetricCmpOp::NotEquals:
-    return numVal != val;
-  default:
-    assert("Unhandled cmp op");
-    break;
+  return evalCmpOp(cmpOp, fnVal, val);
+}
+
+FunctionSet SparseSelector::apply(const FunctionSetList& input) {
+  if (input.size() == 0 || input.size() > 2) {
+    logError() << "Expected at least one, and not more than two input sets, got " << input.size() << " instead.\n";
+    return {};
   }
-  return false;
+
+  FunctionSet in = input.front();
+  FunctionSet critical;
+
+  if (input.size() == 2) {
+    critical = input[1];
+  }
+
+  FunctionSet out;
+
+  std::unordered_set<const CGNode*> visited;
+
+  // Remove functions that fulfill all of the following conditions:
+  // - They have exactly one caller
+  // - Their caller is either selected or has itself only one caller
+  // - They are not in the list of critical functions
+
+  std::function<void(const CGNode*, bool)> traverse = [&](const CGNode* node, bool mayRemove) {
+    visited.insert(node);
+    bool selected = setContains(in, node->getName());
+    bool onlyChild = node->getCallers().size() == 1;
+    if (selected) {
+      if (mayRemove && onlyChild && !setContains(critical, node->getName())) {
+        selected = false;
+      } else {
+        out.push_back(node->getName());
+      }
+    }
+
+    for (auto& callee : node->getCallees()) {
+      if (visited.find(callee) == visited.end()) {
+        // Callees are eligible for removal, if (1) their parent was selected or (2) their parent is an only child.
+        traverse(callee, selected ||  onlyChild);
+      }
+    }
+
+  };
+
+  std::vector<CGNode*> selectionRoots;
+  for (auto root : cg->findRoots()) {
+    traverse(root, false);
+  }
+
+  return out;
+}
+
+bool MinCallDepthSelector::accept(const std::string &fName) {
+  auto node = this->cg->get(fName);
+  if (!node) {
+    return false;
+  }
+
+  std::function<int(CGNode*, std::unordered_set<CGNode*>)> determineMinDepth = [&](CGNode* node, std::unordered_set<CGNode*> visited) -> int {
+    if (node->getCallers().size() == 0) {
+      return 0;
+    }
+    visited.insert(node);
+    std::vector<int> childDepths;
+    // Recursively determine minimum depth of all unvisited callers.
+    std::transform(node->getCallers().begin(), node->getCallers().end(), std::back_inserter(childDepths), [&](CGNode* child) -> int {
+      if (visited.find(child) == visited.end()) {
+        return determineMinDepth(child, visited);
+      }
+      return INT32_MAX;
+    });
+    return *std::min_element(childDepths.begin(), childDepths.end()) + 1;
+  };
+
+  int result = determineMinDepth(node, {});
+
+  //logInfo() << "Min depth of " << fName << ": " << result << "\n";
+
+  return evalCmpOp(op, result, val);
 }
 
 }

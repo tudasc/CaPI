@@ -126,24 +126,24 @@ public:
   }
 };
 
-enum class MetricCmpOp {
+enum class IntCmpOp {
   Smaller, Greater, Equals, NotEquals, EqualsSmaller, EqualsGreater
 };
 
-inline std::optional<MetricCmpOp> getCmpOp(const std::string& opStr) {
-  MetricCmpOp cmpOp;
+inline std::optional<IntCmpOp> getCmpOp(const std::string& opStr) {
+  IntCmpOp cmpOp;
   if (opStr == "==") {
-    cmpOp = MetricCmpOp::Equals;
+    cmpOp = IntCmpOp::Equals;
   } else if (opStr == "<=") {
-    cmpOp = MetricCmpOp::EqualsSmaller;
+    cmpOp = IntCmpOp::EqualsSmaller;
   }else if (opStr == ">=") {
-    cmpOp = MetricCmpOp::EqualsGreater;
+    cmpOp = IntCmpOp::EqualsGreater;
   }else if (opStr == "<") {
-    cmpOp = MetricCmpOp::Smaller;
+    cmpOp = IntCmpOp::Smaller;
   }else if (opStr == ">") {
-    cmpOp = MetricCmpOp::Greater;
+    cmpOp = IntCmpOp::Greater;
   }else if (opStr == "!=") {
-    cmpOp = MetricCmpOp::NotEquals;
+    cmpOp = IntCmpOp::NotEquals;
   } else {
     return {};
   }
@@ -153,7 +153,8 @@ inline std::optional<MetricCmpOp> getCmpOp(const std::string& opStr) {
 class MetricSelector : public FilterSelector {
 public:
 
-  MetricSelector(std::string selectorName, std::vector<std::string> fieldName, MetricCmpOp op, int val) : selectorName(std::move(selectorName)), fieldName(std::move(fieldName)), cmpOp(op), val(val){
+  MetricSelector(std::string selectorName, std::vector<std::string> fieldName,
+                 IntCmpOp op, int val) : selectorName(std::move(selectorName)), fieldName(std::move(fieldName)), cmpOp(op), val(val){
   }
 
   bool accept(const std::string &fName) override;
@@ -174,25 +175,58 @@ private:
 private:
   std::string selectorName;
   std::vector<std::string> fieldName;
-  MetricCmpOp cmpOp;
+  IntCmpOp cmpOp;
   int val;
 };
 
 class FlopSelector : public MetricSelector {
 public:
-  FlopSelector(MetricCmpOp op, int val) : MetricSelector("FlopSelector", {"numOperations", "numberOfFloatOps"}, op, val) {
+  FlopSelector(IntCmpOp op, int val) : MetricSelector("FlopSelector", {"numOperations", "numberOfFloatOps"}, op, val) {
   }
 };
 
 class MemOpSelector : public MetricSelector {
 public:
-  MemOpSelector(MetricCmpOp op, int val) : MetricSelector("MemOpSelector", {"numOperations", "numberOfMemoryAccesses"}, op, val) {
+  MemOpSelector(IntCmpOp op, int val) : MetricSelector("MemOpSelector", {"numOperations", "numberOfMemoryAccesses"}, op, val) {
   }
 };
 
 class LoopDepthSelector: public MetricSelector {
 public:
-  LoopDepthSelector(MetricCmpOp op, int val) : MetricSelector("LoopDepthSelector", {"loopDepth"}, op, val) {
+  LoopDepthSelector(IntCmpOp op, int val) : MetricSelector("LoopDepthSelector", {"loopDepth"}, op, val) {
+  }
+};
+
+class SparseSelector : public Selector {
+  CallGraph *cg;
+
+public:
+  explicit SparseSelector() {
+  }
+
+  void init(CallGraph &cg) override {
+    this->cg = &cg;
+  }
+
+  FunctionSet apply(const FunctionSetList& input) override;
+
+
+  std::string getName() override {
+    return "sparse";
+  }
+};
+
+class MinCallDepthSelector : public FilterSelector {
+  IntCmpOp op;
+  int val;
+public:
+  MinCallDepthSelector(IntCmpOp op, int val) : op(op), val(val){
+  }
+
+  bool accept(const std::string &fName) override;
+
+  std::string getName() override {
+    return "MinCallDepthSelector";
   }
 };
 

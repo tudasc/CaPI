@@ -15,22 +15,26 @@
 #include "SelectorBuilder.h"
 #include "SelectorGraph.h"
 #include "SpecParser.h"
+#include "SymbolRetriever.h"
 
 using namespace capi;
 
 namespace {
 
 void printHelp() {
-  std::cout << "Usage: capi [options] cg_file\n";
+  std::cout << "Usage: capi [options] <metacg_file>\n";
   std::cout << "Options:\n";
   std::cout
       << " -p <preset>    Use a selection preset, where <preset> is one of "
          "'MPI','FOAM'.}\n";
   std::cout << " -f <file>      Use a selection spec file.\n";
+  std::cout << " -o <file>      The output filter file.\n";
   std::cout
       << " -i <specstr>   Parse the selection spec from the given string.\n";
   std::cout
       << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
+  std::cout
+      << " --replace-inlined <binary>  Replaces inlined functions with parent. Requires passing the executable.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
@@ -71,6 +75,50 @@ std::string loadFromFile(std::string_view filename) {
   return specStr;
 }
 
+FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const FunctionSet& functions, CallGraph& cg) {
+
+  FunctionSet newSet;
+
+  int numAdded = 0;
+
+  std::function<void(CGNode&)> addValidCallers = [&](CGNode& node) {
+    for (auto& caller : node.getCallers()) {
+      if (findSymbol(symSets, caller->getName())) {
+        if (addToSet(newSet, caller->getName())) {
+          numAdded++;
+        }
+      } else {
+        addValidCallers(*caller);
+      }
+    }
+  };
+
+  FunctionSet notFound;
+
+  for (auto& fn : functions) {
+    if (findSymbol(symSets, fn)) {
+      newSet.push_back(fn);
+    } else {
+      notFound.push_back(fn);
+    }
+  }
+  std::cout << notFound.size() << " functions could not be located in the executable, likely due to inlining.\n";
+
+  for (auto& fn : notFound) {
+    auto node = cg.get(fn);
+    if (!node) {
+      std::cerr << "Unable to find function in call graph - skipping.\n";
+      continue;
+    }
+    // Recursively looks for the first available callers and adds them.
+    addValidCallers(*node);
+  }
+
+  std::cout << numAdded  << " callers of missing functions added.\n";
+
+  return newSet;
+}
+
 std::string getPreset(SelectionPreset preset) {
   switch (preset) {
   case SelectionPreset::MPI:
@@ -100,9 +148,12 @@ int main(int argc, char **argv) {
   }
 
   bool shouldWriteDOT{false};
+  bool replaceInlined{false};
   std::string cgfile, specfile;
+  std::string execFile;
   std::string specStr;
   SelectionPreset preset;
+  std::string outfile;
 
   InputMode mode = InputMode::FILE;
 
@@ -113,6 +164,14 @@ int main(int argc, char **argv) {
         auto option = arg.substr(2);
         if (option.compare("write-dot") == 0) {
           shouldWriteDOT = true;
+        } else if (option.compare("replace-inlined") == 0) {
+          replaceInlined = true;
+          if (++i >= argc) {
+            std::cerr << "Need to pass the target executable after --replaced-inline. \n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          execFile = argv[i];
         }
       } else {
         auto option = arg.substr(1);
@@ -148,6 +207,13 @@ int main(int argc, char **argv) {
           }
           mode = InputMode::STRING;
           specStr = argv[i];
+        } else if (option.compare("o") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Need to pass an output file after -o\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          outfile = argv[i];
         }
       }
       continue;
@@ -224,11 +290,21 @@ int main(int argc, char **argv) {
 
   std::cout << "Selected " << result.size() << " functions.\n";
 
-  auto outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+  auto afterPostProcessing = result;
+
+  if (replaceInlined) {
+    auto symSets = loadSymbolSets(execFile);
+    afterPostProcessing = replaceInlinedFunctions(symSets, result, *cg);
+    std::cout << afterPostProcessing.size() << " functions selected after post-processing.\n";
+  }
+
+  if (outfile.empty()) {
+    outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+  }
 
   {
     FunctionFilter filter;
-    for (auto &f : result) {
+    for (auto &f : afterPostProcessing) {
       filter.addIncludedFunction(f);
     }
     if (!writeScorePFilterFile(filter, outfile)) {
