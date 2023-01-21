@@ -17,6 +17,13 @@
 
 #include "xray/xray_interface.h"
 
+#ifndef USE_MPI
+#define USE_MPI false
+#endif
+
+#if USE_MPI
+#include <mpi.h>
+#endif
 
 namespace capi {
 
@@ -108,11 +115,11 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
           //logInfo() << "Patched function " << std::hex << addr << std::dec << ": id=" << fid << ", name=" << it->second << "\n";
           numPatched++;
         } else {
-          logError() << "XRay patching at " << std::hex << addr << std::dec << " failed: id=" << fid << ", name=" << it->second << "\n";
+          logError() << "XRay patching at " << std::hex << addr << std::dec << " failed: object=" << objId << ", fid=" << fid << ", name=" << it->second << "\n";
           numFailed++;
         }
       } else {
-        logError() << "Unable to find symbol for patchable function: id=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
+        logError() << "Unable to find symbol for patchable function: object=" << objId << ", fid=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
         numFailed++;
       }
     }

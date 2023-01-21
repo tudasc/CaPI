@@ -212,7 +212,7 @@ public:
 
 
   std::string getName() override {
-    return "sparse";
+    return "SparseSelector";
   }
 };
 
