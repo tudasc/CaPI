@@ -392,6 +392,7 @@ protected:
 
     auto nextToken = lexer.next();
     if (!nextToken) {
+      printErrorMessage(nextToken.msg);
       printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector parameter");
       return {};
     }

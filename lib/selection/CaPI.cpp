@@ -126,7 +126,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
     numProcessed++;
 
     // Status output
-    if (numBetweenOutputs < 10) {
+    if (numBetweenOutputs >= 10) {
       if (numProcessed >= nextOutput) {
         logInfo() << (int)((numProcessed / notFound.size()) * 100) << "% of inlined functions processed...\n";
         nextOutput += numBetweenOutputs;
