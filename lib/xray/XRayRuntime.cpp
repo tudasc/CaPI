@@ -98,7 +98,18 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       return;
     }
 
-    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << "\n";
+    // A somewhat hacky way to find out to which DSO this ID belongs
+    std::string objName;
+    uintptr_t firstAddr = __xray_function_address_in_object(1, objId);
+    auto nextHighestIt = symTables.upper_bound(firstAddr);
+    if (nextHighestIt == symTables.begin()) {
+      logInfo() << "Unable to detect DSO name\n";
+    } else {
+      nextHighestIt--;
+      objName = nextHighestIt->second.memMap.path;
+    }
+
+    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")\n";
 
     for (int fid = 1; fid <= maxFID; ++fid) {
       uintptr_t addr = __xray_function_address_in_object(fid, objId);
