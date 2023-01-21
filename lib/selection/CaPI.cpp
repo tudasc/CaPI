@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_set>
 
 #include "CallGraph.h"
 #include "DOTWriter.h"
@@ -83,14 +84,18 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
 
   int numAdded = 0;
 
-  std::function<void(CGNode&)> addValidCallers = [&](CGNode& node) {
+  std::function<void(CGNode&, std::unordered_set<CGNode*>)> addValidCallers = [&](CGNode& node, std::unordered_set<CGNode*> visited) {
+    visited.insert(&node);
     for (auto& caller : node.getCallers()) {
+      if (visited.find(caller) != visited.end()) {
+        continue;
+      }
       if (findSymbol(symSets, caller->getName())) {
         if (addToSet(newSet, caller->getName())) {
           numAdded++;
         }
       } else {
-        addValidCallers(*caller);
+        addValidCallers(*caller, visited);
       }
     }
   };
@@ -106,6 +111,10 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
   }
   std::cout << notFound.size() << " functions could not be located in the executable, likely due to inlining.\n";
 
+  int numProcessed = 0;
+  int numBetweenOutputs = notFound.size() / 10;
+  int nextOutput = numBetweenOutputs;
+
   for (auto& fn : notFound) {
     auto node = cg.get(fn);
     if (!node) {
@@ -113,7 +122,16 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
       continue;
     }
     // Recursively looks for the first available callers and adds them.
-    addValidCallers(*node);
+    addValidCallers(*node, {});
+    numProcessed++;
+
+    // Status output
+    if (numBetweenOutputs < 10) {
+      if (numProcessed >= nextOutput) {
+        logInfo() << (int)((numProcessed / notFound.size()) * 100) << "% of inlined functions processed...\n";
+        nextOutput += numBetweenOutputs;
+      }
+    }
   }
 
   std::cout << numAdded  << " callers of missing functions added.\n";
