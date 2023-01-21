@@ -17,8 +17,12 @@ using FunctionSet = std::vector<std::string>;
 
 using FunctionSetList = std::vector<FunctionSet>;
 
+inline bool setContains(const FunctionSet& fnSet, const std::string& entry) {
+  return std::find(fnSet.begin(), fnSet.end(), entry) != fnSet.end();
+}
+
 inline bool addToSet(FunctionSet& fnSet, const std::string& entry) {
-  if (std::find(fnSet.begin(), fnSet.end(), entry) == fnSet.end()) {
+  if (!setContains(fnSet, entry)) {
     fnSet.push_back(entry);
     return true;
   }

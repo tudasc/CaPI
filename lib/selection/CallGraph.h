@@ -29,6 +29,10 @@ struct IterRange
   T end()
   { return endIt; }
 
+  size_t size() const {
+    return std::distance(beginIt, endIt);
+  }
+
 private:
   T beginIt, endIt;
 };
@@ -134,6 +138,16 @@ public:
   {
     return IterRange(nodes.cbegin(), nodes.cend());
   }
+
+  std::vector<const CGNode*> findRoots() const {
+    std::vector<const CGNode*> roots;
+    for (auto& node : nodes) {
+      if (node->getCallers().size() == 0)
+        roots.push_back(node.get());
+    }
+    return roots;
+  }
+
 };
 
 std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap);

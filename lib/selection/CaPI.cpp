@@ -28,6 +28,7 @@ void printHelp() {
       << " -p <preset>    Use a selection preset, where <preset> is one of "
          "'MPI','FOAM'.}\n";
   std::cout << " -f <file>      Use a selection spec file.\n";
+  std::cout << " -o <file>      The output filter file.\n";
   std::cout
       << " -i <specstr>   Parse the selection spec from the given string.\n";
   std::cout
@@ -152,6 +153,7 @@ int main(int argc, char **argv) {
   std::string execFile;
   std::string specStr;
   SelectionPreset preset;
+  std::string outfile;
 
   InputMode mode = InputMode::FILE;
 
@@ -205,6 +207,13 @@ int main(int argc, char **argv) {
           }
           mode = InputMode::STRING;
           specStr = argv[i];
+        } else if (option.compare("o") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Need to pass an output file after -o\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          outfile = argv[i];
         }
       }
       continue;
@@ -289,7 +298,9 @@ int main(int argc, char **argv) {
     std::cout << afterPostProcessing.size() << " functions selected after post-processing.\n";
   }
 
-  auto outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+  if (outfile.empty()) {
+    outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+  }
 
   {
     FunctionFilter filter;
