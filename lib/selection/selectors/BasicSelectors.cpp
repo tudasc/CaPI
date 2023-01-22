@@ -157,7 +157,7 @@ FunctionSet SparseSelector::apply(const FunctionSetList& input) {
       if (mayRemove && onlyChild && !setContains(critical, node->getName())) {
         selected = false;
       } else {
-        out.push_back(node->getName());
+        addToSet(out, node->getName());
       }
     }
 
