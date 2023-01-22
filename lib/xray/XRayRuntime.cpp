@@ -60,6 +60,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   if (!shouldInit) {
     logInfo() << "CaPI is inactive. Pass CAPI_FILTERING_FILE or set CAPI_ENABLE=1 if you want to active instrumentation.\n";
+    return;
   }
 
   auto execPath = getExecPath();
