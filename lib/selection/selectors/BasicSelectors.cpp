@@ -142,14 +142,14 @@ FunctionSet SparseSelector::apply(const FunctionSetList& input) {
 
   FunctionSet out;
 
-  ;
+  std::unordered_set<const CGNode*> visited;
 
   // Remove functions that fulfill all of the following conditions:
   // - They have exactly one caller
   // - Their caller is either selected or has itself only one caller
   // - They are not in the list of critical functions
 
-  std::function<void(const CGNode*, std::unordered_set<const CGNode*>, bool)> traverse = [&](const CGNode* node, std::unordered_set<const CGNode*> visited, bool mayRemove) {
+  std::function<void(const CGNode*, bool)> traverse = [&](const CGNode* node, bool mayRemove) {
     visited.insert(node);
     bool selected = setContains(in, node->getName());
     bool onlyChild = node->getCallers().size() == 1;
@@ -157,14 +157,14 @@ FunctionSet SparseSelector::apply(const FunctionSetList& input) {
       if (mayRemove && onlyChild && !setContains(critical, node->getName())) {
         selected = false;
       } else {
-        addToSet(out, node->getName());
+        out.push_back(node->getName());
       }
     }
 
     for (auto& callee : node->getCallees()) {
       if (visited.find(callee) == visited.end()) {
         // Callees are eligible for removal, if (1) their parent was selected or (2) their parent is an only child.
-        traverse(callee, visited, selected ||  onlyChild);
+        traverse(callee, selected ||  onlyChild);
       }
     }
 
@@ -172,7 +172,7 @@ FunctionSet SparseSelector::apply(const FunctionSetList& input) {
 
   std::vector<CGNode*> selectionRoots;
   for (auto root : cg->findRoots()) {
-    traverse(root, {}, false);
+    traverse(root, false);
   }
 
   return out;
