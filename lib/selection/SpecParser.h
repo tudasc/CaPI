@@ -28,7 +28,7 @@ public:
 */
 
 
-
+std::string stripComments(const std::string& input);
 
 
 class CharReader {
@@ -216,7 +216,6 @@ public:
         break;
     }
 
-
     if (c == '-' || std::isdigit(c)) {
       return parseNumber();
     }
@@ -241,9 +240,16 @@ public:
     return errMsg;
   }
 
+  void skipLine() {
+    char c;
+    do {
+      c = reader.next();
+    } while(c != '\n');
+  }
+
   void skipWhitespace() {
     char c = reader.peek();
-    while (isspace(c)) {
+    while (isspace(c) || c == '\n') {
       c = reader.next();
     }
   }
@@ -378,6 +384,7 @@ public:
         printErrorMessage("Parsing failed.");
         return nullptr;
       }
+      lexer.skipWhitespace();
     } while(!eof());
     return std::make_unique<SpecAST>(std::move(stmts));
   }

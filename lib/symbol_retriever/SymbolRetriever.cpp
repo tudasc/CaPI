@@ -154,6 +154,10 @@ SymbolSetList loadSymbolSets(std::string execFile) {
 
   // Load symbols from main executable
   auto execSyms = loadSymbolTable(execFile);
+  if (execSyms.empty()) {
+    return {};
+  }
+
   symSets.push_back({execFile, getSymbolSet(execSyms)});
 
   auto dsoList = readSharedObjectDependencies(execFile);

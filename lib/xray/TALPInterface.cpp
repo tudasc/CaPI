@@ -12,6 +12,9 @@
 #include "dlb_talp.h"
 #include "dlb_errors.h"
 
+
+#define TALP_NAME_MAX 128
+
 namespace {
 
 using namespace capi;
@@ -92,7 +95,13 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
       region.ignore = true;
       return;
     }
-    region.monitor = DLB_MonitoringRegionRegister(it->second.c_str());
+    auto& name = it->second;
+    if (name.size() >= TALP_NAME_MAX) {
+      logError() << "Function name too long for TALP - skipping.\n";
+      region.ignore = true;
+      return;
+    }
+    region.monitor = DLB_MonitoringRegionRegister(name.c_str());
     if (!region.monitor) {
       logError() << "Registering TALP region failed: " << it->second << "\n";
       region.ignore = true;

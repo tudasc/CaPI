@@ -54,7 +54,8 @@ std::map<std::string, SelectionPreset> presetNames = {
 
 
 ASTPtr parseSelectionSpec(std::string specStr) {
-  SpecParser parser(specStr);
+  auto stripped = stripComments(specStr);
+  SpecParser parser(stripped);
   auto ast = parser.parse();
   return ast;
 }
@@ -73,7 +74,7 @@ std::string loadFromFile(std::string_view filename) {
 
   std::string line;
   while (std::getline(in, line)) {
-    specStr += line;
+    specStr += line + '\n';
   }
   return specStr;
 }
@@ -268,7 +269,7 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "AST for " << specStr << ":\n";
+  std::cout << "AST for " << stripComments(specStr) << ":\n";
   std::cout << "------------------\n";
   ast->dump(std::cout);
   std::cout << "\n";
@@ -317,8 +318,12 @@ int main(int argc, char **argv) {
 
   if (replaceInlined) {
     auto symSets = loadSymbolSets(execFile);
-    afterPostProcessing = replaceInlinedFunctions(symSets, result, *cg);
-    std::cout << afterPostProcessing.size() << " functions selected after post-processing.\n";
+    if (symSets.empty()) {
+      std::cout << "Skipping inline compensation.\n";
+    } else {
+      afterPostProcessing = replaceInlinedFunctions(symSets, result, *cg);
+      std::cout << afterPostProcessing.size() << " functions selected after inline compensation.\n";
+    }
   }
 
   if (outfile.empty()) {
