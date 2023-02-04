@@ -22,6 +22,7 @@ ninja
 ```
 Options
 - `ENABLE_TALP=ON/OFF`: Enable/Disable support for TALP interface. Default is `ON`.
+- `ENABLE_XRAY=ON/OFF`: Enable/Disable support for runtime-adaptable instrumentation with LLVM XRay. Default is `ON`.
 
 ## Usage
 
@@ -99,18 +100,22 @@ subtract(%mpi_callpath, inlineSpecified(%%))
 
 List of available selectors:
 
-| Name                    | Parameters   | Selector inputs | Example                             | Explanation                                                     |
-|-------------------------|--------------|-----------------|-------------------------------------|-----------------------------------------------------------------|
-| byName                  | regex string | 1               | `byName("foo.*", %%)`               | Selects functions with names starting with "foo".               |
-| byPath                  | regex string | 1               | `byPath("foo/.*", %%)`              | Selects functions contained in directory "foo".                 |
-| inlineSpecified         | -            | 1               | `inlineSpecified(%%)`               | Selects functions marked as `inline`.                           |
-| onCallPathTo            | -            | 1               | `onCallPathTo(byName("foo", %%))`   | Selects functions in the call chain to function "foo".          |
-| onCallPathFrom          | -            | 1               | `onCallPathFrom(byName("foo", %%))` | Selects functions in the call chain from function "foo".        |
-| inSystemHeader          | -            | 1               | `inSystemHeader(%%)`                | Selects functions defined in system headers.                    |
-| containsUnresolvedCalls | -            | 1               | `containsUnresolvedCalls(%%)`       | Selects functions containing calls to unknown target functions. |
-| join                    | -            | 2               | `join(%A, %B)`                      | Union of the two input sets.                                    |
-| intersect               | -            | 2               | `intersect(%A, %B)`                 | Intersection of the two input sets.                             |
-| subtract                | -            | 2               | `subtract(%A, %B)`                  | Complement of the two input sets.                               |
+| Name                    | Parameters                | Selector inputs | Example                            | Explanation                                                                               |
+|-------------------------|---------------------------|-----------------|------------------------------------|-------------------------------------------------------------------------------------------|
+| byName                  | regex string              | 1               | `byName("foo.*", %%)`              | Selects functions with names starting with "foo".                                         |
+| byPath                  | regex string              | 1               | `byPath("foo/.*", %%)`             | Selects functions contained in directory "foo".                                           |
+| inlineSpecified         | -                         | 1               | `inlineSpecified(%%)`              | Selects functions marked as `inline`.                                                     |
+| onCallPathTo            | -                         | 1               | `onCallPathTo(byName("foo", %%))`  | Selects functions in the call chain to function "foo".                                    |
+| onCallPathFrom          | -                         | 1               | `onCallPathFrom(byName("foo", %%))` | Selects functions in the call chain from function "foo".                                  |
+| inSystemHeader          | -                         | 1               | `inSystemHeader(%%)`               | Selects functions defined in system headers.                                              |
+| containsUnresolvedCalls | -                         | 1               | `containsUnresolvedCalls(%%)`      | Selects functions containing calls to unknown target functions.                           |
+| join                    | -                         | 2               | `join(%A, %B)`                     | Union of the two input sets.                                                              |
+| intersect               | -                         | 2               | `intersect(%A, %B)`                | Intersection of the two input sets.                                                       |
+| subtract                | -                         | 2               | `subtract(%A, %B)`                 | Complement of the two input sets.                                                         |
+| coarse                  | -                         | 1 or 2          | `coarse(%A, %B)`                   | Filter out functions that have a single caller and callee, unless they are included in B. |
+| minCallDepth            | comp. operator, threshold | 1               | `minCallDepth("<=", 3, %A)`        | Selects functions that are at most 3 calls away from a root node.                         |
+| flops                   | comp. operator, threshold | 1               | `flops(">=", 10, %A)`              | Selects functions with at least 10 floating point operations.                             |
+| loopDepth               | comp. operator, threshold | 1               | `loopDepth("=", 2, %A)`            | Selects functions containing loop nests of depth 2.                                       |
 
 ### Instrumentation with CaPI
 You can use the provided compiler wrappers `clang-inst`/`clang-inst++` to build and instrument program.
