@@ -197,11 +197,11 @@ public:
   }
 };
 
-class SparseSelector : public Selector {
+class CoarseSelector : public Selector {
   CallGraph *cg;
 
 public:
-  explicit SparseSelector() {
+  explicit CoarseSelector() {
   }
 
   void init(CallGraph &cg) override {
@@ -212,7 +212,7 @@ public:
 
 
   std::string getName() override {
-    return "SparseSelector";
+    return "CoarseSelector";
   }
 };
 

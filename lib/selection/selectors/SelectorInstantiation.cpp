@@ -125,8 +125,8 @@ RegisterSelector registerMemOpSelector("memOps", createMetricSelector<MemOpSelec
 // LoopDepthSelector
 RegisterSelector registerLoopDepthSelector("loopDepth", createMetricSelector<LoopDepthSelector>);
 
-// SparseSelector
-RegisterSelector sparseSelector("sparse", createSimpleSelector<SparseSelector>);
+// CoarseSelector
+RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>);
 
 // MinCallDepthSelector
 RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector);

@@ -127,7 +127,7 @@ bool MetricSelector::accept(const std::string &fName) {
   return evalCmpOp(cmpOp, fnVal, val);
 }
 
-FunctionSet SparseSelector::apply(const FunctionSetList& input) {
+FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
   if (input.size() == 0 || input.size() > 2) {
     logError() << "Expected at least one, and not more than two input sets, got " << input.size() << " instead.\n";
     return {};
