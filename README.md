@@ -149,7 +149,11 @@ The upstream version of LLVM does currently not support XRay instrumentation of 
 If you need this feature, you can use [this fork of LLVM 13](https://github.com/sebastiankreutzer/llvm-project-xray-dso).  
 The feature is enabled by passing the additional flag `-fxray-enable-shared` when building your application.
 
-
+## Ongoing development
+We are currently evaluating a new call-graph analysis method that runs at link-time.
+A LLVM linker plugin embeds the call-graph into the binary.
+This allows the CaPI runtime to load the call-graph dynamically and to merge call-graphs of shared libraries on the fly.
+This work is currently in development and will be made public in the near future.
 
 
 
