@@ -23,3 +23,5 @@ set(UTILS_SOURCES CallGraph.cpp
         CaPIUtils.cpp)
 add_executable(cgutils ${UTILS_SOURCES})
 add_json(cgutils)
+
+install(TARGETS capi RUNTIME DESTINATION bin)

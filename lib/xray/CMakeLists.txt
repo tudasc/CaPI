@@ -11,6 +11,7 @@ set(XRAY_INCLUDE_DIR ${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include)
 
 add_library(capixray_gnu STATIC ${CAPI_XRAY_SOURCES} GNUInterface.cpp)
 target_include_directories(capixray_gnu PRIVATE ${XRAY_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
+install(TARGETS capixray_gnu ARCHIVE DESTINATION lib)
 
 if (ENABLE_TALP)
 
@@ -19,6 +20,7 @@ if (ENABLE_TALP)
     target_include_directories(capixray_talp PRIVATE ${XRAY_INCLUDE_DIR} ${DLB_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
     target_compile_definitions(capixray_talp PRIVATE "-DCAPI_TALP_INTERFACE")
     target_link_libraries(capixray_talp PUBLIC ${dlb_mpi_lib})
+    install(TARGETS capixray_talp ARCHIVE DESTINATION lib)
 endif()
 
 
@@ -28,6 +30,7 @@ if (SCOREP_SUPPORT)
     target_include_directories(capixray_scorep PRIVATE ${XRAY_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
     target_compile_definitions(capixray_scorep PRIVATE "-DCAPI_SCOREP_INTERFACE")
     target_link_libraries(capixray_scorep PRIVATE ${scorep_mgmt} ${scorep_measurement})
+    install(TARGETS capixray_scorep ARCHIVE DESTINATION lib)
 endif()
 
 
