@@ -17,7 +17,7 @@ If you use Score-P for profiling and want to measure shared libraries, we sugges
 You can build CaPI as follows ([Ninja](https://github.com/ninja-build/ninja) is not required, you can use make instead).
 ```
 mkdir build && cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DDLB_DIR=/path/to/dlb -DSCOREP_PATH=/path/to/scorep .. 
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DDLB_DIR=$(which dlb)/../.. -DSCOREP_PATH=$(which scorep)/../.. .. 
 ninja
 ```
 Options
