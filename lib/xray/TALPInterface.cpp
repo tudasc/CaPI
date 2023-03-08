@@ -19,7 +19,9 @@ namespace {
 
 using namespace capi;
 
-//FIXME: Problem with initialization order.
+inline bool isTALPActive() {
+  return DLB_MonitoringRegionGetMPIRegion() != nullptr;
+}
 
 struct RegionInfo {
   dlb_monitor_t* monitor{nullptr};
@@ -39,6 +41,22 @@ struct RegionInfo {
 struct TalpData {
   SymbolTable symbolTable;
   std::unordered_map<uintptr_t, RegionInfo> regionMap;
+  bool talpActive{false};
+  bool talpWasActive{false};
+
+  bool updateTALPState() {
+    if (isTALPActive()) {
+      talpWasActive = true;
+      talpActive = true;
+    } else {
+      talpActive = false;
+    }
+    return talpActive;
+  }
+
+  bool isTALPFinished() const {
+    return !talpActive && talpWasActive;
+  }
 };
 
 // Note: This is behind a pointer to prevent initialization order problems;
@@ -46,15 +64,31 @@ TalpData* talpData{nullptr};
 bool initialized{false};
 
 inline void handle_talp_region_enter(RegionInfo &region) {
+  if (!region.isInitialized()) {
+    logError() << "Trying to enter unregistered region - skipping.\n";
+    return;
+  }
   auto state = DLB_MonitoringRegionStart(region.monitor);
   if (state != DLB_SUCCESS) {
-      logError() << "Failed to enter TALP region: " << region.name() << "\n";
+    if (!talpData->updateTALPState()) {
+      logError() << "Encountered event after TALP has been finalized. Stopping monitoring.\n";
+      return;
+    }
+    logError() << "Failed to enter TALP region: " << region.name() << "\n";
   }
 }
 
 inline void handle_talp_region_exit(RegionInfo &region) {
+  if (!region.isInitialized()) {
+    logError() << "Trying to exit unregistered region - skipping.\n";
+    return;
+  }
   auto state = DLB_MonitoringRegionStop(region.monitor);
   if (state != DLB_SUCCESS) {
+    if (!talpData->updateTALPState()) {
+      logError() << "Encountered event after TALP has been finalized. Stopping monitoring.\n";
+      return;
+    }
     logError() << "Failed to exit TALP region: " << region.name() << "\n";
   }
 }
@@ -73,6 +107,11 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 
   TalpData& data = *talpData;
+
+  // Skip if TALP is finished
+  if (data.isTALPFinished()) {
+    return;
+  }
 
   auto& region = data.regionMap[id];
   if (region.ignore) {
@@ -97,22 +136,24 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
     }
     auto& name = it->second;
     if (name.size() >= TALP_NAME_MAX) {
-      logError() << "Function name too long for TALP - skipping.\n";
+      logError() << "Function name too long for TALP - skipping:\n";
+      logError() << name << "\n";
       region.ignore = true;
       return;
     }
+    if (!data.talpActive) {
+      if (!data.updateTALPState()) {
+        return;
+      }
+    }
     region.monitor = DLB_MonitoringRegionRegister(name.c_str());
     if (!region.monitor) {
-      logError() << "Registering TALP region failed: " << it->second << "\n";
+      logError() << "Registering TALP region failed: " << name << "\n";
       region.ignore = true;
       return;
     }
   }
 
-  if (!initialized) {
-    logError() << "TALP interface not initialized!\n";
-    return;
-  }
 
   switch (type) {
   case XRayEntryType::ENTRY:
