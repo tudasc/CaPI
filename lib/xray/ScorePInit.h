@@ -6,6 +6,7 @@
 #define CAPI_SCOREPINIT_H
 
 #include "SymbolRetriever.h"
+#include "XRayRuntime.h"
 
 #include <cstdint>
 
@@ -20,7 +21,7 @@ void SCOREP_InitMeasurement();
 };
 
 namespace capi {
-void initScoreP(SymbolTable symbols);
+void initScoreP(const XRayFunctionMap& xrayMap);
 }
 
 #endif // CAPI_SCOREPINIT_H

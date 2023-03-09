@@ -39,7 +39,7 @@ struct RegionInfo {
 };
 
 struct TalpData {
-  SymbolTable symbolTable;
+  XRayFunctionMap xrayMap;
   std::unordered_map<uintptr_t, RegionInfo> regionMap;
   bool talpActive{false};
   bool talpWasActive{false};
@@ -121,23 +121,29 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
   if (!region.isInitialized()) {
     // Registering region
-    uintptr_t addr = __xray_function_address(id);
-    if (!addr) {
+    auto it = data.xrayMap.find(id);
+    if (it == data.xrayMap.end()) {
       logError() << "Unable to map function ID " << id << " to a symbol.\n";
       region.ignore = true;
       return;
     }
-    auto it = data.symbolTable.find(addr);
-    if (it == data.symbolTable.end()) {
-      logError() << "Unable to detect symbol name at address " << std::hex << addr << std::dec  << ". Skipping region.\n";
-      logError() << "Symbol table entries: " << data.symbolTable.size() << "\n";
-      region.ignore = true;
-      return;
-    }
-    auto& name = it->second;
-    if (name.size() >= TALP_NAME_MAX) {
+    //uintptr_t addr = __xray_function_address(id);
+//    if (!addr) {
+//      logError() << "Unable to map function ID " << id << " to a symbol.\n";
+//      region.ignore = true;
+//      return;
+//    }
+//    auto it = data.symbolTable.find(addr);
+//    if (it == data.symbolTable.end()) {
+//      logError() << "Unable to detect symbol name at address " << std::hex << addr << std::dec  << ". Skipping region.\n";
+//      logError() << "Symbol table entries: " << data.symbolTable.size() << "\n";
+//      region.ignore = true;
+//      return;
+//    }
+    auto& fInfo = it->second;
+    if (fInfo.name.size() >= TALP_NAME_MAX) {
       logError() << "Function name too long for TALP - skipping:\n";
-      logError() << name << "\n";
+      logError() << fInfo.name << "\n";
       region.ignore = true;
       return;
     }
@@ -146,9 +152,9 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
         return;
       }
     }
-    region.monitor = DLB_MonitoringRegionRegister(name.c_str());
+    region.monitor = DLB_MonitoringRegionRegister(fInfo.name.c_str());
     if (!region.monitor) {
-      logError() << "Registering TALP region failed: " << name << "\n";
+      logError() << "Registering TALP region failed: " << fInfo.name << "\n";
       region.ignore = true;
       return;
     }
@@ -169,8 +175,8 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
-void postXRayInit(const SymbolTable& symTable) {
-    talpData = new TalpData{symTable};
+void postXRayInit(const XRayFunctionMap& xrayMap) {
+    talpData = new TalpData{xrayMap};
     initialized = true;
     logInfo() << "XRAY has been initialized, data passed to TALP handler.\n";
 }

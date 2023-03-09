@@ -35,7 +35,7 @@ void printHelp() {
   std::cout
       << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
   std::cout
-      << " --replace-inlined <binary>  Replaces inlined functions with parent. Requires passing the executable.\n";
+      << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
   std::cout
       << " --debug  Enable debugging mode.\n";
 }

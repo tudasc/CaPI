@@ -52,9 +52,9 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 
 }
 
-void postXRayInit(const SymbolTable &symTable) {
+void postXRayInit(const XRayFunctionMap &xrayFuncMap) {
 #ifdef CAPI_SCOREP_INTERFACE
-      initScoreP(symTable);
+      initScoreP(xrayFuncMap);
 #endif
 }
 

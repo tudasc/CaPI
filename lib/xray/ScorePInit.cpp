@@ -12,7 +12,7 @@
 
 namespace capi {
 
-void initScoreP(SymbolTable symbols) XRAY_NEVER_INSTRUMENT {
+void initScoreP(XRayFunctionMap xrayMap) XRAY_NEVER_INSTRUMENT {
 
   auto isEnabled = [](auto env) {
     auto envVal = std::getenv(env);
@@ -28,8 +28,8 @@ void initScoreP(SymbolTable symbols) XRAY_NEVER_INSTRUMENT {
   // Initializing ScoreP
   SCOREP_InitMeasurement();
 
-  for (auto&& [addr, name] : symbols) {
-    scorep_compiler_hash_put(addr, name.c_str(), name.c_str(), "", 0);
+  for (auto&& [fid, info] : xrayMap) {
+    scorep_compiler_hash_put(info.addr, info.name.c_str(), info.name.c_str(), "", 0);
   }
 
 }
