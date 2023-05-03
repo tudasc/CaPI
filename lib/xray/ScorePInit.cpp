@@ -12,7 +12,7 @@
 
 namespace capi {
 
-void initScoreP(XRayFunctionMap xrayMap) XRAY_NEVER_INSTRUMENT {
+void initScoreP(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
 
   auto isEnabled = [](auto env) {
     auto envVal = std::getenv(env);
