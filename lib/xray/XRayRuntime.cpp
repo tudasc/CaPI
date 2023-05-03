@@ -237,7 +237,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         continue;
       }
       auto& fInfo = fIt->second;
-      if (!filter.accepts(fInfo.name)) {
+      if (!(noFilter || filter.accepts(fInfo.name))) {
         continue;
       }
 
