@@ -19,7 +19,7 @@ void __cyg_profile_func_exit(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
 };
 
 namespace {
-  // It's faster to cache here than to go over the XRay runtime every time.
+  // It's faster to cache here than to go over to the XRay runtime every time.
   std::unordered_map<int, uintptr_t> id2Addr;
 }
 

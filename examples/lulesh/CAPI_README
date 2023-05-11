@@ -1,0 +1,29 @@
+# Instrumented LULESH
+
+This is a CaPI use case example based on the LULESH proxy application.
+OpenMPI is required to build it.
+
+A MetaCG call graph for LULESH is already included in `lulesh_full.mcg`.
+
+## Build
+Run `make lulesh2.0` to build lulesh with XRay instrumentation and automatically link the required CaPI and Score-P libraries.
+
+## Generate an instrumentation configuration with CaPI
+
+A simple CaPI spec for selecting functions on call-paths with loops is saved in `lulesh_compute.capi`.
+To run CaPI and build the filter file, run `../../lib/selection/capi --replace-inlined ./lulesh2.0 -f lulesh_compute.capi -o lulesh_compute.filt lulesh_full.mcg` in this directory.
+
+## Run LULESH
+
+Single process:
+`CAPI_FILTERING_FILE="lulesh_compute.filt" mpirun -n 1 --bind-to core ./lulesh2.0`
+
+8 processes:
+`CAPI_FILTERING_FILE="lulesh_compute.filt" mpirun -n 8 --oversubscribe --bind-to core ./lulesh2.0`
+
+
+To instrument all functions, remove the `CAPI_FILTERING_FILE` variable and pass `CAPI_ENABLE=1` instead.
+
+You may configure Score-P using the usual environment variables.
+
+
