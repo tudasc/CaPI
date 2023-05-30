@@ -1,0 +1,3 @@
+compute = flops(">=", 10, loopDepth(">=", 1, %%))
+callpaths = onCallPathTo(%compute)
+
