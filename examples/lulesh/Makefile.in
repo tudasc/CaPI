@@ -3,14 +3,15 @@
 SHELL = /bin/sh
 .SUFFIXES: .cc .o
 
-export CAPI_FILTERING_FILE = "lulesh_mpi_kernels.filt"
-
 LULESH_EXEC = lulesh2.0
+LULESH_EXEC_SCOREP = lulesh2.0_scorep
+LULESH_EXEC_EXTRAE = lulesh2.0_extrae
 
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-CAPI_LIB = @CAPI_LIB_DIR@/xray/libcapixray_scorep.a
+CAPI_LIB_SCOREP = @CAPI_LIB_DIR@/xray/libcapixray_scorep.a
+CAPI_LIB_EXTRAE = @CAPI_LIB_DIR@/xray/libcapixray_extrae.a
 
 LLVM_LIBS := $(shell @LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
 
@@ -61,16 +62,22 @@ scorep_init.c:
 scorep_init.o: scorep_init.c
 	$(CXX) -c -x c -o $@ $<
 
-all: $(LULESH_EXEC)
+all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE)
 
+$(LULESH_EXEC): $(OBJECTS2.0)
+	@echo "Linking vanilla"
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
+$(LULESH_EXEC_SCOREP): $(OBJECTS2.0) $(CAPI_LIB_SCOREP) scorep_init.o
+	@echo "Linking Score-P"
+	$(CXX) $(OBJECTS2.0) scorep_init.o -Wl,-start-group -Wl,-whole-archive $(CAPI_LIB_SCOREP) -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group   $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
 
-$(LULESH_EXEC): $(OBJECTS2.0) $(CAPI_LIB) scorep_init.o
-	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) scorep_init.o -Wl,-start-group -Wl,-whole-archive $(CAPI_LIB) -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group   $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
+$(LULESH_EXEC_EXTRAE): $(OBJECTS2.0) $(CAPI_LIB_EXTRAE)
+	@echo "Linking Extrae"
+	$(CXX) $(OBJECTS2.0)  -Wl,-whole-archive $(CAPI_LIB_EXTRAE) -Wl,-no-whole-archive $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
 
 clean:
-	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) scorep_init.c
+	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) scorep_init.c
 	/bin/rm -rf *.dSYM
 
 tar: clean
