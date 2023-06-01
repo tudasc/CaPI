@@ -4,8 +4,9 @@
 
 #include "XRayRuntime.h"
 
-#include <unordered_map>
+#include <cstring>
 #include <ranges>
+#include <unordered_map>
 
 #include "../Utils.h"
 #include "SymbolRetriever.h"
@@ -64,7 +65,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
-void registerExtraeEvents(const XRayFunctionMap& xrayMap) {
+void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) {
   int nvalues = xrayMap.size();
   std::vector<long long> idList;
   idList.reserve(nvalues);
@@ -72,11 +73,11 @@ void registerExtraeEvents(const XRayFunctionMap& xrayMap) {
   descriptions.reserve(nvalues);
   for (auto&& [id, info] : xrayMap) {
     idList.push_back(id);
-    // Ugly but necessary, if we want to avoid copying all function names
-    descriptions.push_back(const_cast<char*>(info.name.c_str()));
+    // Const-casting is ugly but necessary, if we want to avoid copying all function names
+    descriptions.push_back(const_cast<char*>(demangle ? info.demangled.c_str() : info.name.c_str()));
   }
 
-  Extrae_define_event_type (&ExtraeXRayEvt, "XRay Event", &nvalues, &idList[0], &descriptions[0]);
+  Extrae_define_event_type (&ExtraeXRayEvt, const_cast<char*>("XRay Event"), &nvalues, &idList[0], &descriptions[0]);
 }
 
 void postXRayInit(const XRayFunctionMap& xrayMap) {
@@ -92,7 +93,12 @@ void postXRayInit(const XRayFunctionMap& xrayMap) {
       return;
     }
   }
-  registerExtraeEvents(xrayMap);
+  bool demangle = true;
+  auto demangleEnv = std::getenv("CAPI_DEMANGLE");
+  if (demangleEnv && (!strcmp(demangleEnv, "0") || !strcmp(demangleEnv, "OFF"))) {
+    demangle = false;
+  }
+  registerExtraeEvents(xrayMap, demangle);
   initialized = true;
   logInfo() << "XRAY initialization and Extrae event registration done.\n";
 }

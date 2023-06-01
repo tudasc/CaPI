@@ -20,6 +20,7 @@
 #include "llvm/XRay/InstrumentationMap.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Demangle/Demangle.h"
 
 
 #ifndef USE_MPI
@@ -118,7 +119,19 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) {
     if (!fid || *fid == lastId)
       continue;
 
-    xrayIdMap[*fid] = {*fid, conversionHelper.getSymbol(*fid), sled.Function};
+    auto name = conversionHelper.getSymbol(*fid);
+    auto demangledName = name;
+
+    int status = 0;
+    char* demangleResult = llvm::itaniumDemangle(name.c_str(), nullptr, nullptr, &status);
+    if (status == 0) {
+      demangledName = demangleResult;
+      free(demangleResult);
+    }
+
+    xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
+
+
 
   }
 

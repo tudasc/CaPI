@@ -29,7 +29,7 @@ void initScoreP(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   SCOREP_InitMeasurement();
 
   for (auto&& [fid, info] : xrayMap) {
-    scorep_compiler_hash_put(info.addr, info.name.c_str(), info.name.c_str(), "", 0);
+    scorep_compiler_hash_put(info.addr, info.name.c_str(), info.demangled.c_str(), "", 0);
   }
 
 }
