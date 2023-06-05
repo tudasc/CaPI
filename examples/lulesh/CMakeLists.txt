@@ -1,4 +1,6 @@
 
+# Note: This file is currently not in use, until we find a way to have CMake not overwrite our custom generated Makefile
+
 file(GLOB LULESH_SOURCES *.cc *.h)
 file(GLOB CAPI_FILES *.capi)
 
