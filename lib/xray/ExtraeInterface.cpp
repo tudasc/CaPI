@@ -28,12 +28,20 @@ unsigned int ExtraeExit = 0;
 
 bool initialized{false};
 
+thread_local std::vector<int> callStack{};
+
 inline void handle_extrae_region_enter(int id) {
   Extrae_eventandcounters(ExtraeXRayEvt, id);
+  callStack.push_back(id);
 }
 
 inline void handle_extrae_region_exit(int id) {
-  Extrae_eventandcounters(ExtraeXRayEvt, ExtraeExit);
+  int nextEvt = ExtraeExit;
+  callStack.pop_back();
+  if (!callStack.empty()) {
+    nextEvt = callStack.back();
+  }
+  Extrae_eventandcounters(ExtraeXRayEvt, nextEvt);
 }
 
 }
