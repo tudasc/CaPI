@@ -30,12 +30,12 @@ bool initialized{false};
 
 thread_local std::vector<int> callStack{};
 
-inline void handle_extrae_region_enter(int id) {
+inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
   Extrae_eventandcounters(ExtraeXRayEvt, id);
   callStack.push_back(id);
 }
 
-inline void handle_extrae_region_exit(int id) {
+inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
   int nextEvt = ExtraeExit;
   callStack.pop_back();
   if (!callStack.empty()) {
@@ -73,7 +73,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
-void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) {
+void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NEVER_INSTRUMENT {
   int nvalues = xrayMap.size();
   std::vector<long long> idList;
   idList.reserve(nvalues);
@@ -88,7 +88,7 @@ void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) {
   Extrae_define_event_type (&ExtraeXRayEvt, const_cast<char*>("XRay Event"), &nvalues, &idList[0], &descriptions[0]);
 }
 
-void postXRayInit(const XRayFunctionMap& xrayMap) {
+void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   if (!Extrae_init) {
     logError() << "Extrae API not available. XRay events will not be traced.\n";
     return;
