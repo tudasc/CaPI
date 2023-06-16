@@ -27,8 +27,8 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-CXXFLAGS = -fPIE -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
-LDFLAGS = -fPIE -O3 -fxray-instrument 
+CXXFLAGS = -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
+LDFLAGS = -O3 -fxray-instrument 
 
 .cc.o: lulesh.h
 	@echo "Building $<"
