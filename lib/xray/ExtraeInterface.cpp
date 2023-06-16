@@ -5,7 +5,6 @@
 #include "XRayRuntime.h"
 
 #include <cstring>
-#include <ranges>
 #include <unordered_map>
 
 #include "../Utils.h"
@@ -24,8 +23,6 @@ namespace {
 
 unsigned int ExtraeXRayEvt = 31169;
 
-unsigned int ExtraeExit = 0;
-
 bool initialized{false};
 
 thread_local std::vector<int> callStack{};
@@ -36,7 +33,7 @@ inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
 }
 
 inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
-  int nextEvt = ExtraeExit;
+  int nextEvt = 0;
   callStack.pop_back();
   if (!callStack.empty()) {
     nextEvt = callStack.back();
@@ -108,7 +105,7 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   }
   registerExtraeEvents(xrayMap, demangle);
   initialized = true;
-  logInfo() << "XRAY initialization and Extrae event registration done.\n";
+  logInfo() << "XRay initialization and Extrae event registration done.\n";
 }
 
 }
