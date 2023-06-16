@@ -20,6 +20,7 @@
 #include "llvm/XRay/InstrumentationMap.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Demangle/Demangle.h"
 
 
 #ifndef USE_MPI
@@ -48,12 +49,12 @@ private:
 public:
   FuncIdConversionHelper(std::string BinaryInstrMap,
                          symbolize::LLVMSymbolizer &Symbolizer,
-                         const FunctionAddressMap &FunctionAddresses)
+                         const FunctionAddressMap &FunctionAddresses) XRAY_NEVER_INSTRUMENT
       : BinaryInstrMap(std::move(BinaryInstrMap)), Symbolizer(Symbolizer),
         FunctionAddresses(FunctionAddresses) {}
 
   // Returns the symbol or a string representation of the function id.
-  std::string getSymbol(int32_t FuncId) const {
+  std::string getSymbol(int32_t FuncId) const XRAY_NEVER_INSTRUMENT {
     auto CacheIt = CachedNames.find(FuncId);
     if (CacheIt != CachedNames.end())
       return CacheIt->second;
@@ -86,7 +87,7 @@ public:
 };
 
 
-std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) {
+std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
   // It would be cleaner to use the XRay API directly.
   // However, this would require that the target application links against the static LLVM libraries itself, which makes things messy...
   //auto cmdStr = "llvm-xray extract --symbolize --no-demangle " + objectFile;
@@ -118,7 +119,19 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) {
     if (!fid || *fid == lastId)
       continue;
 
-    xrayIdMap[*fid] = {*fid, conversionHelper.getSymbol(*fid), sled.Function};
+    auto name = conversionHelper.getSymbol(*fid);
+    auto demangledName = name;
+
+    int status = 0;
+    char* demangleResult = llvm::itaniumDemangle(name.c_str(), nullptr, nullptr, &status);
+    if (status == 0) {
+      demangledName = demangleResult;
+      free(demangleResult);
+    }
+
+    xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
+
+
 
   }
 
@@ -279,7 +292,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
 namespace {
   struct InitXRay {
-    InitXRay() { capi::initXRay(); }
+    InitXRay() XRAY_NEVER_INSTRUMENT { capi::initXRay(); }
   };
 
   InitXRay _;

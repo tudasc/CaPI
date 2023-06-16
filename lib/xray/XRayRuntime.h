@@ -22,6 +22,7 @@ using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
 struct XRayFunctionInfo {
   int functionId{0};
   std::string name{};
+  std::string demangled{};
   uint64_t addr{0};
 };
 
