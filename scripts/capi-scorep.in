@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+
+function is_linking(){
+  for arg in "$@"; do
+    case "$arg" in
+    -c | -S | -E)
+      return 0
+    ;;
+    esac
+  done
+  return 1
+}
+
+if[is_linking()]
+fi

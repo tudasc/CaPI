@@ -10,10 +10,7 @@ LULESH_EXEC_EXTRAE = lulesh2.0_extrae
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-CAPI_LIB_SCOREP = @CAPI_LIB_DIR@/xray/libcapixray_scorep.a
 CAPI_LIB_EXTRAE = @CAPI_LIB_DIR@/xray/libcapixray_extrae.a
-
-LLVM_LIBS := $(shell @LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
 
 export OMPI_CC=@CC_PATH@
 export OMPI_CXX=@CXX_PATH@
@@ -30,8 +27,8 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-CXXFLAGS = -fPIE -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
-LDFLAGS = -fPIE -O3 -fxray-instrument
+CXXFLAGS = -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
+LDFLAGS = -O3 -fxray-instrument 
 
 .cc.o: lulesh.h
 	@echo "Building $<"
@@ -39,19 +36,14 @@ LDFLAGS = -fPIE -O3 -fxray-instrument
 
 all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE)
 
-scorep_init.c:
-	@SCOREP_CONFIG@ --mpp=mpi --nokokkos --noonline-access --adapter-init --compiler > scorep_init.c
-
-scorep_init.o: scorep_init.c
-	$(CXX) -c -x c -o $@ $<
 
 $(LULESH_EXEC): $(OBJECTS2.0)
 	@echo "Linking vanilla"
 	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
-$(LULESH_EXEC_SCOREP): $(OBJECTS2.0) $(CAPI_LIB_SCOREP) scorep_init.o
+$(LULESH_EXEC_SCOREP): $(OBJECTS2.0)
 	@echo "Linking Score-P"
-	$(CXX) $(OBJECTS2.0) scorep_init.o -Wl,-start-group -Wl,-whole-archive $(CAPI_LIB_SCOREP) -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group   $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
+	./../../scripts/capi-scorep++ $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 $(LULESH_EXEC_EXTRAE): $(OBJECTS2.0) $(CAPI_LIB_EXTRAE)
 	@echo "Linking Extrae"
@@ -63,4 +55,3 @@ clean:
 
 tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
-

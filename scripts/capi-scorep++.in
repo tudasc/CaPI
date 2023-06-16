@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+
+export OMPI_CC=@CC_PATH@
+export OMPI_CXX=@CXX_PATH@
+
+CAPI_LIB_SCOREP=@CAPI_LIB_DIR@/xray/libcapixray_scorep.a
+LLVM_LIBS=`@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs`
+
+
+linking=yes
+for arg in "$@" ; do
+    case "$arg" in
+    	-c|-S|-E|-M|-MM|-MMD)
+            linking=no
+    	    ;;
+    esac
+done
+
+#scorep_init.c:
+@SCOREP_CONFIG@ --mpp=mpi --nokokkos --noonline-access --adapter-init --compiler > scorep_init.c
+#scorep_init.o:
+mpic++ -c -x c scorep_init.c
+
+if [[ "$linking" == yes ]]; then 
+    mpic++ -DUSE_MPI=1 scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group -fxray-instrument $LLVM_LIBS $@
+fi
