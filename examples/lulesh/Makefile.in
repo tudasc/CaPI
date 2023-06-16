@@ -3,19 +3,10 @@
 SHELL = /bin/sh
 .SUFFIXES: .cc .o
 
-export CAPI_FILTERING_FILE = "lulesh_mpi_kernels.filt"
-
 LULESH_EXEC = lulesh2.0
 
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
-
-CAPI_LIB = @CAPI_LIB_DIR@/xray/libcapixray_scorep.a
-
-LLVM_LIBS := $(shell @LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
-
-export OMPI_CC=@CC_PATH@
-export OMPI_CXX=@CXX_PATH@
 
 SERCXX = clang++ -DUSE_MPI=0
 MPICXX = mpic++ -DUSE_MPI=1
@@ -35,8 +26,7 @@ LDFLAGS =  -O3 -fopenmp
 
 #Below are reasonable default flags for a serial build
 CXXFLAGS = -fPIE -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
-LDFLAGS = -fPIE -O3 -fxray-instrument
-
+LDFLAGS =  -O3
 #common places you might find silo on the Livermore machines.
 #SILO_INCDIR = /opt/local/include
 #SILO_LIBDIR = /opt/local/lib
@@ -55,20 +45,12 @@ LDFLAGS = -fPIE -O3 -fxray-instrument
 	@echo "Building $<"
 	$(CXX) -c $(CXXFLAGS) -o $@  $<
 
-scorep_init.c:
-	@SCOREP_CONFIG@ --mpp=mpi --nokokkos --noonline-access --adapter-init --compiler > scorep_init.c
-
-scorep_init.o: scorep_init.c
-	$(CXX) -c -x c -o $@ $<
-
 all: $(LULESH_EXEC)
 
 
-
-$(LULESH_EXEC): $(OBJECTS2.0) $(CAPI_LIB) scorep_init.o
+$(LULESH_EXEC): $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) scorep_init.o -Wl,-start-group -Wl,-whole-archive $(CAPI_LIB) -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group   $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
-
+	./../../scripts/capi-scorep++ $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 clean:
 	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) scorep_init.c
 	/bin/rm -rf *.dSYM
