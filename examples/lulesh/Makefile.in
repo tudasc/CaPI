@@ -4,9 +4,16 @@ SHELL = /bin/sh
 .SUFFIXES: .cc .o
 
 LULESH_EXEC = lulesh2.0
+LULESH_EXEC_SCOREP = lulesh2.0_scorep
+LULESH_EXEC_EXTRAE = lulesh2.0_extrae
 
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
+
+CAPI_LIB_EXTRAE = @CAPI_LIB_DIR@/xray/libcapixray_extrae.a
+
+export OMPI_CC=@CC_PATH@
+export OMPI_CXX=@CXX_PATH@
 
 SERCXX = clang++ -DUSE_MPI=0
 MPICXX = mpic++ -DUSE_MPI=1
@@ -20,41 +27,31 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-#Default build suggestions with OpenMP for g++
-CXXFLAGS = -O3 -fopenmp -I. -Wall
-LDFLAGS =  -O3 -fopenmp
-
-#Below are reasonable default flags for a serial build
 CXXFLAGS = -fPIE -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
-LDFLAGS =  -O3
-#common places you might find silo on the Livermore machines.
-#SILO_INCDIR = /opt/local/include
-#SILO_LIBDIR = /opt/local/lib
-#SILO_INCDIR = ./silo/4.9/1.8.10.1/include
-#SILO_LIBDIR = ./silo/4.9/1.8.10.1/lib
-
-#If you do not have silo and visit you can get them at:
-#silo:  https://wci.llnl.gov/codes/silo/downloads.html
-#visit: https://wci.llnl.gov/codes/visit/download.html
-
-#below is and example of how to make with silo, hdf5 to get vizulization by default all this is turned off.  All paths are Livermore specific.
-#CXXFLAGS = -g -DVIZ_MESH -I${SILO_INCDIR} -Wall -Wno-pragmas
-#LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
+LDFLAGS = -fPIE -O3 
 
 .cc.o: lulesh.h
 	@echo "Building $<"
 	$(CXX) -c $(CXXFLAGS) -o $@  $<
 
-all: $(LULESH_EXEC)
+all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE)
 
 
 $(LULESH_EXEC): $(OBJECTS2.0)
-	@echo "Linking"
+	@echo "Linking vanilla"
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+
+$(LULESH_EXEC_SCOREP): $(OBJECTS2.0)
+	@echo "Linking Score-P"
 	./../../scripts/capi-scorep++ $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+
+$(LULESH_EXEC_EXTRAE): $(OBJECTS2.0) $(CAPI_LIB_EXTRAE)
+	@echo "Linking Extrae"
+	$(CXX) $(OBJECTS2.0)  -Wl,-whole-archive $(CAPI_LIB_EXTRAE) -Wl,-no-whole-archive $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
+
 clean:
-	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) scorep_init.c
+	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) scorep_init.c
 	/bin/rm -rf *.dSYM
 
 tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
-
