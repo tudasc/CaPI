@@ -1,0 +1,44 @@
+
+<<<<<<< HEAD
+set(CAPI_XRAY_SOURCES
+=======
+set(DYNCAPI_SOURCES
+>>>>>>> 8d038db (Add ScoreP support for XRay instrumentation)
+        XRayRuntime.cpp
+        SymbolRetriever.cpp
+        ../selection/FunctionFilter.cpp)
+
+# TODO: Is there a better way to determine this include path?
+set(XRAY_INCLUDE_DIR ${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include)
+#message("XRay include dir:  ${XRAY_INCLUDE_DIR}")
+
+
+
+#if (SCOREP_SUPPORT)
+#    list(APPEND DYNCAPI_SOURCES ScorePInit.cpp)
+#endif()
+
+<<<<<<< HEAD
+add_library(capixray STATIC ${CAPI_XRAY_SOURCES})
+target_include_directories(capixray PRIVATE ${XRAY_INCLUDE_DIR})
+
+if (SCOREP_SUPPORT)
+    set(CAPI_XRAY_SCOREP_SOURCES ${CAPI_XRAY_SOURCES} ScorePInit.cpp)
+    add_library(capixray_scorep STATIC ${CAPI_XRAY_SCOREP_SOURCES})
+    target_include_directories(capixray_scorep PRIVATE ${XRAY_INCLUDE_DIR})
+    target_compile_definitions(capixray_scorep PRIVATE "-DCAPI_SCOREP_SUPPORT")
+    target_link_libraries(capixray_scorep PRIVATE ${scorep_mgmt} ${scorep_measurement})
+=======
+add_library(dyncapi STATIC ${DYNCAPI_SOURCES})
+target_include_directories(dyncapi PRIVATE ${XRAY_INCLUDE_DIR})
+
+if (SCOREP_SUPPORT)
+    set(DYNCAPI_SCOREP_SOURCES ${DYNCAPI_SOURCES} ScorePInit.cpp)
+    add_library(dyncapi_scorep STATIC ${DYNCAPI_SCOREP_SOURCES})
+    target_include_directories(dyncapi_scorep PRIVATE ${XRAY_INCLUDE_DIR})
+    target_compile_definitions(dyncapi_scorep PRIVATE "-DCAPI_SCOREP_SUPPORT")
+    target_link_libraries(dyncapi_scorep PRIVATE ${scorep_mgmt} ${scorep_measurement})
+>>>>>>> 8d038db (Add ScoreP support for XRay instrumentation)
+endif()
+
+

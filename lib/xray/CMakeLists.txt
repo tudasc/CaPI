@@ -31,7 +31,6 @@ if (ENABLE_TALP)
     install(TARGETS capixray_talp ARCHIVE DESTINATION lib)
 endif()
 
-
 if (SCOREP_SUPPORT)
     set(CAPI_XRAY_SCOREP_SOURCES ${CAPI_XRAY_SOURCES} GNUInterface.cpp ScorePInit.cpp)
     add_library(capixray_scorep STATIC ${CAPI_XRAY_SCOREP_SOURCES})
@@ -41,4 +40,10 @@ if (SCOREP_SUPPORT)
     install(TARGETS capixray_scorep ARCHIVE DESTINATION lib)
 endif()
 
-
+if (ENABLE_EXTRAE)
+    set(CAPI_XRAY_EXTRAE_SOURCES ${CAPI_XRAY_SOURCES} ExtraeInterface.cpp)
+    add_library(capixray_extrae STATIC ${CAPI_XRAY_EXTRAE_SOURCES})
+    target_include_directories(capixray_extrae PRIVATE ${XRAY_INCLUDE_DIR} ${LLVM_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
+    target_compile_definitions(capixray_extrae PRIVATE "-DCAPI_EXTRAE_INTERFACE")
+    install(TARGETS capixray_extrae ARCHIVE DESTINATION lib)
+endif()

@@ -28,6 +28,8 @@ if (SCOREP_SUPPORT)
   message(STATUS "Score-P libs: ${scorep_mgmt} ${scorep_measurement}")
 endif()
 
+option(ENABLE_EXTRAE "Enable Extrae tracing interface" ON)
+
 if (NOT CMAKE_BUILD_TYPE)
   # set default build type
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
