@@ -6,8 +6,49 @@
 #include "../Utils.h"
 #include <cassert>
 #include <fstream>
+#include <omp.h>
 
 namespace capi {
+
+namespace {
+  void processNode(SelectorNode *node, CallGraph &cg, std::unordered_map<std::string, FunctionSet>& resultsMap)
+  {
+    auto& selector = *node->getSelector();
+    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << ", Thread: " << omp_get_thread_num() << " ...\n";
+    selector.init(cg);
+    FunctionSetList inputList;
+    for (auto&& inputName : node->getInputDependencies()) {
+      auto resultIt = resultsMap.find(inputName);
+      assert(resultIt != resultsMap.end() && "Invalid selector execution order");
+      inputList.push_back(resultIt->second);
+    }
+    auto output = selector.apply(inputList);
+    logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
+
+    resultsMap[node->getName()] = std::move(output);
+  }
+
+  void processNodeHelper(SelectorNode *node,
+                       CallGraph &cg,
+                       std::unordered_map<std::string, FunctionSet>& resultsMap,
+                       int index,
+                       const std::vector<SelectorNode*>& executionOrder,
+                       const std::unordered_map<std::string, int>& nodeOrderMap)
+  {
+    if (node->getInputDependencies().size() > index)
+    {
+      // wait on node in index
+      #pragma omp task depend(in: executionOrder[nodeOrderMap.at(node->getInputDependencies()[index])]) shared(resultsMap,cg,executionOrder)
+      processNodeHelper(node, cg, resultsMap, index + 1, executionOrder, nodeOrderMap);
+    }
+    else
+    {
+      processNode(node, cg, resultsMap);
+    }
+
+    #pragma omp taskwait
+  }
+}
 
 static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<SelectorNode*>& execOrder, std::vector<SelectorNode*>& visited) {
   visited.push_back(node);
@@ -55,46 +96,31 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, boo
 
   std::unordered_map<std::string, FunctionSet> resultsMap;
 
-  for (auto it = executionOrder.begin(); it != executionOrder.end(); ++it) {
-    auto node = *it;
-    auto& selector = *node->getSelector();
-    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << "...\n";
-    selector.init(cg);
-    FunctionSetList inputList;
-    for (auto&& inputName : node->getInputDependencies()) {
-      auto resultIt = resultsMap.find(inputName);
-      assert(resultIt != resultsMap.end() && "Invalid selector execution order");
-      inputList.push_back(resultIt->second);
-    }
-    auto output = selector.apply(inputList);
-    logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
-    if (debugMode) {
-      std::string setOutFile = node->getName() + ".txt";
-      logInfo() << "Press 'n' to continue, 'p' to print the last function set, or 's' to save it to '" << setOutFile << "'.\n";
-      char cmd;
-      bool cont{false};
-      do {
-        std::cin >> cmd;
-        if (cmd == 'n') {
-          cont = false;
-        } else if (cmd == 'p') {
-          std::cout << "===== Selection Begin ======\n";
-          dumpSelection(std::cout, output);
-          std::cout << "===== Selection End ======\n";
-          cont = false;
-        } else if (cmd == 's') {
-          std::ofstream of(setOutFile);
-          if (of.good()) {
-            dumpSelection(of, output);
-          } else {
-            std::cerr << "ERROR: Unable to write file.\n";
-          }
-        } else {
-          logInfo() << "Invalid command. Try again.\n";
+  std::unordered_map<std::string, int> nodeOrderMap;
+
+  for (int i = 0; i < executionOrder.size(); i++) {
+    nodeOrderMap[executionOrder[i]->getName()] = i;
+  }
+
+  #pragma omp parallel
+  {
+    #pragma omp single
+    {
+      for (int i = 0; i < executionOrder.size(); i++) {
+        auto node = executionOrder[i];
+
+        if (!node->getInputDependencies().empty())
+        {
+          #pragma omp task depend(in: executionOrder[nodeOrderMap.at(node->getInputDependencies()[0])]) depend(out: executionOrder[i]) shared(resultsMap,cg,executionOrder)
+          processNodeHelper(node, cg, resultsMap, 1, executionOrder, nodeOrderMap);
+
+          continue;
         }
-      } while (cont);
+
+        #pragma omp task depend(out: executionOrder[i]) shared(resultsMap,cg)
+        processNode(node, cg, resultsMap);
+      }
     }
-    resultsMap[node->getName()] = std::move(output);
   }
 
   return resultsMap[selectorGraph.getEntryNode()->getName()];
