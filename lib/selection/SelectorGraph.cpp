@@ -11,10 +11,9 @@
 namespace capi {
 
 namespace {
-  void processNode(SelectorNode *node, CallGraph &cg, std::unordered_map<std::string, FunctionSet>& resultsMap)
-  {
+  void processNode(SelectorNode *node, CallGraph &cg, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
     auto& selector = *node->getSelector();
-    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << ", Thread: " << omp_get_thread_num() << " ...\n";
+    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << " ...\n";
     selector.init(cg);
     FunctionSetList inputList;
     for (auto&& inputName : node->getInputDependencies()) {
@@ -25,28 +24,34 @@ namespace {
     auto output = selector.apply(inputList);
     logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
 
+    if (debugMode) {
+      std::string setOutFile = node->getName() + ".txt";
+      logInfo() << "Press 'n' to continue, 'p' to print the last function set, or 's' to save it to '" << setOutFile << "'.\n";
+      char cmd;
+      bool cont{false};
+      do {
+        std::cin >> cmd;
+        if (cmd == 'n') {
+          cont = false;
+        } else if (cmd == 'p') {
+          std::cout << "===== Selection Begin ======\n";
+          dumpSelection(std::cout, output);
+          std::cout << "===== Selection End ======\n";
+          cont = false;
+        } else if (cmd == 's') {
+          std::ofstream of(setOutFile);
+          if (of.good()) {
+            dumpSelection(of, output);
+          } else {
+            std::cerr << "ERROR: Unable to write file.\n";
+          }
+        } else {
+          logInfo() << "Invalid command. Try again.\n";
+        }
+      } while (cont);
+    }
+
     resultsMap[node->getName()] = std::move(output);
-  }
-
-  void processNodeHelper(SelectorNode *node,
-                       CallGraph &cg,
-                       std::unordered_map<std::string, FunctionSet>& resultsMap,
-                       int index,
-                       const std::vector<SelectorNode*>& executionOrder,
-                       const std::unordered_map<std::string, int>& nodeOrderMap)
-  {
-    if (node->getInputDependencies().size() > index)
-    {
-      // wait on node in index
-      #pragma omp task depend(in: executionOrder[nodeOrderMap.at(node->getInputDependencies()[index])]) shared(resultsMap,cg,executionOrder)
-      processNodeHelper(node, cg, resultsMap, index + 1, executionOrder, nodeOrderMap);
-    }
-    else
-    {
-      processNode(node, cg, resultsMap);
-    }
-
-    #pragma omp taskwait
   }
 }
 
@@ -96,29 +101,32 @@ FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, boo
 
   std::unordered_map<std::string, FunctionSet> resultsMap;
 
-  std::unordered_map<std::string, int> nodeOrderMap;
+  if (debugMode) {
+    for (int i = 0; i < executionOrder.size(); i++) {
+      auto node = executionOrder[i];
 
-  for (int i = 0; i < executionOrder.size(); i++) {
-    nodeOrderMap[executionOrder[i]->getName()] = i;
+      processNode(node, cg, resultsMap, true);
+    }
   }
-
-  #pragma omp parallel
+  else
   {
-    #pragma omp single
+    std::unordered_map<std::string, int> nodeOrderMap;
+
+    for (int i = 0; i < executionOrder.size(); i++) {
+      nodeOrderMap[executionOrder[i]->getName()] = i;
+    }
+
+    #pragma omp parallel
     {
-      for (int i = 0; i < executionOrder.size(); i++) {
-        auto node = executionOrder[i];
+      #pragma omp single
+      {
+        for (int i = 0; i < executionOrder.size(); i++) {
+          auto node = executionOrder[i];
+          auto& deps = node->getInputDependencies();
 
-        if (!node->getInputDependencies().empty())
-        {
-          #pragma omp task depend(in: executionOrder[nodeOrderMap.at(node->getInputDependencies()[0])]) depend(out: executionOrder[i]) shared(resultsMap,cg,executionOrder)
-          processNodeHelper(node, cg, resultsMap, 1, executionOrder, nodeOrderMap);
-
-          continue;
+          #pragma omp task depend(iterator(j=0:deps.size()), in: executionOrder[nodeOrderMap.at(deps[j])]) depend(out: executionOrder[i]) shared(resultsMap,cg,executionOrder)
+          processNode(node, cg, resultsMap, false);
         }
-
-        #pragma omp task depend(out: executionOrder[i]) shared(resultsMap,cg)
-        processNode(node, cg, resultsMap);
       }
     }
   }
