@@ -2,7 +2,11 @@
 
 import sys
 
-config.capi_exe = "@CAPI_EXE"
+config.filecheck_exe = "@FILECHECK_EXE@"
+config.cgc_exe = "@CGC_EXE@"
+config.capi_exe = "@CAPI_EXE@"
+config.clang_include_dir = "@CLANG_INCLUDE_DIR@"
+
 
 # Let the main config do the real work.
 config.loaded_site_config = True
