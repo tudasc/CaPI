@@ -16,6 +16,13 @@ stages:
   - build
   - test
 
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: never
+
+
 .job-setup: &job-setup
   parallel:
     matrix:

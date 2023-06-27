@@ -42,10 +42,10 @@ module-whatis "LLVM 13.0.1 with XRay DSO instrumentation"
 
 conflict llvm
 
-prepend-path PATH $pkg_dir/bin
-prepend-path LD_LIBRARY_PATH $pkg_dir/lib
-prepend-path LIBRARY_PATH $pkg_dir/lib
-prepend-path MANPATH $pkg_dir/share/man
+prepend-path PATH \$pkg_dir/bin
+prepend-path LD_LIBRARY_PATH \$pkg_dir/lib
+prepend-path LIBRARY_PATH \$pkg_dir/lib
+prepend-path MANPATH \$pkg_dir/share/man
 EOF
-echo "[CaPI] Generated modulefile for LLVM. Run 'module use $llvm_module_dir' to activate."
+echo "[CaPI] Generated modulefile for LLVM. Run 'module use $moduledir' to activate."
 
