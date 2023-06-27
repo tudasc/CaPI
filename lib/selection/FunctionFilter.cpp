@@ -72,6 +72,17 @@ bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename)
   return false;
 }
 
+bool writeSimpleFilterFile(FunctionFilter& filter, const std::string& filename) {
+  std::ofstream os(filename);
+  if (!os) {
+    return false;
+  }
+  for (auto &f : filter) {
+    os << f << "\n";
+  }
+  return true;
+}
+
 bool writeScorePFilterFile(FunctionFilter &filter,
                            const std::string &filename)
 {
