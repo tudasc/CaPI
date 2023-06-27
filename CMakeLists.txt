@@ -29,10 +29,9 @@ add_format_target(format-sources
 
 add_subdirectory(lib)
 add_subdirectory(scripts)
-add_subdirectory(test)
 add_subdirectory(examples)
 
 if (ENABLE_TESTING)
     enable_testing()
-    add_subdirectory(test/selection)
+    add_subdirectory(test)
 endif()
