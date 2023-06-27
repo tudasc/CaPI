@@ -42,6 +42,9 @@ bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename);
 
 bool writeScorePFilterFile(FunctionFilter &filter, const std::string &filename);
 
+bool writeSimpleFilterFile(FunctionFilter &filter, const std::string &filename);
+
+
 }
 
 #endif // CAPI_FUNCTIONFILTER_H

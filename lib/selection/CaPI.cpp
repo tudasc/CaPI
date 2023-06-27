@@ -36,11 +36,14 @@ void printHelp() {
       << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
   std::cout
       << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
+  std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default) and \"simple\"\n";
   std::cout
       << " --debug  Enable debugging mode.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
+
+enum class OutputFormat {SIMPLE, SCOREP};
 
 enum class SelectionPreset {
   MPI,
@@ -178,6 +181,7 @@ int main(int argc, char **argv) {
   bool debugMode{false};
 
   InputMode mode = InputMode::FILE;
+  OutputFormat outputFormat = OutputFormat::SCOREP;
 
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
@@ -186,7 +190,7 @@ int main(int argc, char **argv) {
         auto option = arg.substr(2);
         if (option.compare("write-dot") == 0) {
           shouldWriteDOT = true;
-        } if (option.compare("debug") == 0) {
+        } else if (option.compare("debug") == 0) {
           debugMode = true;
         } else if (option.compare("replace-inlined") == 0) {
           replaceInlined = true;
@@ -196,6 +200,26 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
           }
           execFile = argv[i];
+        } else if (option.compare("output-format") == 0) {
+          if (++i >= argc) {
+            std::cerr << "Output format must be set to 'simple' or 'scorep'. \n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          std::string outputFormatStr = argv[i];
+          if (outputFormatStr.compare("simple") == 0) {
+            outputFormat = OutputFormat::SIMPLE;
+          } else if (outputFormatStr.compare("scorep") == 0) {
+            outputFormat = OutputFormat::SCOREP;
+          } else {
+            std::cerr << "Unsupported output format.\n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+        } else {
+          std::cerr << "Invalid parameter --" << option << "\n";
+          printHelp();
+          return EXIT_FAILURE;
         }
       } else {
         auto option = arg.substr(1);
@@ -335,9 +359,19 @@ int main(int argc, char **argv) {
     for (auto &f : afterPostProcessing) {
       filter.addIncludedFunction(f);
     }
-    if (!writeScorePFilterFile(filter, outfile)) {
+    bool writeSuccess{false};
+    switch(outputFormat) {
+    case OutputFormat::SIMPLE:
+      writeSuccess = writeSimpleFilterFile(filter, outfile);
+      break;
+    case OutputFormat::SCOREP:
+      writeSuccess = writeScorePFilterFile(filter, outfile);
+      break;
+    }
+    if (!writeSuccess) {
       std::cerr << "Error: Writing filter file failed.\n";
     }
+
   }
 
   if (shouldWriteDOT) {

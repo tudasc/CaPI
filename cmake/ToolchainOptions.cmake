@@ -9,12 +9,31 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(FetchContent)
 include(json)
 include(AddLLVM)
-include(llvm-lit)
 include(clang-tidy)
 include(clang-format)
 include(llvm-util)
 
 include(talp)
+
+option(ENABLE_TESTING "Enable testing (requires lit)" ON)
+
+if (ENABLE_TESTING)
+  include(metacg)
+
+  find_llvm_progs(FILECHECK_EXE "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
+
+  if(LLVM_EXTERNAL_LIT)
+    cmake_path(GET LLVM_EXTERNAL_LIT PARENT_PATH LLVM_EXTERNAL_LIT_DIR)
+  endif()
+
+  find_llvm_progs(LIT_EXE
+          "llvm-lit;lit;lit.py"
+          HINTS ${LLVM_EXTERNAL_LIT_DIR} /usr/lib/llvm-${LLVM_VERSION_MAJOR} /usr/lib/llvm /usr/bin /usr/local/bin /opt/local/bin
+          ABORT_IF_MISSING
+          )
+
+  message(STATUS "Found llvm-lit: ${LIT_EXE}")
+endif()
 
 option(ENABLE_XRAY "Enable XRay dynamic instrumentation interface" ON)
 option(SCOREP_SUPPORT "Enable Score-P support" ON)
