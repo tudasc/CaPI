@@ -7,7 +7,7 @@ default:
     - module purge
     - module load gcc/$GCC
     - module load git cmake python/3
-    - | 
+    - > 
       if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
         'echo "Using dependency modules: $CAPI_DEPS_MODULEPATH"'
         module use $CAPI_DEPS_MODULEPATH
@@ -62,7 +62,7 @@ capi-build:
   <<: *job-setup
   stage: build
   script:
-    - | 
+    - > 
       if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
         echo "Using locally built dependencies"
         module use extern/modulefiles/
