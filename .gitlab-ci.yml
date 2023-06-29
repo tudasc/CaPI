@@ -14,7 +14,7 @@ default:
     - if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
     - module use $CAPI_DEPS_MODULEPATH
     - if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
-    - export $CAPI_ADD_MODULEPTH_VAR="$CAPI_DEPS_MODULEPATH:$CAPI_ADD_MODULEPATH_VAR"
+    - export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$CAPI_ADD_MODULEPATH_VAR"
     - fi
     - fi
   tags:
