@@ -110,7 +110,7 @@ public:
 };
 
 class UnresolvedCallSelector : public Selector {
-  CallGraph *cg;
+  CallGraph *cg{nullptr};
 
 public:
   UnresolvedCallSelector() = default;
@@ -198,7 +198,7 @@ public:
 };
 
 class CoarseSelector : public Selector {
-  CallGraph *cg;
+  CallGraph *cg{nullptr};
 
 public:
   explicit CoarseSelector() {
