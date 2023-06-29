@@ -1,10 +1,6 @@
 variables:
   GIT_STRATEGY: none
   GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_SHA
-  CAPI_DEPS_MODULEPATH:
-    description: "Additional module path that contains dependencies."
-  CAPI_ADD_MODULEPATH_VAR:
-    description: "If CAPI_DEPS_MODULEPATH is set, its value is appended to the environment variable of this name."
 
 default:
   before_script:
