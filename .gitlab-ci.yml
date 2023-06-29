@@ -15,9 +15,10 @@ default:
     - |
       if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
         echo "Using dependency modules $CAPI_DEPS_MODULEPATH and adding to $CAPI_ADD_MODULEPATH_VAR"
+        echo "Value of $CAPI_ADD_MODULEPATH_VAR is $(echo \$$CAPI_ADD_MODULEPATH_VAR)"
         module use $CAPI_DEPS_MODULEPATH
         if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
-          export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:\$$CAPI_ADD_MODULEPATH_VAR"
+          export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$(echo \$$CAPI_ADD_MODULEPATH_VAR)"
           echo "Value of CAPI_ADD_MODULEPATH_VAR: \$$CAPI_ADD_MODULEPATH_VAR"
         fi
       fi
