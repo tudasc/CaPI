@@ -39,6 +39,7 @@ capi-download:
     - echo 'Done.'
 
 capi-deps:
+  <<: *job-setup
   stage: build-deps
   script:
     - ./build_deps.sh
@@ -49,7 +50,7 @@ capi-build:
   script:
     - module use extern/modulefiles/
     - module load llvm/13.0.1-xray-dso
-    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF ..
+    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF
     - cmake --build $CAPI_BUILD --parallel
     - module purge
 

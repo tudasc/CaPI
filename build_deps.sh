@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
 scriptdir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 srcdir="$scriptdir/extern/src"
@@ -21,10 +24,8 @@ else
 fi
 
 cd llvm-project-xray-dso
-mkdir -p build && cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$installdir/llvm/13.0.1-xray-dso" -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;openmp" -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INSTALL_UTILS=ON ../llvm/
-ninja
-ninja install
+cmake -S ../llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$installdir/llvm/13.0.1-xray-dso" -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;openmp" -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INSTALL_UTILS=ON
+cmake --build build --parallel
 
 # Creating LLVM modulefile
 llvm_module_dir="$moduledir/llvm/"
@@ -36,16 +37,14 @@ global dotversion
 puts stderr "\tLLVM 13.0.1 with XRay DSO instrumentation"
 }
 
-set pkg_dir="$installdir/llvm/13.0.1-xray-dso"
-
 module-whatis "LLVM 13.0.1 with XRay DSO instrumentation"
 
 conflict llvm
 
-prepend-path PATH \$pkg_dir/bin
-prepend-path LD_LIBRARY_PATH \$pkg_dir/lib
-prepend-path LIBRARY_PATH \$pkg_dir/lib
-prepend-path MANPATH \$pkg_dir/share/man
+prepend-path PATH $installdir/llvm/13.0.1-xray-dso/bin
+prepend-path LD_LIBRARY_PATH $installdir/llvm/13.0.1-xray-dso/lib
+prepend-path LIBRARY_PATH $installdir/llvm/13.0.1-xray-dso/lib
+prepend-path MANPATH $installdir/llvm/13.0.1-xray-dso/share/man
 EOF
 echo "[CaPI] Generated modulefile for LLVM. Run 'module use $moduledir' to activate."
 
