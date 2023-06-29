@@ -11,13 +11,14 @@ default:
     - module purge
     - module load gcc/$GCC
     - module load git cmake python/3
-    - if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
-    - echo "Using dependency modules: $CAPI_DEPS_MODULEPATH"
-    - module use $CAPI_DEPS_MODULEPATH
-    - if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
-    - export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$CAPI_ADD_MODULEPATH_VAR"
-    - fi
-    - fi
+    - | 
+      if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
+        'echo "Using dependency modules: $CAPI_DEPS_MODULEPATH"'
+        module use $CAPI_DEPS_MODULEPATH
+        if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
+          'export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$CAPI_ADD_MODULEPATH_VAR"'
+        fi
+      fi
   tags:
     - general
 
@@ -65,10 +66,11 @@ capi-build:
   <<: *job-setup
   stage: build
   script:
-    - if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
-    - echo "Using locally built dependencies"
-    - module use extern/modulefiles/
-    - fi
+    - | 
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
     - module load llvm/13.0.1-xray-dso
     - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF
     - cmake --build $CAPI_BUILD --parallel
