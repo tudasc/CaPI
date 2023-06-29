@@ -5,8 +5,6 @@ variables:
 default:
   before_script:
     - module purge
-    - module load gcc/$GCC
-    - module load git cmake python/3
     - echo "Value of CAPI_DEPS_MODULEPATH is $CAPI_DEPS_MODULEPATH"
     - |
       if [ -n "$CI_PIPELINE_SOURCE" ]; then
@@ -15,15 +13,16 @@ default:
     - |
       if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
         echo "Using dependency modules $CAPI_DEPS_MODULEPATH and adding to $CAPI_ADD_MODULEPATH_VAR"
-        echo "Value of $CAPI_ADD_MODULEPATH_VAR is $(printenv $CAPI_ADD_MODULEPATH_VAR)"
+        #echo "Value of $CAPI_ADD_MODULEPATH_VAR is $(printenv $CAPI_ADD_MODULEPATH_VAR)"
         if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
           export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$(printenv $CAPI_ADD_MODULEPATH_VAR)"
           echo "New value of $CAPI_ADD_MODULEPATH_VAR: $(printenv $CAPI_ADD_MODULEPATH_VAR)"
         fi
         module use $CAPI_DEPS_MODULEPATH
-        echo $MODULEPATH
         module avail
       fi
+    - module load gcc/$GCC
+    - module load git cmake python/3
   tags:
     - general
 
