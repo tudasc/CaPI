@@ -9,7 +9,7 @@ default:
     - module load git cmake python/3
     - > 
       if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
-        'echo "Using dependency modules: $CAPI_DEPS_MODULEPATH"'
+        'echo "Using dependency modules $CAPI_DEPS_MODULEPATH"'
         module use $CAPI_DEPS_MODULEPATH
         if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
           'export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$CAPI_ADD_MODULEPATH_VAR"'
