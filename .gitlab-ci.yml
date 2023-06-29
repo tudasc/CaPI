@@ -19,7 +19,6 @@ default:
           echo "New value of $CAPI_ADD_MODULEPATH_VAR: $(printenv $CAPI_ADD_MODULEPATH_VAR)"
         fi
         module use $CAPI_DEPS_MODULEPATH
-        module avail
       fi
     - module load gcc/$GCC
     - module load git cmake python/3
@@ -85,6 +84,12 @@ capi-test-selection:
   <<: *job-setup
   stage: test
   script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
     - cd $CAPI_BUILD
     - ninja capi-selection-test
 
