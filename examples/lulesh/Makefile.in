@@ -10,16 +10,11 @@ LULESH_EXEC_EXTRAE = lulesh2.0_extrae
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-CAPI_LIB_SCOREP = @CAPI_LIB_DIR@/xray/libcapixray_scorep.a
-CAPI_LIB_EXTRAE = @CAPI_LIB_DIR@/xray/libcapixray_extrae.a
-
-LLVM_LIBS := $(shell @LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
-
 export OMPI_CC=@CC_PATH@
 export OMPI_CXX=@CXX_PATH@
 
-SERCXX = clang++ -DUSE_MPI=0
-MPICXX = mpic++ -DUSE_MPI=1
+SERCXX = ./../../scripts/capi-cxx -DUSE_MPI=0
+MPICXX = ./../../scripts/capi-mpicxx -DUSE_MPI=1
 CXX = $(MPICXX)
 
 SOURCES2.0 = \
@@ -30,8 +25,8 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-CXXFLAGS = -fPIE -O3 -I. -Wall -fxray-instrument -fxray-instruction-threshold=1
-LDFLAGS = -fPIE -O3 -fxray-instrument
+CXXFLAGS = -O3 -I. -Wall
+LDFLAGS = -O3 
 
 .cc.o: lulesh.h
 	@echo "Building $<"
@@ -39,23 +34,18 @@ LDFLAGS = -fPIE -O3 -fxray-instrument
 
 all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE)
 
-scorep_init.c:
-	@SCOREP_CONFIG@ --mpp=mpi --nokokkos --noonline-access --adapter-init --compiler > scorep_init.c
-
-scorep_init.o: scorep_init.c
-	$(CXX) -c -x c -o $@ $<
 
 $(LULESH_EXEC): $(OBJECTS2.0)
 	@echo "Linking vanilla"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CXX) --capi-interface=gnu $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
-$(LULESH_EXEC_SCOREP): $(OBJECTS2.0) $(CAPI_LIB_SCOREP) scorep_init.o
+$(LULESH_EXEC_SCOREP): $(OBJECTS2.0)
 	@echo "Linking Score-P"
-	$(CXX) $(OBJECTS2.0) scorep_init.o -Wl,-start-group -Wl,-whole-archive $(CAPI_LIB_SCOREP) -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group   $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
+	$(CXX) --capi-interface=scorep $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
-$(LULESH_EXEC_EXTRAE): $(OBJECTS2.0) $(CAPI_LIB_EXTRAE)
+$(LULESH_EXEC_EXTRAE): $(OBJECTS2.0)
 	@echo "Linking Extrae"
-	$(CXX) $(OBJECTS2.0)  -Wl,-whole-archive $(CAPI_LIB_EXTRAE) -Wl,-no-whole-archive $(LLVM_LIBS) $(LDFLAGS) -lm -o $@
+	$(CXX) --capi-interface=extrae $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
 	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) scorep_init.c
@@ -63,4 +53,3 @@ clean:
 
 tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
-
