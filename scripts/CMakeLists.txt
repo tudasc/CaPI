@@ -13,6 +13,11 @@ function(configure_script input output)
     set(CAPI_BIN_DIR ${CMAKE_BINARY_DIR})
     set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
+    set(LLVM_CONFIG ${LLVM_BINARY_DIR}/bin/llvm-config)
+    set(SCOREP_CONFIG ${SCOREP_PATH}/bin/scorep-config)
+    set(CC_PATH ${LLVM_BINARY_DIR}/bin/clang)
+    set(CXX_PATH ${LLVM_BINARY_DIR}/bin/clang++)
+
     # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
     make_executable(${input} ${output})
 endfunction()
@@ -22,3 +27,6 @@ configure_script(clang-inst++.in clang-inst++)
 
 configure_script(clang-mpi-inst.in clang-mpi-inst)
 configure_script(clang-mpi-inst++.in clang-mpi-inst++)
+
+configure_script(capi-cxx.in capi-cxx)
+configure_script(capi-mpicxx.in capi-mpicxx)
