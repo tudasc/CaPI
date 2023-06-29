@@ -12,7 +12,7 @@ namespace capi {
 enum class TraverseDir { TraverseUp, TraverseDown };
 
 template <TraverseDir dir> class CallPathSelector : public Selector {
-  CallGraph *cg;
+  CallGraph *cg{nullptr};
 
 public:
   CallPathSelector() = default;
