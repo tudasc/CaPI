@@ -8,7 +8,10 @@ default:
     - module load gcc/$GCC
     - module load git cmake python/3
     - echo "Value of CAPI_DEPS_MODULEPATH is $CAPI_DEPS_MODULEPATH"
-    - if [ -n "$CI_PIPELINE_SOURCE" ]; then echo "Test if"; fi
+    - |
+      if [ -n "$CI_PIPELINE_SOURCE" ]; then
+        echo "Test if"
+      fi
     - |
       'if [ -n "$CAPI_DEPS_MODULEPATH" ]; then'
         'echo "Using dependency modules $CAPI_DEPS_MODULEPATH"'
