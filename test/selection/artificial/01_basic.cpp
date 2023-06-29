@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: LD_LIBRARY_PATH=$(dirname %cgc)/../lib %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
+// RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
 // RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
