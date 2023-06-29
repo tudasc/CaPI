@@ -1,0 +1,91 @@
+variables:
+  GIT_STRATEGY: none
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_SHA
+
+default:
+  before_script:
+    - module purge
+    - echo "Value of CAPI_DEPS_MODULEPATH is $CAPI_DEPS_MODULEPATH"
+    - |
+      if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using dependency modules $CAPI_DEPS_MODULEPATH and adding to $CAPI_ADD_MODULEPATH_VAR"
+        #echo "Value of $CAPI_ADD_MODULEPATH_VAR is $(printenv $CAPI_ADD_MODULEPATH_VAR)"
+        if [ -n "$CAPI_ADD_MODULEPATH_VAR" ]; then
+          export $CAPI_ADD_MODULEPATH_VAR="$CAPI_DEPS_MODULEPATH:$(printenv $CAPI_ADD_MODULEPATH_VAR)"
+          echo "New value of $CAPI_ADD_MODULEPATH_VAR: $(printenv $CAPI_ADD_MODULEPATH_VAR)"
+        fi
+        module use $CAPI_DEPS_MODULEPATH
+      fi
+    - module load gcc/$GCC
+    - module load git cmake python/3
+  tags:
+    - general
+
+stages:
+  - download
+  - build-deps
+  - build
+  - test
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: always
+    - when: never
+
+
+.job-setup: &job-setup
+  parallel:
+    matrix:
+      - GCC: 10
+  variables:
+    CAPI_BUILD: build-GCC-$GCC
+
+capi-download:
+  stage: download
+  variables:
+    GIT_STRATEGY: clone
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_SHA
+  script:
+    - echo 'Done.'
+
+capi-deps:
+  <<: *job-setup
+  stage: build-deps
+  script:
+    - ./build_deps.sh
+  rules:
+    - if: $CAPI_DEPS_MODULEPATH
+      when: never
+    - when: always
+
+capi-build:
+  <<: *job-setup
+  stage: build
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
+    - module load metacg
+    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF -DLLVM_EXTERNAL_LIT=$(which lit)
+    - cmake --build $CAPI_BUILD --parallel
+    - module purge
+
+capi-test-selection:
+  <<: *job-setup
+  stage: test
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
+    - cd $CAPI_BUILD
+    - ninja capi-selection-test
+
