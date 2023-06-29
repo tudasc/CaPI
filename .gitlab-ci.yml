@@ -18,9 +18,9 @@ stages:
 
 workflow:
   rules:
-    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_REF_PROTECTED == "true"
       when: always
-    - when: never
+    - when: manual
 
 
 .job-setup: &job-setup
