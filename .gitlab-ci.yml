@@ -68,9 +68,9 @@ capi-build:
   stage: build
   script:
     - |
-      'if [ -z "$CAPI_DEPS_MODULEPATH" ]; then'
-        'echo "Using locally built dependencies"''
-        'module use extern/modulefiles/'
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"'
+        module use extern/modulefiles/
       fi
     - module load llvm/13.0.1-xray-dso
     - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF
