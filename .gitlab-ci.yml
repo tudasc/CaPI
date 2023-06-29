@@ -7,6 +7,7 @@ default:
     - module purge
     - module load gcc/$GCC
     - module load git cmake python/3
+    - echo "Value of CAPI_DEPS_MODULEPATH is $CAPI_DEPS_MODULEPATH"
     - > 
       if [ -n "$CAPI_DEPS_MODULEPATH" ]; then
         'echo "Using dependency modules $CAPI_DEPS_MODULEPATH"'
