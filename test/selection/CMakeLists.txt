@@ -16,6 +16,8 @@ function(configure_lit_site_cfg input output)
   configure_file(${input} ${output} @ONLY)
 endfunction()
 
+message(STATUS "Running with lit: ${LIT_EXE}")
+
 configure_lit_site_cfg(
     ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.in
     ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
