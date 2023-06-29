@@ -85,6 +85,7 @@ capi-test-selection:
         echo "Using locally built dependencies"
         module use extern/modulefiles/
       fi
+    - module load llvm/13.0.1-xray-dso
     - cd $CAPI_BUILD
     - ninja capi-selection-test
 
