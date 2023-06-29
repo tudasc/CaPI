@@ -76,6 +76,7 @@ capi-build:
         module use extern/modulefiles/
       fi
     - module load llvm/13.0.1-xray-dso
+    - module load metacg
     - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DSCOREP_SUPPORT=OFF -DENABLE_TALP=OFF
     - cmake --build $CAPI_BUILD --parallel
     - module purge
