@@ -3,6 +3,7 @@
 //
 
 #include "DOTWriter.h"
+#include "Selector.h"
 
 #include <ostream>
 
@@ -13,16 +14,21 @@ static inline std::string getNodeId(CGNode &node)
   return "n_" + std::to_string(reinterpret_cast<uintptr_t>(&node));
 }
 
-bool writeDOT(const CallGraph &cg, std::ostream &out)
+bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &out)
 {
   out << "digraph {\n";
   for (auto &node : cg.getNodes()) {
-    out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
+    if (setContains(selection, node->getName()))
+      out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
   }
 
   for (auto &node : cg.getNodes()) {
-    for (auto &callee : node->getCallees()) {
-      out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
+    if (setContains(selection, node->getName())) {
+      for (auto &callee : node->getCallees()) {
+        if (setContains(selection, callee->getName())) {
+          out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
+        }
+      }
     }
   }
   out << "}\n";

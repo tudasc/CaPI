@@ -6,10 +6,11 @@
 #define CAPI_CGTRAITS_H
 
 #include "CallGraph.h"
+#include "Selector.h"
 
 namespace capi {
 
-bool writeDOT(const CallGraph &cg, std::ostream &out);
+bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &out);
 
 }
 
