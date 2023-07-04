@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
   if (shouldWriteDOT) {
     std::ofstream os("cg.dot");
     if (os.is_open()) {
-      writeDOT(*cg, os);
+      writeDOT(*cg, afterPostProcessing, os);
     }
   }
 
