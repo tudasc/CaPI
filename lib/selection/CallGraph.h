@@ -6,6 +6,7 @@
 #define CAPI_CALLGRAPH_H
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,7 @@ class CGNode
   std::vector<CGNode *> overrides;
   std::vector<CGNode *> overriddenBy;
   FunctionInfo info;
+  bool destructor;
 
   // Cache
   mutable std::vector<CGNode*> recursiveOverrides;
@@ -58,7 +60,11 @@ public:
   mutable bool isTrigger{false};
 
   explicit CGNode(std::string name) : name(std::move(name))
-  {}
+  {
+      destructor = this->name.substr(0, 2) == "_Z" && !(this->name.compare(this->name.length() - 4, 4, "D0Ev")
+                   && this->name.compare(this->name.length() - 4, 4, "D1Ev")
+                   && this->name.compare(this->name.length() - 4, 4, "D2Ev"));
+  }
 
   void setFunctionInfo(FunctionInfo fi)
   { this->info = std::move(fi); }
@@ -68,6 +74,10 @@ public:
 
   const std::string &getName() const
   { return name; }
+
+  bool isDestructor() const {
+    return destructor;
+  }
 
   void addCallee(CGNode *callee)
   { callees.push_back(callee); }

@@ -34,7 +34,7 @@ void printHelp() {
   std::cout
       << " -i <specstr>   Parse the selection spec from the given string.\n";
   std::cout
-      << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
+      << " --write-dot <file>  Write a dotfile of the selected call-graph subset.\n";
   std::cout
       << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
   std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default), \"json\" and \"simple\"\n";
@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
   }
 
   bool shouldWriteDOT{false};
+  std::string dotFile;
   bool replaceInlined{false};
   std::string cgfile, specfile;
   std::string execFile;
@@ -192,6 +193,12 @@ int main(int argc, char **argv) {
         auto option = arg.substr(2);
         if (option == "write-dot") {
           shouldWriteDOT = true;
+          if (++i >= argc) {
+            std::cerr << "Need to pass a name for the output dot file. \n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          dotFile = argv[i];
         } else if (option == "debug") {
           debugMode = true;
         } else if (option == "replace-inlined") {
@@ -418,9 +425,11 @@ int main(int argc, char **argv) {
   }
 
   if (shouldWriteDOT) {
-    std::ofstream os("cg.dot");
+    std::ofstream os(dotFile);
     if (os.is_open()) {
       writeDOT(*cg, afterPostProcessing, os);
+    } else {
+      logError() << "Could not write DOT file to '" << dotFile << "'.\n";
     }
   }
 

@@ -5,6 +5,7 @@
 #ifndef CAPI_SYMBOLRETRIEVER_H
 #define CAPI_SYMBOLRETRIEVER_H
 
+#include <cstdint>
 #include <map>
 #include <cstdint>
 #include <unordered_map>

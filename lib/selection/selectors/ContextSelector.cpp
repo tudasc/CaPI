@@ -4,6 +4,11 @@
 
 #include "ContextSelector.h"
 
+#ifndef CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS
+#define CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS false
+#endif
+
+
 namespace capi {
 
 static std::vector<const CGNode*> bfsStep(const std::vector<const CGNode*>& workingSet, const std::vector<const CGNode*>& excludeList, const CallGraph& cg) {
@@ -14,6 +19,14 @@ static std::vector<const CGNode*> bfsStep(const std::vector<const CGNode*>& work
     for (const auto* parent : node->getCallers()) {
       if (!setContains(workingSet, parent)) {
         addToSet(addedSet, parent);
+      }
+    }
+    // In addition to the direct parent, add the parents of all functions that are overridden by the current function.
+    for (auto& overrides : node->findAllOverrides()) {
+      for (auto* overrideParent : overrides->getCallers()) {
+        if (!setContains(workingSet, overrideParent)) {
+          addToSet(addedSet, overrideParent);
+        }
       }
     }
   }
@@ -56,7 +69,7 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
 
   FunctionSet selection;
 
-  constexpr int maxExpansionSteps = 50;
+  constexpr int maxExpansionSteps = 10;
   int steps = 0;
 
   // Find the first common ancestor by expanding in a breadth-first fashion
@@ -103,29 +116,49 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
         addToSet(commonAncestors, ib);
       }
 
-      logInfo() << "Found " << commonAncestors.size() << " common ancestor(s). First one is " << commonAncestors.front()->getName() << "\n";
+      logInfo() << "Found " << commonAncestors.size() << " common ancestor(s). First one is " << commonAncestors.begin()->getName() << "\n";
 
       // Find paths from ancestor to target nodes:
       // Start at ancestor. Recursively select children, if they are part of one of the BFS sets.
 
-      std::vector<const CGNode*> pathNodes;
-      for (auto& ca : commonAncestors) {
+for (auto& ca : commonAncestors) {
+        std::vector<const CGNode*> pathNodes;
+        logInfo() << "  " << ca->getName() << ":\n";
         std::vector<const CGNode*> workingSet;
         workingSet.push_back(ca);
         while(!workingSet.empty()) {
           auto node = workingSet.back();
           workingSet.pop_back();
           addToSet(pathNodes, node);
+          logInfo() << "    " << node->getName() << "\n";
           // Also add to overall selection result
           addToSet(selection, node);
+          // Add all callees that are on the path
           for (const auto* callee : node->getCallees()) {
+            // Avoid getting stuck in potential cycles
+            if (setContains(pathNodes, callee)) {
+              continue;
+            }
             if (setContains(setA, callee) || setContains(setB, callee)) {
               addToSet(workingSet, callee);
             }
+            // Also consider function that override this caller
+            for (auto& overridesCallee : callee->findAllOverriddenBy()) {
+              // FIXME: Currently, we exclude destructors, as they are not properly represented in MetaCG.
+              if (!CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS && overridesCallee->isDestructor()) {
+                continue;
+              }
+              if (setContains(pathNodes, overridesCallee)) {
+                continue;
+              }
+              if (setContains(setA, overridesCallee) || setContains(setB, overridesCallee)) {
+                addToSet(workingSet, overridesCallee);
+              }
+            }
           }
         }
+        completedNodes.insert(completedNodes.end(), pathNodes.begin(), pathNodes.end());
       }
-      completedNodes.insert(completedNodes.end(), pathNodes.begin(), pathNodes.end());
       commonAncestors.clear();
     }
   }
