@@ -73,6 +73,25 @@ bool MetaCGReader::read() {
       });
     }
 
+    auto jVirtual = it.value()["isVirtual"];
+    if (jVirtual.is_boolean()) {
+      fi.isVirtual = jVirtual.template get<bool>();
+    }
+
+    auto jOverrides = it.value()["overrides"];
+    if (!jOverrides.is_null()) {
+      std::for_each(jOverrides.begin(), jOverrides.end(), [&fi](auto &jOverrideName) {
+        fi.overrides.push_back(jOverrideName.template get<std::string>());
+      });
+    }
+
+    auto jOverridenBy = it.value()["overridenBy"];
+    if (!jOverridenBy.is_null()) {
+      std::for_each(jOverridenBy.begin(), jOverridenBy.end(), [&fi](auto &jOverridenByName) {
+        fi.overridenBy.push_back(jOverridenByName.template get<std::string>());
+      });
+    }
+
     auto jMeta = it.value()["meta"];
     fi.metaData = jMeta;
     if (!jMeta.is_null()) {

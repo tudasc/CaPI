@@ -21,6 +21,10 @@ struct FunctionInfo
   std::vector<std::string> callees;
   std::vector<std::string> callers;
 
+  std::vector<std::string> overrides;
+  std::vector<std::string> overridenBy;
+
+  bool isVirtual{false};
   bool instrument{false};
   bool containsPointerCall{false};
   std::string fileName;

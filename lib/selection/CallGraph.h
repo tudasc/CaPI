@@ -41,18 +41,28 @@ class CGNode
 {
   std::string name;
   std::vector<CGNode *> callers;
-
   std::vector<CGNode *> callees;
+  std::vector<CGNode *> overrides;
+  std::vector<CGNode *> overriddenBy;
   FunctionInfo info;
 
+  // Cache
+  mutable std::vector<CGNode*> recursiveOverrides;
+  mutable bool overridesCacheDirty{true};
+  mutable std::vector<CGNode*> recursiveOverriddenBy;
+  mutable bool overriddenByCacheDirty{true};
+
 public:
-  CGNode(std::string name) : name(name)
+  explicit CGNode(std::string name) : name(std::move(name))
   {}
 
   void setFunctionInfo(FunctionInfo fi)
-  { this->info = fi; }
+  { this->info = std::move(fi); }
 
   FunctionInfo &getFunctionInfo()
+  { return info; }
+
+  const FunctionInfo &getFunctionInfo() const
   { return info; }
 
   const std::string &getName() const
@@ -75,6 +85,30 @@ public:
     callers.erase(std::remove(callers.begin(), callers.end(), caller),
                   callers.end());
   }
+  void addOverridenBy(CGNode *overriding)
+  {
+    overriddenBy.push_back(overriding);
+    overriddenByCacheDirty = true;
+  }
+
+  void removeOverridenBy(CGNode *overriding)
+  {
+    overriddenBy.erase(std::remove(overriddenBy.begin(), overriddenBy.end(), overriding),
+        overriddenBy.end());
+    overriddenByCacheDirty = true;
+  }
+  void addOverrides(CGNode *overridesNode)
+  {
+    overrides.push_back(overridesNode);
+    overridesCacheDirty = true;
+  }
+
+  void removeOverrides(CGNode *overridesNode)
+  {
+    overrides.erase(std::remove(overrides.begin(), overrides.end(), overridesNode),
+                      overrides.end());
+    overridesCacheDirty = true;
+  }
 
   IterRange<decltype(callees.begin())> getCallees()
   {
@@ -94,6 +128,60 @@ public:
   IterRange<decltype(callers.cbegin())> getCallers() const
   {
     return IterRange(callers.cbegin(), callers.cend());
+  }
+
+  IterRange<decltype(overriddenBy.begin())> getOverriddenBy() {
+    return {overriddenBy.begin(), overriddenBy.end()};
+  }
+
+  IterRange<decltype(overriddenBy.cbegin())> getOverriddenBy() const {
+    return {overriddenBy.cbegin(), overriddenBy.cend()};
+  }
+
+  IterRange<decltype(overrides.begin())> getOverrides() {
+    return {overrides.begin(), overrides.end()};
+  }
+
+  IterRange<decltype(overrides.cbegin())> getOverrides() const {
+    return {overrides.cbegin(), overrides.cend()};
+  }
+
+  IterRange<decltype(recursiveOverrides.cbegin())> findAllOverrides() const{
+    updateOverridesCache();
+    return {recursiveOverrides.cbegin(), recursiveOverrides.cend()};
+  }
+
+  IterRange<decltype(recursiveOverriddenBy.cbegin())> findAllOverriddenBy() const{
+    updateOverriddenByCache();
+    return {recursiveOverriddenBy.cbegin(), recursiveOverriddenBy.cend()};
+  }
+private:
+  void updateOverridesCache() const {
+    if (!overridesCacheDirty) {
+      return;
+    }
+    // Update overrides
+    recursiveOverrides.clear();
+    for (const auto& overridesNode : this->overrides) {
+      recursiveOverrides.push_back(overridesNode);
+      auto recursiveNodeOverrides = overridesNode->findAllOverrides();
+      recursiveOverrides.insert(recursiveOverrides.end(), recursiveNodeOverrides.begin(), recursiveNodeOverrides.end());
+    }
+    overridesCacheDirty = false;
+  }
+
+  void updateOverriddenByCache() const {
+    if (!overriddenByCacheDirty) {
+      return;
+    }
+    // Update overriddenBy
+    recursiveOverriddenBy.clear();
+    for (const auto& overriddenByNode : this->overriddenBy) {
+      recursiveOverriddenBy.push_back(overriddenByNode);
+      auto recursiveNodeOverridenBy = overriddenByNode->findAllOverriddenBy();
+      recursiveOverriddenBy.insert(recursiveOverriddenBy.end(), recursiveNodeOverridenBy.begin(), recursiveNodeOverridenBy.end());
+    }
+    overriddenByCacheDirty = false;
   }
 };
 
@@ -128,6 +216,10 @@ public:
   void addCallee(CGNode &parent, CGNode &child);
 
   void removeCallee(CGNode &parent, CGNode &child);
+
+  void addOverrides(CGNode& node, CGNode& overrides);
+
+  void removeOverrides(CGNode& node, CGNode& overrides);
 
   IterRange<decltype(nodes.begin())> getNodes()
   {
