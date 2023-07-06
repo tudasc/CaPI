@@ -6,6 +6,7 @@
 #define CAPI_SYMBOLRETRIEVER_H
 
 #include <map>
+#include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>

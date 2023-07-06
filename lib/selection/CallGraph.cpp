@@ -51,6 +51,16 @@ void CallGraph::removeCallee(CGNode &parent, CGNode &child)
   child.removeCaller(&parent);
 }
 
+void CallGraph::addOverrides(CGNode& node, CGNode& overrides) {
+  node.addOverrides(&overrides);
+  overrides.addOverridenBy(&node);
+}
+
+void CallGraph::removeOverrides(CGNode& node, CGNode& overrides) {
+  node.removeOverrides(&overrides);
+  overrides.removeOverridenBy(&node);
+}
+
 std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap)
 {
   auto cg = std::make_unique<CallGraph>();
@@ -58,10 +68,15 @@ std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap)
     auto &node = cg->getOrCreate(name);
     node.setFunctionInfo(info);
     std::for_each(info.callees.begin(), info.callees.end(),
-                  [&cg, &node](const std::string callee) {
+                  [&cg, &node](const std::string& callee) {
                     auto &calleeNode = cg->getOrCreate(callee);
                     cg->addCallee(node, calleeNode);
                   });
+    std::for_each(info.overrides.begin(), info.overrides.end(),
+        [&cg, &node](const std::string& overridesName) {
+          auto& overridesNode = cg->getOrCreate(overridesName);
+          cg->addOverrides(node, overridesNode);
+        });
   }
   return cg;
 }
