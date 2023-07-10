@@ -1,6 +1,8 @@
 // clang-format off
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
+// RUN: infile="%s"; %capi -i 'byName(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
+//
 // RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
 //
@@ -61,6 +63,12 @@ int main(int argc, char** argv) {
   c(0, 1);
   return 0;
 }
+
+// LOG: Running graph analysis
+// LOG: Number of SCCs: 4
+// LOG: Largest SCC: 1
+// LOG: Number of SCCs containing more than 1 node: 0
+// LOG: Number of SCCs containing more than 2 nodes: 0
 
 // NAME: a
 // NAME-NOT: b

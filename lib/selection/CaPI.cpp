@@ -13,6 +13,7 @@
 #include "FunctionFilter.h"
 #include "MetaCGReader.h"
 #include "Preprocessor.h"
+#include "SCC.h"
 #include "SelectorBuilder.h"
 #include "SelectorGraph.h"
 #include "SpecParser.h"
@@ -39,6 +40,7 @@ void printHelp() {
   std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default) and \"simple\"\n";
   std::cout
       << " --debug  Enable debugging mode.\n";
+  std::cout << " --print-scc-stats  Prints information about the strongly connected components (SCCs) of this call graph.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
@@ -179,6 +181,7 @@ int main(int argc, char **argv) {
   SelectionPreset preset;
   std::string outfile;
   bool debugMode{false};
+  bool printSCCStats{false};
 
   InputMode mode = InputMode::FILE;
   OutputFormat outputFormat = OutputFormat::SCOREP;
@@ -188,11 +191,11 @@ int main(int argc, char **argv) {
     if (arg.length() > 1 && arg[0] == '-') {
       if (arg.length() > 2 && arg[1] == '-') {
         auto option = arg.substr(2);
-        if (option.compare("write-dot") == 0) {
+        if (option == "write-dot") {
           shouldWriteDOT = true;
-        } else if (option.compare("debug") == 0) {
+        } else if (option == "debug") {
           debugMode = true;
-        } else if (option.compare("replace-inlined") == 0) {
+        } else if (option == "replace-inlined") {
           replaceInlined = true;
           if (++i >= argc) {
             std::cerr << "Need to pass the target executable after --replaced-inline. \n";
@@ -200,22 +203,24 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
           }
           execFile = argv[i];
-        } else if (option.compare("output-format") == 0) {
+        } else if (option == "output-format") {
           if (++i >= argc) {
             std::cerr << "Output format must be set to 'simple' or 'scorep'. \n";
             printHelp();
             return EXIT_FAILURE;
           }
           std::string outputFormatStr = argv[i];
-          if (outputFormatStr.compare("simple") == 0) {
+          if (outputFormatStr == "simple") {
             outputFormat = OutputFormat::SIMPLE;
-          } else if (outputFormatStr.compare("scorep") == 0) {
+          } else if (outputFormatStr == "scorep") {
             outputFormat = OutputFormat::SCOREP;
           } else {
             std::cerr << "Unsupported output format.\n";
             printHelp();
             return EXIT_FAILURE;
           }
+        } else if (option == "print-scc-stats") {
+          printSCCStats = true;
         } else {
           std::cerr << "Invalid parameter --" << option << "\n";
           printHelp();
@@ -223,7 +228,7 @@ int main(int argc, char **argv) {
         }
       } else {
         auto option = arg.substr(1);
-        if (option.compare("p") == 0) {
+        if (option == "p") {
           if (++i >= argc) {
             std::cerr << "Need to pass a selection preset after -p\n";
             printHelp();
@@ -239,7 +244,7 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
           }
 
-        } else if (option.compare("f") == 0) {
+        } else if (option == "f") {
           if (++i >= argc) {
             std::cerr << "Need to pass a selection spec file after -f\n";
             printHelp();
@@ -247,7 +252,7 @@ int main(int argc, char **argv) {
           }
           mode = InputMode::FILE;
           specfile = argv[i];
-        } else if (option.compare("i") == 0) {
+        } else if (option == "i") {
           if (++i >= argc) {
             std::cerr << "Need to pass a selection spec string after -i\n";
             printHelp();
@@ -255,7 +260,7 @@ int main(int argc, char **argv) {
           }
           mode = InputMode::STRING;
           specStr = argv[i];
-        } else if (option.compare("o") == 0) {
+        } else if (option == "o") {
           if (++i >= argc) {
             std::cerr << "Need to pass an output file after -o\n";
             printHelp();
@@ -333,6 +338,33 @@ int main(int argc, char **argv) {
   auto cg = createCG(functionInfo);
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
+
+  std::cout << "Running graph analysis...\n";
+
+  decltype(computeSCCs(*cg)) sccs;
+  {
+    Timer sccTimer("SCC Analysis took ", std::cout);
+    sccs = std::move(computeSCCs(*cg));
+  }
+  if (printSCCStats) {
+    auto largestSCC = std::max_element(sccs.begin(), sccs.end(), [](const auto& sccA, const auto& sccB) {return sccA.size() < sccB.size();});
+    int numLargerOne = 0;
+    int numLargerTwo = 0;
+    for(const auto& scc : sccs) {
+      if (scc.size() > 1) {
+         numLargerOne++;
+         if (scc.size() > 2) {
+          numLargerTwo++;
+         }
+      }
+    }
+    std::cout << "Number of SCCs: " << sccs.size() << "\n";
+    std::cout << "Largest SCC: " << largestSCC->size() << "\n";
+    std::cout << "Number of SCCs containing more than 1 node: " << numLargerOne << "\n";
+    std::cout << "Number of SCCs containing more than 2 nodes: " << numLargerTwo << "\n";
+  }
+
+  std::cout << "Running selector pipeline...\n";
 
   auto result = runSelectorPipeline(*selectorGraph, *cg, debugMode);
 

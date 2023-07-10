@@ -1,6 +1,7 @@
 
 set(SOURCES CallGraph.cpp
         CaPI.cpp
+        SCC.cpp
         MetaCGReader.cpp
         DOTWriter.cpp
         FunctionFilter.cpp
