@@ -21,6 +21,10 @@
 
 using namespace capi;
 
+namespace capi {
+  bool traverseVirtualDtors{false};
+}
+
 namespace {
 
 void printHelp() {
@@ -41,6 +45,7 @@ void printHelp() {
   std::cout
       << " --debug  Enable debugging mode.\n";
   std::cout << " --print-scc-stats  Prints information about the strongly connected components (SCCs) of this call graph.\n";
+  std::cout << " --traverse-virtual-dtors Enable traversal of virtual destructors, which may lead to an over-approximation of the function set.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
@@ -70,7 +75,7 @@ std::string loadFromFile(std::string_view filename) {
   if (filename.empty()) {
     std::cerr << "Need to specify either a preset or pass a selection file.\n";
     printHelp();
-    return nullptr;
+    return {};
   }
 
   std::ifstream in(std::string{filename});
@@ -229,10 +234,12 @@ int main(int argc, char **argv) {
           }
         } else if (option == "print-scc-stats") {
           printSCCStats = true;
+        } else if (option == "traverse-virtual-dtors") {
+          traverseVirtualDtors = true;
         } else {
-          std::cerr << "Invalid parameter --" << option << "\n";
-          printHelp();
-          return EXIT_FAILURE;
+            std::cerr << "Invalid parameter --" << option << "\n";
+            printHelp();
+            return EXIT_FAILURE;
         }
       } else {
         auto option = arg.substr(1);
@@ -349,16 +356,16 @@ int main(int argc, char **argv) {
 
   std::cout << "Running graph analysis...\n";
 
-  decltype(computeSCCs(*cg)) sccs;
+  decltype(computeSCCs(*cg, true)) sccResults;
   {
     Timer sccTimer("SCC Analysis took ", std::cout);
-    sccs = std::move(computeSCCs(*cg));
+    sccResults = std::move(computeSCCs(*cg, true));
   }
   if (printSCCStats) {
-    auto largestSCC = std::max_element(sccs.begin(), sccs.end(), [](const auto& sccA, const auto& sccB) {return sccA.size() < sccB.size();});
+    auto largestSCC = std::max_element(sccResults.sccs.begin(), sccResults.sccs.end(), [](const auto& sccA, const auto& sccB) {return sccA.size() < sccB.size();});
     int numLargerOne = 0;
     int numLargerTwo = 0;
-    for(const auto& scc : sccs) {
+    for(const auto& scc : sccResults.sccs) {
       if (scc.size() > 1) {
          numLargerOne++;
          if (scc.size() > 2) {
@@ -366,7 +373,7 @@ int main(int argc, char **argv) {
          }
       }
     }
-    std::cout << "Number of SCCs: " << sccs.size() << "\n";
+    std::cout << "Number of SCCs: " << sccResults.size() << "\n";
     std::cout << "Largest SCC: " << largestSCC->size() << "\n";
     std::cout << "Number of SCCs containing more than 1 node: " << numLargerOne << "\n";
     std::cout << "Number of SCCs containing more than 2 nodes: " << numLargerTwo << "\n";

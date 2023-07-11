@@ -4,10 +4,6 @@
 
 #include "ContextSelector.h"
 
-#ifndef CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS
-#define CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS false
-#endif
-
 
 namespace capi {
 
@@ -145,7 +141,7 @@ for (auto& ca : commonAncestors) {
             // Also consider function that override this caller
             for (auto& overridesCallee : callee->findAllOverriddenBy()) {
               // FIXME: Currently, we exclude destructors, as they are not properly represented in MetaCG.
-              if (!CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS && overridesCallee->isDestructor()) {
+              if (!traverseVirtualDtors && overridesCallee->isDestructor()) {
                 continue;
               }
               if (setContains(pathNodes, overridesCallee)) {

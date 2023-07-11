@@ -1,13 +1,13 @@
 // clang-format off
 //
-// This case has two distinct relevant calling contexts.
-// See 04_call_context.svg for the CG.
+// This case has two distinct relevant calling contexts and contains a cycle.
+// See 04_call_context.svg for the CG (added edge: a3 -> a1)
 //
 // Note: This code doesn't do anything useful and is not meant to be run.
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext(byName("_Z2c1v", %%%%), byName("_Z2c2v", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 5s %capi -i 'callContext2(byName("_Z2c1v", %%%%), byName("_Z2c2v", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
 // clang-format on

@@ -7,7 +7,7 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext(byName("_Z1bv", %%%%), byName("_Z1dv", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(byName("_Z1bv", %%%%), byName("_Z1dv", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
 // clang-format on

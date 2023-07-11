@@ -7,11 +7,6 @@
 
 #include "Selector.h"
 
-#ifndef CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS
-#define CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS false
-#endif
-
-
 namespace capi {
 
 enum class TraverseDir { TraverseUp, TraverseDown };
@@ -97,38 +92,14 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
               *fn, [](const CGNode & node) -> auto {
-                // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
-                // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
-                std::vector<const CGNode*> descendants(node.getCallees().begin(), node.getCallees().end());
-                // Add functions that override any of the callees.
-                for (const auto* callee: node.getCallees()) {
-                  // FIXME: Currently, we exclude destructors, as they are not properly represented in MetaCG.
-                  if (!CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS && callee->isDestructor()) {
-                    continue;
-                  }
-                  auto allOverriddenBy = callee->findAllOverriddenBy();
-                  descendants.insert(descendants.end(), allOverriddenBy.begin(), allOverriddenBy.end());
-                }
-                return descendants;
+                return node.findAllCallees();
               },
               visitFn);
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
               *fn, [](const CGNode & node) -> auto {
-                // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
-                // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
-                std::vector<const CGNode*> predecessors(node.getCallers().begin(), node.getCallers().end());
-                // Add callers of each function that overrides the current function
-                // FIXME: Currently, we exclude destructors, as they are not properly represented in MetaCG.
-                if (!CAPI_TRAVERSE_VIRTUAL_DESTRUCTORS && !node.isDestructor()) {
-                  for(const auto *overrides: node.findAllOverrides()) {
-                    predecessors.insert(predecessors.end(),
-                                      overrides->getCallers().begin(),
-                                      overrides->getCallers().end());
-                  }
-                }
-                return predecessors;
+                return node.findAllCallers();
               },
               visitFn);
       //std::cout << "Functions on call path to " << fn << ": " << count << "\n";
