@@ -30,3 +30,5 @@ configure_script(clang-mpi-inst++.in clang-mpi-inst++)
 
 configure_script(capi-cxx.in capi-cxx)
 configure_script(capi-mpicxx.in capi-mpicxx)
+
+configure_script(capi-hybrid-mpi.in capi-hybrid-mpi)
