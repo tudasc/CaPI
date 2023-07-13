@@ -53,6 +53,10 @@ class CGNode
   mutable bool overriddenByCacheDirty{true};
 
 public:
+  // FIXME: This is only a temporary solution to store additional information for the filter file!
+  // Remove ASAP!
+  mutable bool isTrigger{false};
+
   explicit CGNode(std::string name) : name(std::move(name))
   {}
 

@@ -7,6 +7,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
+
 namespace capi {
 
 FunctionFilter::FunctionFilter()
@@ -99,5 +102,40 @@ bool writeScorePFilterFile(FunctionFilter &filter,
   os << "SCOREP_REGION_NAMES_END\n";
   return true;
 }
+
+bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>& triggers, const std::string& filename) {
+  std::ofstream os(filename);
+  if (!os) {
+    return false;
+  }
+  json j;
+  auto& fList = j["selection"];
+  for (auto &f : filter) {
+    json fj;
+    fj["name"] = f;
+    fj["isTrigger"] = std::find(triggers.begin(), triggers.end(), f) != triggers.begin();
+    fList.push_back(fj);
+  }
+  os << j;
+  return true;
+}
+
+bool readJSONFilterFile(FunctionFilter &filter, std::vector<std::string>& triggers, const std::string& filename) {
+  std::ifstream in(filename);
+  if (!in) {
+    return false;
+  }
+  json j;
+  in >> j;
+  auto fList = j["selection"];
+  for (auto &fj : fList) {
+    filter.addIncludedFunction(fj["name"]);
+    if (fj["isTrigger"].get<bool>()) {
+      triggers.push_back(fj["name"]);
+    }
+  }
+  return true;
+}
+
 
 }
