@@ -3,12 +3,18 @@
 //
 
 #include "XRayRuntime.h"
+#include "CallLogger.h"
 
 #include <cstring>
 #include <unordered_map>
 
 #include "../Utils.h"
 #include "SymbolRetriever.h"
+
+#ifdef WITH_MPI
+#include <mpi.h>
+#endif
+
 
 extern "C" {
 void Extrae_init() __attribute__((weak));
@@ -19,6 +25,10 @@ void Extrae_define_event_type(unsigned *type, char *type_description, int *nvalu
                               long long *values, char **values_description) __attribute__((weak));
 }
 
+namespace capi {
+extern GlobalCaPIData *globalCaPIData;
+}
+
 namespace {
 
 unsigned int ExtraeXRayEvt = 31169;
@@ -26,19 +36,42 @@ unsigned int ExtraeXRayEvt = 31169;
 bool initialized{false};
 
 thread_local std::vector<int> callStack{};
+thread_local bool active{false};
 
 inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
+  if (capi::globalCaPIData->useTriggers && !active) {
+    if (capi::globalCaPIData->triggerSet.find(id) != capi::globalCaPIData->triggerSet.end()) {
+      active = true;
+    } else {
+      return;
+    }
+  }
   Extrae_eventandcounters(ExtraeXRayEvt, id);
+  if (capi::globalCaPIData->logCalls) {
+    auto& info = capi::globalCaPIData->xrayFuncMap[id];
+    capi::globalCaPIData->logger->logEnter(callStack.size(), info);
+  }
   callStack.push_back(id);
 }
 
 inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
+  if (capi::globalCaPIData->useTriggers && !active) {
+    return;
+  }
   int nextEvt = 0;
   callStack.pop_back();
   if (!callStack.empty()) {
     nextEvt = callStack.back();
+  } else if (capi::globalCaPIData->useTriggers) {
+    // We don't record the call stack before the triggering function.
+    // Therefore, it is always at the top of the call chain.
+    active = false;
   }
   Extrae_eventandcounters(ExtraeXRayEvt, nextEvt);
+  if (capi::globalCaPIData->logCalls) {
+    auto& info = capi::globalCaPIData->xrayFuncMap[id];
+    capi::globalCaPIData->logger->logExit(callStack.size(), info);
+  }
 }
 
 }
@@ -55,6 +88,15 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
     }
     return;
   }
+
+  #ifdef WITH_MPI
+  int mpiInited = 0, mpiFinalized = 0;
+  MPI_Initialized(&mpiInited);
+  MPI_Finalized(&mpiFinalized);
+  if (!mpiInited || mpiFinalized) {
+    return;
+  }
+  #endif
 
   switch (type) {
   case XRayEntryType::ENTRY:
@@ -103,7 +145,9 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   if (demangleEnv && (!strcmp(demangleEnv, "0") || !strcmp(demangleEnv, "OFF"))) {
     demangle = false;
   }
+
   registerExtraeEvents(xrayMap, demangle);
+
   initialized = true;
   logInfo() << "XRay initialization and Extrae event registration done.\n";
 }

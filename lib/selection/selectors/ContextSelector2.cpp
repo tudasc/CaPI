@@ -85,11 +85,11 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     for (auto& caller : nodeData->node->findAllCallers()) {
 
       // TODO: Use shrinking mechanism
-      auto callerSCCSize = sccResults.getSCCSize(*caller);
-      if (callerSCCSize > 1)  {
-        std::cout << "Caller is in SCC of size " << callerSCCSize << ": " << caller->getName() << " - skipping...\n";
-        continue;
-      }
+      //auto callerSCCSize = sccResults.getSCCSize(*caller);
+      //if (callerSCCSize > 1)  {
+      //  std::cout << "Caller is in SCC of size " << callerSCCSize << ": " << caller->getName() << " - skipping...\n";
+      //  continue;
+      //}
 
       auto& callerData = nodeDataMap[caller];
       bool relaxCaller{false};
@@ -153,6 +153,8 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
   // Select all nodes from LCAs that can reach either A or B
   for (auto& ca : commonAncestors) {
     if (ca->isLCA) {
+      // TODO: Output this as part of selection result. Also add option for user to control if this should be set at all.
+      ca->node->isTrigger = true;
       addToQueue(ca);
     }
   }
