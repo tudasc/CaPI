@@ -44,6 +44,10 @@ bool writeScorePFilterFile(FunctionFilter &filter, const std::string &filename);
 
 bool writeSimpleFilterFile(FunctionFilter &filter, const std::string &filename);
 
+bool readJSONFilterFile(FunctionFilter &filter, std::vector<std::string>& triggers, const std::string &filename);
+
+bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>& triggers, const std::string& filename);
+
 
 }
 
