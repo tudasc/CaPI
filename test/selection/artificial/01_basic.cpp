@@ -6,6 +6,9 @@
 // RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
 //
+// RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON
+//
 // RUN: infile="%s"; %capi -i 'byName("^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name2.filt | c++filt | sort | %filecheck %s -check-prefix=NAME2
 //
@@ -74,6 +77,11 @@ int main(int argc, char** argv) {
 // NAME-NOT: b
 // NAME-NOT: c
 // NAME: main
+
+// NAME-JSON: a
+// NAME-JSON-NOT: b
+// NAME-JSON-NOT: c
+// NAME-JSON: main
 
 // NAME2-NOT: a
 // NAME2-NOT: b

@@ -37,7 +37,7 @@ void printHelp() {
       << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
   std::cout
       << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
-  std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default) and \"simple\"\n";
+  std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default), \"json\" and \"simple\"\n";
   std::cout
       << " --debug  Enable debugging mode.\n";
   std::cout << " --print-scc-stats  Prints information about the strongly connected components (SCCs) of this call graph.\n";
@@ -45,7 +45,7 @@ void printHelp() {
 
 enum class InputMode { PRESET, FILE, STRING };
 
-enum class OutputFormat {SIMPLE, SCOREP};
+enum class OutputFormat {SIMPLE, SCOREP, JSON};
 
 enum class SelectionPreset {
   MPI,
@@ -212,6 +212,8 @@ int main(int argc, char **argv) {
           std::string outputFormatStr = argv[i];
           if (outputFormatStr == "simple") {
             outputFormat = OutputFormat::SIMPLE;
+          } else if (outputFormatStr == "json") {
+            outputFormat = OutputFormat::JSON;
           } else if (outputFormatStr == "scorep") {
             outputFormat = OutputFormat::SCOREP;
           } else {
@@ -398,6 +400,16 @@ int main(int argc, char **argv) {
       break;
     case OutputFormat::SCOREP:
       writeSuccess = writeScorePFilterFile(filter, outfile);
+      break;
+    case OutputFormat::JSON:
+      // FIXME: This data should not be stored in the CG! It should be part of the selection result.
+      std::vector<std::string> triggerFuncs;
+      for (auto& node : cg->getNodes()) {
+         if (node->isTrigger) {
+          triggerFuncs.push_back(node->getName());
+         }
+      }
+      writeSuccess = writeJSONFilterFile(filter, triggerFuncs, outfile);
       break;
     }
     if (!writeSuccess) {
