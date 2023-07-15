@@ -6,6 +6,7 @@
 #define CAPI_SELECTOR_H
 
 #include <iostream>
+#include <unordered_set>
 
 #include "../Utils.h"
 #include "CallGraph.h"
@@ -13,13 +14,18 @@
 
 namespace capi {
 
-using FunctionSet = std::vector<std::string>;
+using FunctionSet = std::unordered_set<const CGNode*>;
 
 using FunctionSetList = std::vector<FunctionSet>;
 
 template<typename T>
 inline bool setContains(const std::vector<T>& set, const T& entry) {
   return std::find(set.begin(), set.end(), entry) != set.end();
+}
+
+template<typename T>
+inline bool setContains(const std::unordered_set<T>& set, const T& entry) {
+  return set.find(entry) != set.end();
 }
 
 template<typename T>
@@ -36,6 +42,15 @@ template<typename T>
 inline bool addToSet(std::vector<T>& set, const T& entry) {
   if (!setContains(set, entry)) {
     set.push_back(entry);
+    return true;
+  }
+  return false;
+}
+
+template<typename T>
+inline bool addToSet(std::unordered_set<T>& set, const T& entry) {
+  if (!setContains(set, entry)) {
+    set.insert(entry);
     return true;
   }
   return false;
@@ -72,7 +87,7 @@ public:
     this->cg = &cg;
   }
 
-  virtual bool accept(const std::string &) = 0;
+  virtual bool accept(const CGNode*) = 0;
 
   FunctionSet apply(const FunctionSetList &input) override
   {
@@ -82,10 +97,13 @@ public:
     }
     FunctionSet in = input.front();
     //        std::cout << "Input contains " << in.size() << " elements\n";
-    in.erase(std::remove_if(
-            in.begin(), in.end(),
-            [this](std::string &fName) -> bool { return !accept(fName); }),
-             in.end());
+    for (auto it = in.begin(); it != in.end();) {
+      if (!accept(*it))
+        in.erase(it++);
+      else
+        ++it;
+    }
+
     return in;
   }
 };

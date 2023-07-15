@@ -63,7 +63,7 @@ public:
   void setFunctionInfo(FunctionInfo fi)
   { this->info = std::move(fi); }
 
-  FunctionInfo &getFunctionInfo()
+  const FunctionInfo &getFunctionInfo() const
   { return info; }
 
   const FunctionInfo &getFunctionInfo() const

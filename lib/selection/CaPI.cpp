@@ -90,14 +90,14 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
 
   int numAdded = 0;
 
-  std::function<void(CGNode&, std::unordered_set<CGNode*>)> addValidCallers = [&](CGNode& node, std::unordered_set<CGNode*> visited) {
+  std::function<void(const CGNode&, std::unordered_set<const CGNode*>)> addValidCallers = [&](const CGNode& node, std::unordered_set<const CGNode*> visited) {
     visited.insert(&node);
-    for (auto& caller : node.getCallers()) {
+    for (const auto* caller : node.getCallers()) {
       if (visited.find(caller) != visited.end()) {
         continue;
       }
       if (findSymbol(symSets, caller->getName())) {
-        if (addToSet(newSet, caller->getName())) {
+        if (addToSet(newSet, caller)) {
           numAdded++;
         }
       } else {
@@ -109,10 +109,10 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
   FunctionSet notFound;
 
   for (auto& fn : functions) {
-    if (findSymbol(symSets, fn)) {
-      newSet.push_back(fn);
+    if (findSymbol(symSets, fn->getName())) {
+      newSet.insert(fn);
     } else {
-      notFound.push_back(fn);
+      notFound.insert(fn);
     }
   }
   std::cout << notFound.size() << " functions could not be located in the executable, likely due to inlining.\n";
@@ -122,13 +122,12 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
   int nextOutput = numBetweenOutputs;
 
   for (auto& fn : notFound) {
-    auto node = cg.get(fn);
-    if (!node) {
+    if (!fn) {
       std::cerr << "Unable to find function in call graph - skipping.\n";
       continue;
     }
     // Recursively looks for the first available callers and adds them.
-    addValidCallers(*node, {});
+    addValidCallers(*fn, {});
     numProcessed++;
 
     // Status output
@@ -391,7 +390,7 @@ int main(int argc, char **argv) {
   {
     FunctionFilter filter;
     for (auto &f : afterPostProcessing) {
-      filter.addIncludedFunction(f);
+      filter.addIncludedFunction(f->getName());
     }
     bool writeSuccess{false};
     switch(outputFormat) {

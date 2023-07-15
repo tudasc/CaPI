@@ -50,23 +50,23 @@ template <SetOperation Op> FunctionSet SetOperationSelector<Op>::apply(const Fun
   FunctionSet out;
 
   if constexpr (Op == SetOperation::UNION) {
-    out.insert(out.end(), inA.begin(), inA.end());
+    out.insert(inA.begin(), inA.end());
     // Check for duplicates. This would be easier using a set, not sure about performance.
     for (auto& fB : inB) {
-      if (std::find(inA.begin(), inA.end(), fB) == inA.end()) {
-        out.push_back(fB);
+      if (inA.find(fB) == inA.end()) {
+        out.insert(fB);
       }
     }
   } else if constexpr (Op == SetOperation::INTERSECTION) {
     for (auto &fA : inA) {
-      if (std::find(inB.begin(), inB.end(), fA) != inB.end()) {
-        out.push_back(fA);
+      if (inB.find(fA) != inB.end()) {
+        out.insert(fA);
       }
     }
   } else if constexpr (Op == SetOperation::COMPLEMENT) {
     for (auto &fA : inA) {
-      if (std::find(inB.begin(), inB.end(), fA) == inB.end()) {
-        out.push_back(fA);
+      if (inB.find(fA) == inB.end()) {
+        out.insert(fA);
       }
     }
   }

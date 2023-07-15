@@ -6,12 +6,12 @@
 
 namespace capi {
 
-static std::vector<CGNode*> bfsStep(const std::vector<CGNode*>& workingSet, const std::vector<CGNode*>& excludeList, const CallGraph& cg) {
-  std::vector<CGNode*> addedSet;
+static std::vector<const CGNode*> bfsStep(const std::vector<const CGNode*>& workingSet, const std::vector<const CGNode*>& excludeList, const CallGraph& cg) {
+  std::vector<const CGNode*> addedSet;
   for (auto& node : workingSet) {
     if (setContains(excludeList, node))
       continue;
-    for (auto* parent : node->getCallers()) {
+    for (const auto* parent : node->getCallers()) {
       if (!setContains(workingSet, parent)) {
         addToSet(addedSet, parent);
       }
@@ -35,7 +35,7 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
       return false;
     if (inSet.size() > 1) {
       logInfo() << "Warning: Input for ContextSelector contains more than one element (" << inSet.size() << ")\n";
-      logInfo() << "Continuing with the first element and ignoring the rest: " << inSet.front() << "\n";
+      logInfo() << "Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getName() << "\n";
     }
     return true;
   };
@@ -44,15 +44,15 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
     return {};
   }
 
-  auto& targetNodeA = inputA.front();
-  auto& targetNodeB = inputB.front();
+  auto& targetNodeA = *inputA.begin();
+  auto& targetNodeB = *inputB.begin();
 
-  std::vector<CGNode*> setA{cg->get(targetNodeA)};
-  std::vector<CGNode*> setB{cg->get(targetNodeB)};
+  std::vector<const CGNode*> setA{targetNodeA};
+  std::vector<const CGNode*> setB{targetNodeB};
 
-  std::vector<CGNode*> commonAncestors{};
+  std::vector<const CGNode*> commonAncestors{};
 
-  std::vector<CGNode*> completedNodes{};
+  std::vector<const CGNode*> completedNodes{};
 
   FunctionSet selection;
 
@@ -108,17 +108,17 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
       // Find paths from ancestor to target nodes:
       // Start at ancestor. Recursively select children, if they are part of one of the BFS sets.
 
-      std::vector<CGNode*> pathNodes;
+      std::vector<const CGNode*> pathNodes;
       for (auto& ca : commonAncestors) {
-        std::vector<CGNode*> workingSet;
+        std::vector<const CGNode*> workingSet;
         workingSet.push_back(ca);
         while(!workingSet.empty()) {
           auto node = workingSet.back();
           workingSet.pop_back();
           addToSet(pathNodes, node);
           // Also add to overall selection result
-          addToSet(selection, node->getName());
-          for (auto callee : node->getCallees()) {
+          addToSet(selection, node);
+          for (const auto* callee : node->getCallees()) {
             if (setContains(setA, callee) || setContains(setB, callee)) {
               addToSet(workingSet, callee);
             }

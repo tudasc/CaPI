@@ -42,7 +42,7 @@ public:
  * @returns The number of visited functions.
  */
 template <typename TraverseFn, typename VisitFn>
-int traverseCallGraph(CGNode &node, TraverseFn &&selectNextNodes,
+int traverseCallGraph(const CGNode &node, TraverseFn &&selectNextNodes,
                       VisitFn &&visit) {
   std::vector<const CGNode *> workingSet;
   std::vector<const CGNode *> alreadyVisited;
@@ -83,14 +83,12 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   FunctionSet out(in);
 
   auto visitFn = [&out](const CGNode &node) {
-    if (std::find(out.begin(), out.end(), node.getName()) == out.end()) {
-      out.push_back(node.getName());
+    if (out.find(&node) == out.end()) {
+      out.insert(&node);
     }
   };
 
   for (auto &fn : in) {
-    auto fnNode = cg->get(fn);
-
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
               *fnNode, [](const CGNode & node) -> auto {
