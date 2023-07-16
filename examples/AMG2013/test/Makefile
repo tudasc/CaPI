@@ -10,7 +10,6 @@
 # $Revision: 2.4 $
 #EHEADER**********************************************************************
 
-
 .SUFFIXES:
 .SUFFIXES: .c .o
                                                                                                
@@ -55,13 +54,14 @@ LFLAGS =\
 # Targets
 ##################################################################
                                                                                                                                          
-all: amg2013
+all: amg2013 amg2013_scorep amg2013_extrae
                                                                                                                                          
 clean:
 	@rm -f *.o
+	@rm -f scorep_init.*
                                                                                                                                          
 veryclean: clean
-	@rm -f amg2013
+	@rm -f amg2013_*
                                                                                                                                          
 ##################################################################
 # Rules
@@ -69,8 +69,13 @@ veryclean: clean
                                                                                                                                          
 amg2013: amg2013.o
 	@echo  "Linking" $@ "... "
-	${CC} -o amg2013 amg2013.o ${LFLAGS}
-                                                                                                                        
+	${CC} --capi-interface=gnu -o amg2013_gnu amg2013.o ${LFLAGS}
+amg2013_scorep: amg2013.o
+	@echo  "Linking" $@ "... "
+	${CC} --capi-interface=scorep -o amg2013_scorep amg2013.o ${LFLAGS}
+
+amg2013_extrae: amg2013.o
+	${CC} --capi-interface=extrae -o amg2013_extrae amg2013.o ${LFLAGS}
                  
 ##################################################################
 # Generic rules
@@ -78,4 +83,3 @@ amg2013: amg2013.o
                                                                                                                                          
 .c.o:
 	${CC} -o $@ -c ${CFLAGS} $<
-                                                               
