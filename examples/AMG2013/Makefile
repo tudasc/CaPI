@@ -34,6 +34,7 @@ all:
 	do \
 	  if [ -d $$i ]; \
 	  then \
+			if [ $$i = test ]; \
 			then \
 				(cd test; make $(capi_lib)); \
 			else \
@@ -59,6 +60,14 @@ _extrae:
 	$(eval capi_lib=amg2013_extrae)
 	
 clean:
+	@ \
+	for i in ${HYPRE_DIRS}; \
+	do \
+	  if [ -d $$i ]; \
+	  then \
+	    echo "Cleaning $$i ..."; \
+	    (cd $$i; make clean); \
+	  fi; \
 	done
 
 veryclean:
@@ -70,7 +79,7 @@ veryclean:
 	    echo "Very-cleaning $$i ..."; \
 	    (cd $$i; make veryclean); \
 	  fi; \
-	done
+	done \
 
 tags:
 	find . -name "*.c" -or -name "*.C" -or -name "*.h" -or -name "*.c??" -or -name "*.h??" -or -name "*.f" | etags -
