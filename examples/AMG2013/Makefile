@@ -34,7 +34,6 @@ all:
 	do \
 	  if [ -d $$i ]; \
 	  then \
-	  	if [ $$i = "test" ]; \
 			then \
 				(cd test; make $(capi_lib)); \
 			else \
@@ -60,14 +59,6 @@ _extrae:
 	$(eval capi_lib=amg2013_extrae)
 	
 clean:
-	@ \
-	for i in ${HYPRE_DIRS}; \
-	do \
-	  if [ -d $$i ]; \
-	  then \
-	    echo "Cleaning $$i ..."; \
-	    (cd $$i; make clean); \
-	  fi; \
 	done
 
 veryclean:
