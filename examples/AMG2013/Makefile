@@ -34,7 +34,7 @@ all:
 	do \
 	  if [ -d $$i ]; \
 	  then \
-	  	if [ $$i = "test" ]; \
+			if [ $$i = test ]; \
 			then \
 				(cd test; make $(capi_lib)); \
 			else \
