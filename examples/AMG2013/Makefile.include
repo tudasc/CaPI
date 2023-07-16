@@ -11,8 +11,8 @@
 #EHEADER**********************************************************************
 
 
-# set the compiler here
-CC = ./../../scripts/capi-mpicxx 
+# set the compiler here (currently in Makefile)
+CC = ./../../../scripts/capi-hybrid-mpi 
 
 # set compile flags here
 # MPI only:
