@@ -54,7 +54,7 @@ LFLAGS =\
 # Targets
 ##################################################################
                                                                                                                                          
-all: amg2013 amg2013_scorep amg2013_extrae
+all: amg2013_gnu amg2013_scorep amg2013_extrae
                                                                                                                                          
 clean:
 	@rm -f *.o
@@ -67,14 +67,16 @@ veryclean: clean
 # Rules
 ##################################################################
                                                                                                                                          
-amg2013: amg2013.o
+amg2013_gnu: amg2013.o
 	@echo  "Linking" $@ "... "
 	${CC} --capi-interface=gnu -o amg2013_gnu amg2013.o ${LFLAGS}
+
 amg2013_scorep: amg2013.o
 	@echo  "Linking" $@ "... "
 	${CC} --capi-interface=scorep -o amg2013_scorep amg2013.o ${LFLAGS}
 
 amg2013_extrae: amg2013.o
+	@echo "Linking" $@ "... "
 	${CC} --capi-interface=extrae -o amg2013_extrae amg2013.o ${LFLAGS}
                  
 ##################################################################

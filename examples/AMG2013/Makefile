@@ -10,7 +10,7 @@
 # $Revision: 2.4 $
 #EHEADER**********************************************************************
 
-AMG_EXEC = amg
+AMG_EXEC = amg_gnu
 AMG_EXEC_SCOREP = amg_scorep
 AMG_EXEC_EXTRAE = amg_extrae
 
@@ -51,7 +51,7 @@ $(AMG_EXEC_SCOREP): _scorep all
 $(AMG_EXEC_EXTRAE): _extrae all
 
 _gnu:
-	$(eval capi_lib=amg2013)
+	$(eval capi_lib=amg2013_gnu)
 
 _scorep:
 	$(eval capi_lib=amg2013_scorep)
