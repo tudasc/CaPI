@@ -10,7 +10,9 @@
 # $Revision: 2.4 $
 #EHEADER**********************************************************************
 
-
+AMG_EXEC = amg
+AMG_EXEC_SCOREP = amg_scorep
+AMG_EXEC_EXTRAE = amg_extrae
 
 srcdir = .
 
@@ -24,6 +26,7 @@ HYPRE_DIRS =\
  struct_mv\
  sstruct_mv\
  test
+capi_lib=""
 
 all:
 	@ \
@@ -31,12 +34,31 @@ all:
 	do \
 	  if [ -d $$i ]; \
 	  then \
-	    echo "Making $$i ..."; \
-	    (cd $$i; make); \
-	    echo ""; \
+	  	if [ $$i = "test" ]; \
+			then \
+				(cd test; make $(capi_lib)); \
+			else \
+				(cd $$i; make); \
+	      echo ""; \
+			fi; \
 	  fi; \
-	done
+	done \
 
+$(AMG_EXEC): _gnu all 
+
+$(AMG_EXEC_SCOREP): _scorep all
+
+$(AMG_EXEC_EXTRAE): _extrae all
+
+_gnu:
+	$(eval capi_lib=amg2013)
+
+_scorep:
+	$(eval capi_lib=amg2013_scorep)
+
+_extrae: 
+	$(eval capi_lib=amg2013_extrae)
+	
 clean:
 	@ \
 	for i in ${HYPRE_DIRS}; \
