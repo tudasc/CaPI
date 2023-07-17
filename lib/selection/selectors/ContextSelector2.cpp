@@ -13,12 +13,12 @@
 namespace capi {
 
 struct CommonCallerSearchNodeData {
-  CGNode* node{nullptr};
+  const CGNode* node{nullptr};
   int distA{-1};
   int distB{-1};
   bool isLCA{false};
-  CGNode* predA{nullptr};
-  CGNode* predB{nullptr};
+  const CGNode* predA{nullptr};
+  const CGNode* predB{nullptr};
 };
 
 std::ostream& operator<<(std::ostream& os, const CommonCallerSearchNodeData& nd) {
@@ -40,7 +40,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
       return false;
     if (inSet.size() > 1) {
       logInfo() << "Warning: Input for ContextSelector contains more than one element (" << inSet.size() << ")\n";
-      logInfo() << "Continuing with the first element and ignoring the rest: " << inSet.front() << "\n";
+      logInfo() << "Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getName() << "\n";
     }
     return true;
   };
@@ -49,11 +49,10 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     return {};
   }
 
-  auto& targetFuncA = inputA.front();
-  auto& targetFuncB = inputB.front();
+  const auto* targetNodeA = *inputA.begin();
+  const auto* targetNodeB = *inputB.begin();
 
-  auto* targetNodeA = cg->get(targetFuncA);
-  auto* targetNodeB = cg->get(targetFuncB);
+  assert(targetNodeA && targetNodeB);
 
   SCCAnalysisResults sccResults = computeSCCs(*cg, true);
 
@@ -62,7 +61,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     return {};
   }
 
-  std::unordered_map<CGNode*, CommonCallerSearchNodeData> nodeDataMap {{targetNodeA, {targetNodeA, 0, -1, false, nullptr, nullptr}},
+  std::unordered_map<const CGNode*, CommonCallerSearchNodeData> nodeDataMap {{targetNodeA, {targetNodeA, 0, -1, false, nullptr, nullptr}},
                                                                        {targetNodeB, {targetNodeB, -1, 0, false, nullptr, nullptr}}};
 
   std::vector<CommonCallerSearchNodeData*> commonAncestors;
@@ -161,7 +160,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
   std::cout << "Number of LCAs: " << workQueue.size() << "\n";
 
   // Allways select the target functions
-  FunctionSet out{targetFuncA, targetFuncB};
+  FunctionSet out{targetNodeA, targetNodeB};
 
   if (workQueue.empty()) {
     return out;
@@ -171,7 +170,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     auto nodeData = workQueue.front();
     workQueue.pop_front();
     const auto* node = nodeData->node;
-    addToSet(out, node->getName());
+    addToSet(out, node);
     nodeData->node = nullptr; // Using this as a marker for processed nodes to prevent cycles.
     for (auto& callee : node->findAllCallees()) {
       auto& calleeData = nodeDataMap[callee];

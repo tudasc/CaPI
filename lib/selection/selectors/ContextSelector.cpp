@@ -19,7 +19,7 @@ static std::vector<const CGNode*> bfsStep(const std::vector<const CGNode*>& work
     }
     // In addition to the direct parent, add the parents of all functions that are overridden by the current function.
     for (auto& overrides : node->findAllOverrides()) {
-      for (auto* overrideParent : overrides->getCallers()) {
+      for (const auto* overrideParent : overrides->getCallers()) {
         if (!setContains(workingSet, overrideParent)) {
           addToSet(addedSet, overrideParent);
         }
@@ -112,7 +112,7 @@ FunctionSet ContextSelector::apply(const FunctionSetList& input) {
         addToSet(commonAncestors, ib);
       }
 
-      logInfo() << "Found " << commonAncestors.size() << " common ancestor(s). First one is " << commonAncestors.begin()->getName() << "\n";
+      logInfo() << "Found " << commonAncestors.size() << " common ancestor(s). First one is " << (*commonAncestors.begin())->getName() << "\n";
 
       // Find paths from ancestor to target nodes:
       // Start at ancestor. Recursively select children, if they are part of one of the BFS sets.
@@ -139,7 +139,7 @@ for (auto& ca : commonAncestors) {
               addToSet(workingSet, callee);
             }
             // Also consider function that override this caller
-            for (auto& overridesCallee : callee->findAllOverriddenBy()) {
+            for (const auto* overridesCallee : callee->findAllOverriddenBy()) {
               // FIXME: Currently, we exclude destructors, as they are not properly represented in MetaCG.
               if (!traverseVirtualDtors && overridesCallee->isDestructor()) {
                 continue;

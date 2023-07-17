@@ -180,12 +180,12 @@ public:
 
   IterRange<decltype(allCallers.cbegin())> findAllCallers() const {
      updateAllCallersCache();
-     return {allCallers.begin(), allCallers.end()};
+     return {allCallers.cbegin(), allCallers.cend()};
   }
 
   IterRange<decltype(allCallers.cbegin())> findAllCallees() const {
      updateAllCalleesCache();
-     return {allCallees.begin(), allCallees.end()};
+     return {allCallees.cbegin(), allCallees.cend()};
   }
 
 private:
