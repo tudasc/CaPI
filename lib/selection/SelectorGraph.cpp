@@ -153,7 +153,7 @@ void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
 
 void dumpSelection(std::ostream& os, FunctionSet& functions) {
   for (auto& fn : functions) {
-    os << fn << "\n";
+    os << fn->getName() << "\n";
   }
 }
 

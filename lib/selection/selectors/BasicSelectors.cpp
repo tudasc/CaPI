@@ -6,17 +6,17 @@
 #include <unordered_set>
 
 namespace capi {
-bool IncludeListSelector::accept(const std::string &fName) {
-  return std::find(names.begin(), names.end(), fName) != names.end();
+bool IncludeListSelector::accept(const CGNode* fNode) {
+  return std::find(names.begin(), names.end(), fNode->getName()) != names.end();
 }
 
-bool ExcludeListSelector::accept(const std::string &fName) {
-  return std::find(names.begin(), names.end(), fName) == names.end();
+bool ExcludeListSelector::accept(const CGNode* fNode) {
+  return std::find(names.begin(), names.end(), fNode->getName()) == names.end();
 }
 
-bool NameSelector::accept(const std::string &fName) {
+bool NameSelector::accept(const CGNode* fNode) {
   std::smatch nameMatch;
-  bool matches = std::regex_match(fName, nameMatch, nameRegex);
+  bool matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
   //    if (!matches)
   //       std::cout << fName << " does not match "  << "\n";
   //    else
@@ -24,27 +24,27 @@ bool NameSelector::accept(const std::string &fName) {
   return matches;
 }
 
-bool InlineSelector::accept(const std::string &fName) {
-  if (auto node = this->cg->get(fName); node) {
-    return node->getFunctionInfo().isInlined;
+bool InlineSelector::accept(const CGNode* fNode) {
+  if (fNode) {
+    return fNode->getFunctionInfo().isInlined;
   }
   return false;
 }
 
-bool FilePathSelector::accept(const std::string &fName) {
-  if (auto node = this->cg->get(fName); node) {
+bool FilePathSelector::accept(const CGNode* fNode) {
+  if (fNode) {
 
     std::smatch pathMatch;
-    bool matches = std::regex_match(node->getFunctionInfo().fileName, pathMatch,
+    bool matches = std::regex_match(fNode->getFunctionInfo().fileName, pathMatch,
                                     nameRegex);
     return matches;
   }
   return false;
 }
 
-bool SystemHeaderSelector::accept(const std::string &fName) {
-  if (auto node = this->cg->get(fName); node) {
-    return node->getFunctionInfo().definedInSystemInclude;
+bool SystemHeaderSelector::accept(const CGNode* fNode) {
+  if (fNode) {
+    return fNode->getFunctionInfo().definedInSystemInclude;
   }
   return false;
 }
@@ -58,10 +58,10 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
   FunctionSet in = input.front();
   FunctionSet out;
 
-  for (auto &f : in) {
-    if (auto *node = cg->get(f); node) {
-      if (node->getFunctionInfo().containsPointerCall) {
-        out.push_back(f);
+  for (auto& f : in) {
+    if (f) {
+      if (f->getFunctionInfo().containsPointerCall) {
+        out.insert(f);
       }
     }
   }
@@ -88,14 +88,13 @@ bool evalCmpOp(IntCmpOp op, int val1, int val2) {
   }
 }
 
-bool MetricSelector::accept(const std::string &fName) {
-  auto node = this->cg->get(fName);
-  if (!node) {
+bool MetricSelector::accept(const CGNode* fNode) {
+  if (!fNode) {
     return false;
   }
-  auto& meta =  node->getFunctionInfo().metaData;
+  auto& meta =  fNode->getFunctionInfo().metaData;
   if (meta.is_null()) {
-    logError() << "Metadata for function " << fName << " not available.\n";
+    logError() << "Metadata for function " << fNode->getName() << " not available.\n";
     return false;
   }
 
@@ -114,7 +113,7 @@ bool MetricSelector::accept(const std::string &fName) {
 //  }
 
   if (j.is_null()) {
-    logError() << "Unable to find metadata entry for function " << fName << ": " << getFieldsAsString() << "\n";
+    logError() << "Unable to find metadata entry for function " << fNode->getName() << ": " << getFieldsAsString() << "\n";
     return false;
   }
 
@@ -151,13 +150,13 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
 
   std::function<void(const CGNode*, bool)> traverse = [&](const CGNode* node, bool mayRemove) {
     visited.insert(node);
-    bool selected = setContains(in, node->getName());
+    bool selected = setContains(in, node);
     bool onlyChild = node->getCallers().size() == 1;
     if (selected) {
-      if (mayRemove && onlyChild && !setContains(critical, node->getName())) {
+      if (mayRemove && onlyChild && !setContains(critical, node)) {
         selected = false;
       } else {
-        out.push_back(node->getName());
+        out.insert(node);
       }
     }
 
@@ -178,13 +177,12 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
   return out;
 }
 
-bool MinCallDepthSelector::accept(const std::string &fName) {
-  auto node = this->cg->get(fName);
-  if (!node) {
+bool MinCallDepthSelector::accept(const CGNode* fNode) {
+  if (!fNode) {
     return false;
   }
 
-  std::function<int(CGNode*, std::unordered_set<CGNode*>)> determineMinDepth = [&](CGNode* node, std::unordered_set<CGNode*> visited) -> int {
+  std::function<int(const CGNode*, std::unordered_set<const CGNode*>)> determineMinDepth = [&](const CGNode* node, std::unordered_set<const CGNode*> visited) -> int {
     if (node->getCallers().size() == 0) {
       return 0;
     }
@@ -200,9 +198,9 @@ bool MinCallDepthSelector::accept(const std::string &fName) {
     return *std::min_element(childDepths.begin(), childDepths.end()) + 1;
   };
 
-  int result = determineMinDepth(node, {});
+  int result = determineMinDepth(fNode, {});
 
-  //logInfo() << "Min depth of " << fName << ": " << result << "\n";
+  //logInfo() << "Min depth of " << fNode->getName() << ": " << result << "\n";
 
   return evalCmpOp(op, result, val);
 }

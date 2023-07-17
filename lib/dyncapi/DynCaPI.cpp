@@ -202,7 +202,7 @@ extern "C" {
 
   FunctionFilter filter;
   for (auto &f : result) {
-    filter.addIncludedFunction(f);
+    filter.addIncludedFunction(f->getName());
   }
 
   auto execPath = getExecPath();

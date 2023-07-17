@@ -18,14 +18,14 @@ bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &o
 {
   out << "digraph {\n";
   for (auto &node : cg.getNodes()) {
-    if (setContains(selection, node->getName()))
+    if (selection.find(node.get()) != selection.end())
       out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
   }
 
   for (auto &node : cg.getNodes()) {
-    if (setContains(selection, node->getName())) {
+    if (selection.find(node.get()) != selection.end()) {
       for (auto &callee : node->getCallees()) {
-        if (setContains(selection, callee->getName())) {
+        if (selection.find(callee) != selection.end()) {
           out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
         }
       }

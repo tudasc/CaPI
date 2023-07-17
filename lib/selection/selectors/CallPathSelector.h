@@ -42,7 +42,7 @@ public:
  * @returns The number of visited functions.
  */
 template <typename TraverseFn, typename VisitFn>
-int traverseCallGraph(CGNode &node, TraverseFn &&selectNextNodes,
+int traverseCallGraph(const CGNode &node, TraverseFn &&selectNextNodes,
                       VisitFn &&visit) {
   std::vector<const CGNode *> workingSet;
   std::vector<const CGNode *> alreadyVisited;
@@ -83,17 +83,15 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   FunctionSet out(in);
 
   auto visitFn = [&out](const CGNode &node) {
-    if (std::find(out.begin(), out.end(), node.getName()) == out.end()) {
-      out.push_back(node.getName());
+    if (out.find(&node) == out.end()) {
+      out.insert(&node);
     }
   };
 
   for (auto &fn : in) {
-    auto fnNode = cg->get(fn);
-
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
-              *fnNode, [](const CGNode & node) -> auto {
+              *fn, [](const CGNode & node) -> auto {
                 // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
                 // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
                 std::vector<const CGNode*> ancestors(node.getCallees().begin(), node.getCallees().end());
@@ -108,7 +106,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
-              *fnNode, [](const CGNode & node) -> auto {
+              *fn, [](const CGNode & node) -> auto {
                 // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
                 // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
                 std::vector<const CGNode*> predecessors(node.getCallers().begin(), node.getCallers().end());

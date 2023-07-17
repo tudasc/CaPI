@@ -20,7 +20,7 @@ class EverythingSelector : public Selector {
 public:
   void init(CallGraph &cg) override {
     for (auto &node : cg.getNodes()) {
-      allFunctions.push_back(node->getName());
+      allFunctions.insert(node.get());
     }
   }
 
@@ -39,7 +39,7 @@ public:
   explicit IncludeListSelector(std::vector<std::string> names)
           : names(names) {}
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "include";
@@ -53,7 +53,7 @@ public:
   ExcludeListSelector(std::vector<std::string> names)
           :  names(std::move(names)) {}
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "exclude";
@@ -66,7 +66,7 @@ class NameSelector : public FilterSelector {
 public:
   NameSelector(std::string regexStr): nameRegex(regexStr) {}
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "NameSelector";
@@ -77,7 +77,7 @@ class InlineSelector : public FilterSelector {
 public:
   InlineSelector() = default;
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "InlineSelector";
@@ -91,7 +91,7 @@ public:
   FilePathSelector(std::string regexStr)
           : nameRegex(regexStr) {}
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "FilePathSelector";
@@ -102,7 +102,7 @@ class SystemHeaderSelector : public FilterSelector {
 public:
   SystemHeaderSelector() = default;
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "SystemHeaderSelector";
@@ -157,7 +157,7 @@ public:
                  IntCmpOp op, int val) : selectorName(std::move(selectorName)), fieldName(std::move(fieldName)), cmpOp(op), val(val){
   }
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return selectorName;
@@ -223,7 +223,7 @@ public:
   MinCallDepthSelector(IntCmpOp op, int val) : op(op), val(val){
   }
 
-  bool accept(const std::string &fName) override;
+  bool accept(const CGNode* fNode) override;
 
   std::string getName() override {
     return "MinCallDepthSelector";
