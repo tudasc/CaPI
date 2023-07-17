@@ -5,6 +5,8 @@ file(GLOB CAPI_FILES lulesh/*.capi)
 
 file(COPY ${LULESH_SOURCES} ${CAPI_FILES} lulesh/lulesh_full.mcg lulesh/CAPI_README DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/lulesh)
 
+file(COPY AMG2013 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 set(CC_PATH ${LLVM_BINARY_DIR}/bin/clang)
 set(CXX_PATH ${LLVM_BINARY_DIR}/bin/clang++)
