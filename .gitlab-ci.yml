@@ -108,6 +108,7 @@ capi-build-example:
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
     - make all
+    - ls $CAPI_BUILD/examples/
     - cd $CAPI_BUILD/examples/AMG2013
     - make veryclean
     - make all
