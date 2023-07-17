@@ -93,7 +93,7 @@ capi-test-selection:
     - cd $CAPI_BUILD
     - ninja capi-selection-test
 
-capi-build-example-lulesh:
+capi-build-example:
   <<: *job-setup
   stage: test
   script:
@@ -107,7 +107,4 @@ capi-build-example-lulesh:
     - module load dlb/3.3a
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
-    - make all
-    - cd $CAPI_BUILD/examples/AMG2013
-    - make veryclean
     - make all
