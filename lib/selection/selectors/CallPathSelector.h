@@ -91,7 +91,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   for (auto &fn : in) {
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
-              *fnNode, [](const CGNode & node) -> auto {
+              *fn, [](const CGNode & node) -> auto {
                 // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
                 // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
                 std::vector<const CGNode*> ancestors(node.getCallees().begin(), node.getCallees().end());
@@ -106,7 +106,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
-              *fnNode, [](const CGNode & node) -> auto {
+              *fn, [](const CGNode & node) -> auto {
                 // TODO: This could be expressed more elegantly (and probably efficiently) using ranges::concat, but this is not in the standard yet.
                 // If the current implementation proves to be a bottleneck, we can try caching a combined list of callers/callees and overriding functions.
                 std::vector<const CGNode*> predecessors(node.getCallers().begin(), node.getCallers().end());

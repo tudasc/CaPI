@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstdint>
 
 namespace {
     int call_depth{-1};

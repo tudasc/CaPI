@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
 
 using SymbolTable = std::map<std::uintptr_t, std::string>;
 

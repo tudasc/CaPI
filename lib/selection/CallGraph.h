@@ -66,9 +66,6 @@ public:
   const FunctionInfo &getFunctionInfo() const
   { return info; }
 
-  const FunctionInfo &getFunctionInfo() const
-  { return info; }
-
   const std::string &getName() const
   { return name; }
 
