@@ -142,6 +142,8 @@ extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
 extern void postXRayInit(const XRayFunctionMap &);
 
+extern void preXRayFinalize();
+
 void initXRay() XRAY_NEVER_INSTRUMENT {
 
   Timer timer("[Info] Initialization took ", std::cout);
@@ -317,12 +319,18 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
 }
 
+void finalizeXRay() XRAY_NEVER_INSTRUMENT {
+  preXRayFinalize();
+  delete globalCaPIData;
+}
+
 
 }
 
 namespace {
   struct InitXRay {
     InitXRay() XRAY_NEVER_INSTRUMENT { capi::initXRay(); }
+    ~InitXRay() XRAY_NEVER_INSTRUMENT { capi::finalizeXRay(); }
   };
 
   InitXRay _;

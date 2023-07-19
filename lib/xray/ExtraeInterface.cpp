@@ -152,4 +152,8 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   logInfo() << "XRay initialization and Extrae event registration done.\n";
 }
 
+void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
+  logInfo() << "Finalizing XRay interface for Extrae" << std::endl;
+}
+
 }

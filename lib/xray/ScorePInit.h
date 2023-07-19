@@ -21,7 +21,8 @@ void SCOREP_InitMeasurement();
 };
 
 namespace capi {
-void initScoreP(const XRayFunctionMap& xrayMap);
+void initScoreP(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT;
+void finalizeScoreP() XRAY_NEVER_INSTRUMENT;
 }
 
 #endif // CAPI_SCOREPINIT_H
