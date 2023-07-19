@@ -18,17 +18,17 @@ struct SCCData {
 };
 
 
-static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<std::vector<const CGNode*>>& sccs) {
+static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bool followVirtualCall, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<std::vector<const CGNode*>>& sccs) {
   nodeData.index = index;
   nodeData.lowlink = index;
   index++;
   nodeStack.push_back(&nodeData);
   nodeData.onStack = true;
-  for (auto& callee : nodeData.node->getCallees()) {
+  for (auto& callee : followVirtualCall ? nodeData.node->findAllCallees() : nodeData.node->getCallees()) {
     auto& calleeData = sccMap[callee];
     if (calleeData.undefined()) {
       calleeData.node = callee;
-      strongConnect(sccMap, nodeStack, index, calleeData, sccs);
+      strongConnect(sccMap, followVirtualCall, nodeStack, index, calleeData, sccs);
       nodeData.lowlink = std::min(nodeData.lowlink, calleeData.lowlink);
     } else if (calleeData.onStack) {
       nodeData.lowlink = std::min(nodeData.lowlink, calleeData.index);
@@ -49,7 +49,7 @@ static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, st
 }
 
 // Implements Tarjan's algorithm
-std::vector<std::vector<const CGNode*>> computeSCCs(const CallGraph& cg) {
+SCCAnalysisResults computeSCCs(const CallGraph& cg, bool followVirtualCalls) {
   std::vector<std::vector<const CGNode*>> sccs;
   std::unordered_map<const CGNode*, SCCData> sccMap;
   std::vector<SCCData*> nodeStack;
@@ -59,11 +59,11 @@ std::vector<std::vector<const CGNode*>> computeSCCs(const CallGraph& cg) {
     auto& nodeData = sccMap[node.get()];
     if (nodeData.undefined()) {
       nodeData.node = node.get();
-      strongConnect(sccMap, nodeStack, index, nodeData, sccs);
+      strongConnect(sccMap, followVirtualCalls, nodeStack, index, nodeData, sccs);
     }
   }
 
-  return sccs;
+  return SCCAnalysisResults(sccs);
 }
 
 }

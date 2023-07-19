@@ -113,7 +113,7 @@ bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>&
   for (auto &f : filter) {
     json fj;
     fj["name"] = f;
-    fj["isTrigger"] = std::find(triggers.begin(), triggers.end(), f) != triggers.begin();
+    fj["isTrigger"] = std::find(triggers.begin(), triggers.end(), f) != triggers.end();
     fList.push_back(fj);
   }
   os << j;

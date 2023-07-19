@@ -5,6 +5,7 @@
 #include "VerifierRT.h"
 
 #include <cstring>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <map>

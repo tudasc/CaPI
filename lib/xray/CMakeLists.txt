@@ -1,6 +1,7 @@
 
 set(CAPI_XRAY_SOURCES
         XRayRuntime.cpp
+        CallLogger.cpp
         ../symbol_retriever/SymbolRetriever.cpp
         ../selection/FunctionFilter.cpp)
 
@@ -48,6 +49,6 @@ if (ENABLE_EXTRAE)
     add_library(capixray_extrae STATIC ${CAPI_XRAY_EXTRAE_SOURCES})
     add_json(capixray_extrae)
     target_include_directories(capixray_extrae PRIVATE ${XRAY_INCLUDE_DIR} ${LLVM_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
-    target_compile_definitions(capixray_extrae PRIVATE "-DCAPI_EXTRAE_INTERFACE")
+    target_compile_definitions(capixray_extrae PRIVATE "-DCAPI_EXTRAE_INTERFACE -DWITH_MPI")
     install(TARGETS capixray_extrae ARCHIVE DESTINATION lib)
 endif()

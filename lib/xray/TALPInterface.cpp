@@ -19,7 +19,7 @@ namespace {
 
 using namespace capi;
 
-inline bool isTALPActive() {
+inline bool isTALPActive() XRAY_NEVER_INSTRUMENT {
   return DLB_MonitoringRegionGetMPIRegion() != nullptr;
 }
 
@@ -44,7 +44,7 @@ struct TalpData {
   bool talpActive{false};
   bool talpWasActive{false};
 
-  bool updateTALPState() {
+  bool updateTALPState() XRAY_NEVER_INSTRUMENT {
     if (isTALPActive()) {
       talpWasActive = true;
       talpActive = true;
@@ -54,7 +54,7 @@ struct TalpData {
     return talpActive;
   }
 
-  bool isTALPFinished() const {
+  bool isTALPFinished() const XRAY_NEVER_INSTRUMENT {
     return !talpActive && talpWasActive;
   }
 };
@@ -63,7 +63,7 @@ struct TalpData {
 TalpData* talpData{nullptr};
 bool initialized{false};
 
-inline void handle_talp_region_enter(RegionInfo &region) {
+inline void handle_talp_region_enter(RegionInfo &region) XRAY_NEVER_INSTRUMENT {
   if (!region.isInitialized()) {
     logError() << "Trying to enter unregistered region - skipping.\n";
     return;
@@ -78,7 +78,7 @@ inline void handle_talp_region_enter(RegionInfo &region) {
   }
 }
 
-inline void handle_talp_region_exit(RegionInfo &region) {
+inline void handle_talp_region_exit(RegionInfo &region) XRAY_NEVER_INSTRUMENT {
   if (!region.isInitialized()) {
     logError() << "Trying to exit unregistered region - skipping.\n";
     return;
@@ -175,10 +175,14 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
-void postXRayInit(const XRayFunctionMap& xrayMap) {
+void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
     talpData = new TalpData{xrayMap};
     initialized = true;
     logInfo() << "XRAY has been initialized, data passed to TALP handler.\n";
+}
+
+void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
+    logInfo() << "Finalizing XRay interface for TALP" << std::endl;
 }
 
 }

@@ -3,7 +3,12 @@
 // CG:
 // main -> a -> b -> c -> MPI_ISend
 //  |       \
-//  f        d -> e -> MPI_Waitall
+//  f        D1::d
+//           D2::d (overrides D1::d)
+//            \
+//             e -> MPI_Waitall
+//
+// e overrides d
 //
 // Note: This code doesn't do anything useful and is not meant to be run.
 //
@@ -23,9 +28,16 @@ void e() {
   MPI_Waitall(1, nullptr, nullptr);
 }
 
-void d() {
-  e();
-}
+struct D {
+  virtual void d() {
+  }
+};
+
+struct D2: public D {
+  void d() override {
+    e();
+  }
+};
 
 void c(float* buf) {
   MPI_Isend(buf, 1, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, nullptr);
@@ -38,7 +50,12 @@ void b(float* buf) {
 void a(int x) {
   float val = 0;
   b(&val);
-  d();
+  D* d;
+  if (x < 0)
+    d = new D;
+  else
+    d = new D2;
+  d->d();
 }
 
 int main(int argc, char** argv) {
@@ -49,11 +66,11 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: a
-// CHECK: b
-// CHECK: c
-// CHECK: d
-// CHECK: e
+// CHECK-DAG: a
+// CHECK-DAG: b
+// CHECK-DAG: c
+// CHECK-DAG: D2::d
+// CHECK-DAG: e
 // CHECK-NOT: f
 // CHECK-NOT: main
 
