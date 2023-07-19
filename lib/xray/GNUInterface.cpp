@@ -60,7 +60,7 @@ void postXRayInit(const XRayFunctionMap &xrayFuncMap) XRAY_NEVER_INSTRUMENT {
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
 #ifdef CAPI_SCOREP_INTERFACE
-      finalizeScoreP(xrayFuncMap);
+      finalizeScoreP();
 #endif
 }
 

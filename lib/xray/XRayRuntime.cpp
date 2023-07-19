@@ -306,6 +306,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   globalCaPIData->useTriggers = !globalCaPIData->triggerSet.empty();
   globalCaPIData->logCalls = logCalls;
   if (logCalls) {
+    logInfo() << "Call logging is active\n";
     globalCaPIData->logger = std::make_unique<CallLogger>(execFilename);
   }
 

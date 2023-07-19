@@ -33,6 +33,8 @@ namespace {
 
 unsigned int ExtraeXRayEvt = 31169;
 
+bool recordOutsideMPI = true;
+
 bool initialized{false};
 
 thread_local std::vector<int> callStack{};
@@ -90,11 +92,13 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 
   #ifdef WITH_MPI
-  int mpiInited = 0, mpiFinalized = 0;
-  MPI_Initialized(&mpiInited);
-  MPI_Finalized(&mpiFinalized);
-  if (!mpiInited || mpiFinalized) {
-    return;
+  if (!recordOutsideMPI) {
+    int mpiInited = 0, mpiFinalized = 0;
+    MPI_Initialized(&mpiInited);
+    MPI_Finalized(&mpiFinalized);
+    if (!mpiInited || mpiFinalized) {
+      return;
+    }
   }
   #endif
 
