@@ -23,7 +23,7 @@ public:
 
   }
 
-  ~CallLogger() {
+  ~CallLogger() XRAY_NEVER_INSTRUMENT {
     flush();
   }
 
@@ -31,6 +31,8 @@ public:
   void logExit(int depth, const XRayFunctionInfo& info) XRAY_NEVER_INSTRUMENT;
   void makeLogEntry(int depth, std::string_view type,
                            const capi::XRayFunctionInfo &info) XRAY_NEVER_INSTRUMENT;
+
+  void determineLogfile() XRAY_NEVER_INSTRUMENT;
 
   void flush() XRAY_NEVER_INSTRUMENT;
 };
