@@ -8,7 +8,9 @@
 #include <string>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
+#include <memory>
 
 #include "xray/xray_interface.h"
 
@@ -17,7 +19,7 @@
 
 namespace capi {
 
-using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
+class CallLogger;
 
 struct XRayFunctionInfo {
   int functionId{0};
@@ -26,7 +28,20 @@ struct XRayFunctionInfo {
   uint64_t addr{0};
 };
 
+
 using XRayFunctionMap = std::unordered_map<int, XRayFunctionInfo>;
+
+struct GlobalCaPIData {
+  XRayFunctionMap xrayFuncMap;
+  std::unordered_set<int32_t> triggerSet;
+  bool useTriggers{false};
+  bool logCalls;
+  std::unique_ptr<CallLogger> logger;
+};
+
+using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
+
+
 
 void initXRay();
 

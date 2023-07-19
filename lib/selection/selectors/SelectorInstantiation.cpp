@@ -6,6 +6,7 @@
 #include "CallPathSelector.h"
 #include "SetOperations.h"
 #include "ContextSelector.h"
+#include "ContextSelector2.h"
 #include "SelectorRegistry.h"
 
 namespace  {
@@ -134,6 +135,8 @@ RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector
 
 // ContextSelector
 RegisterSelector callContextSelector("callContext", createSimpleSelector<ContextSelector>);
+RegisterSelector callContextSelector2("callContext2", createSimpleSelector<ContextSelector2>);
+
 
 }
 

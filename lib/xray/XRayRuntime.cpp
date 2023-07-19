@@ -6,10 +6,12 @@
 #include "../Utils.h"
 #include "../selection/FunctionFilter.h"
 #include "SymbolRetriever.h"
+#include "CallLogger.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
@@ -22,14 +24,10 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/Demangle/Demangle.h"
 
-
-#ifndef USE_MPI
-#define USE_MPI false
-#endif
-
-#if USE_MPI
+#ifdef WITH_MPI
 #include <mpi.h>
 #endif
+
 
 namespace capi {
 
@@ -131,34 +129,51 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
 
     xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
 
-
-
   }
 
   return xrayIdMap;
 
 }
 
+// Stored behind a pointer to avoid initialization order problems.
+capi::GlobalCaPIData* globalCaPIData;
+
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
 extern void postXRayInit(const XRayFunctionMap &);
+
+extern void preXRayFinalize();
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
 
   Timer timer("[Info] Initialization took ", std::cout);
 
   bool shouldInit{false};
+  bool logCalls{false};
 
   auto enableEnv = std::getenv("CAPI_ENABLE");
   if (enableEnv) {
     shouldInit = true;
   }
 
+  auto logCallsEnv = std::getenv("CAPI_LOG_CALLS");
+  if (logCallsEnv) {
+    logCalls = true;
+  }
+
+
   bool noFilter{true};
   FunctionFilter filter;
+  std::vector<std::string> triggers;
   auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
   if (filterEnv) {
-    if (readScorePFilterFile(filter, filterEnv)) {
+    bool success{false};
+    if (0 == strncmp( filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
+      success = readJSONFilterFile(filter, triggers, filterEnv);
+    } else {
+      success = readScorePFilterFile(filter, filterEnv);
+    }
+    if (success) {
       logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
       noFilter = false;
       shouldInit = true;
@@ -166,6 +181,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       logError() << "Failed to read filter file from " << filterEnv << "\n";
       return;
     }
+
   } else {
     logInfo() << "No CaPI filtering file specified.\n";
   }
@@ -174,6 +190,8 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     logInfo() << "CaPI is inactive. Pass CAPI_FILTERING_FILE or set CAPI_ENABLE=1 if you want to active instrumentation.\n";
     return;
   }
+
+  globalCaPIData = new GlobalCaPIData;
 
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
@@ -254,6 +272,10 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         continue;
       }
 
+      if (std::find(triggers.begin(), triggers.end(), fInfo.name) != triggers.end()) {
+        globalCaPIData->triggerSet.insert(fid);
+      }
+
       auto patchStatus = __xray_patch_function_in_object(fid, objId);
       if (patchStatus == SUCCESS) {
         //logInfo() << "Patched function " << std::hex << addr << std::dec << ": id=" << fid << ", name=" << it->second << "\n";
@@ -280,19 +302,36 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     }
   }
 
+  globalCaPIData->xrayFuncMap = xrayMap;
+  globalCaPIData->useTriggers = !globalCaPIData->triggerSet.empty();
+  globalCaPIData->logCalls = logCalls;
+  if (logCalls) {
+    logInfo() << "Call logging is active\n";
+    globalCaPIData->logger = std::make_unique<CallLogger>(execFilename);
+  }
+
   logInfo() << "Functions found: " << numFound << "\n";
   //logInfo() << "Functions registered: " << numInserted << "\n";
   logInfo() << "Functions patched: " << numPatched << " (" << numFailed << " failed)\n";
 
+
+  // TODO: Since the map is now in the global data, there is no need to pass it.
   postXRayInit(xrayMap);
 
 }
+
+void finalizeXRay() XRAY_NEVER_INSTRUMENT {
+  preXRayFinalize();
+  delete globalCaPIData;
+}
+
 
 }
 
 namespace {
   struct InitXRay {
     InitXRay() XRAY_NEVER_INSTRUMENT { capi::initXRay(); }
+    ~InitXRay() XRAY_NEVER_INSTRUMENT { capi::finalizeXRay(); }
   };
 
   InitXRay _;
