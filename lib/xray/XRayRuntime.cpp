@@ -198,11 +198,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   auto symTables = loadMappedSymTables(execPath);
 
-//  logInfo() << "Loading XRay IDs...\n";
-//  loadXRayIDs(execPath);
-
   size_t numFound = 0;
-  //size_t numInserted = 0;
   size_t numPatched = 0;
   size_t numFailed = 0;
 
@@ -212,19 +208,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   size_t numObjects = __xray_num_objects();
 
   XRayFunctionMap xrayMap;
-
-//  for (auto&& [startAddr, table] : symTables) {
-//    for (auto&& [addr, symName] : table.table) {
-//      auto addrInProc = mapAddrToProc(addr, table);
-//      if (noFilter || filter.accepts(symName)) {
-//        globalTable[addrInProc] = symName;
-//        ++numInserted;
-//      } else {
-//        filteredOut.insert(addrInProc);
-//      }
-//      ++numFound;
-//    }
-//  }
 
   __xray_init();
   __xray_set_handler(handleXRayEvent);
@@ -254,14 +237,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     numFound += funcInfoMap.size();
 
     for (int fid = 1; fid <= maxFID; ++fid) {
-      //uintptr_t addr = __xray_function_address_in_object(fid, objId);
-//      if (!addr) {
-//        logError() << "Unable to determine address for function " << fid << "\n";
-//        continue;
-//      }
-//      if (filteredOut.find(addr) != filteredOut.end()) {
-//        continue;
-//      }
+
       auto fIt = funcInfoMap.find(fid);
       if (fIt == funcInfoMap.end()) {
         logError() << "Unable to determine symbol for function " << fid << "\n";
@@ -272,33 +248,19 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         continue;
       }
 
-      if (std::find(triggers.begin(), triggers.end(), fInfo.name) != triggers.end()) {
-        globalCaPIData->triggerSet.insert(fid);
-      }
-
       auto patchStatus = __xray_patch_function_in_object(fid, objId);
       if (patchStatus == SUCCESS) {
-        //logInfo() << "Patched function " << std::hex << addr << std::dec << ": id=" << fid << ", name=" << it->second << "\n";
-        xrayMap[__xray_pack_id(fid, objId)] = fInfo;
+        auto packedId = __xray_pack_id(fid, objId);
+        xrayMap[packedId] = fInfo;
+        if (std::find(triggers.begin(), triggers.end(), fInfo.name) != triggers.end()) {
+          globalCaPIData->triggerSet.insert(packedId);
+        }
         numPatched++;
       } else {
         logError() << "XRay patching failed: object=" << objId << ", fid=" << fid << ", name=" << fInfo.name << "\n";
         numFailed++;
       }
 
-//      if (auto it = globalTable.find(addr); it != globalTable.end()) {
-//        auto patchStatus = __xray_patch_function_in_object(fid, objId);
-//        if (patchStatus == SUCCESS) {
-//          //logInfo() << "Patched function " << std::hex << addr << std::dec << ": id=" << fid << ", name=" << it->second << "\n";
-//          numPatched++;
-//        } else {
-//          logError() << "XRay patching at " << std::hex << addr << std::dec << " failed: object=" << objId << ", fid=" << fid << ", name=" << it->second << "\n";
-//          numFailed++;
-//        }
-//      } else {
-//        logError() << "Unable to find symbol for patchable function: object=" << objId << ", fid=" << fid << ", addr=" << std::hex << addr << std::dec << "\n";
-//        numFailed++;
-//      }
     }
   }
 
@@ -311,7 +273,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   }
 
   logInfo() << "Functions found: " << numFound << "\n";
-  //logInfo() << "Functions registered: " << numInserted << "\n";
   logInfo() << "Functions patched: " << numPatched << " (" << numFailed << " failed)\n";
 
 
