@@ -26,7 +26,7 @@ HYPRE_DIRS =\
  struct_mv\
  sstruct_mv\
  test
-capi_lib=""
+capi_lib="all"
 
 all:
 	@ \
