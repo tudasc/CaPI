@@ -64,6 +64,10 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
 
+function(add_version_include target)
+  target_include_directories(${target} PUBLIC "${PROJECT_BINARY_DIR}")
+endfunction()
+
 function(target_project_compile_options target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
 

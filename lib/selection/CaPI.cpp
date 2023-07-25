@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "capi_version.h"
 #include "CallGraph.h"
 #include "DOTWriter.h"
 #include "FunctionFilter.h"
@@ -170,6 +171,9 @@ std::string getPreset(SelectionPreset preset) {
 }
 
 int main(int argc, char **argv) {
+
+  std::cout << "CaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << "\n";
+  std::cout << "Git revision: " << CAPI_GIT_SHA1 << "\n";
 
   if (argc < 3) {
     std::cerr << "Missing input arguments.\n";

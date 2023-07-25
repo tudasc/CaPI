@@ -19,5 +19,6 @@ add_executable(capi ${SOURCES})
 target_include_directories(capi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)
 target_link_libraries(capi PRIVATE symbol_retriever)
 add_json(capi)
+add_version_include(capi)
 
 install(TARGETS capi RUNTIME DESTINATION bin)
