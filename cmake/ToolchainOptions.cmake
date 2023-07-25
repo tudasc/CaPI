@@ -4,6 +4,9 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 #find_package(Clang REQUIRED CONFIG)
 #message(STATUS "Found Clang ${CLANG_PACKAGE_VERSION}")
 
+find_package(MPI REQUIRED)
+message(STATUS "Found MPI ${MPI_C_VERSION}")
+
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
 include(FetchContent)
