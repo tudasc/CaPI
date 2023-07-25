@@ -35,3 +35,12 @@ if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(test)
 endif()
+
+
+include(GetGitRevisionDescription)
+
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+if(NOT DEFINED GIT_SHA1)
+    set(GIT_SHA1 "NO_GIT_ROOT")
+endif()
+configure_file(capi_version.h.in capi_version.h)
