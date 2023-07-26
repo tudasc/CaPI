@@ -10,6 +10,9 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <cctype>
 
 namespace capi {
 
@@ -21,6 +24,22 @@ MetaCGReader::getOrInsert(const std::string &key) {
   } else {
     FunctionInfo fi;
     fi.name = key;
+
+    /*std::string demangleCommand = "llvm-cxxfilt ";
+    FILE* pipe = popen(demangleCommand.append(key).c_str(), "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to open pipe\n";
+    }
+    char buffer[256];
+    while (!feof(pipe)) {
+        if (fgets(buffer, 256, pipe) != nullptr) {
+            fi.demangledName += buffer;
+        }
+    }
+    pclose(pipe);
+
+    std::cout << fi.demangledName << "\n";*/
+
     functions.insert({key, fi});
     auto &rfi = functions[key];
     return rfi;
@@ -56,8 +75,12 @@ bool MetaCGReader::read() {
     return false;
   }
 
+  std::ofstream tmpMangledNamesFileOut("tmpMangledNames.txt");
+
   for (auto it = jsonCG.begin(); it != jsonCG.end(); ++it) {
     auto &fi = getOrInsert(it.key());
+
+    tmpMangledNamesFileOut << it.key() << "\n";
 
     auto jCallees = it.value()["callees"];
     if (!jCallees.is_null()) {
@@ -117,6 +140,28 @@ bool MetaCGReader::read() {
       }
     }
   }
+  tmpMangledNamesFileOut.close();
+
+  std::system("(llvm-cxxfilt < tmpMangledNames.txt) > tmpDemangledNames.txt");
+  std::string mangledName, demangledName;
+  std::ifstream tmpMangledNamesFileIn("tmpMangledNames.txt");
+  std::ifstream tmpDemangledNamesFileIn("tmpDemangledNames.txt");
+
+  while (std::getline(tmpMangledNamesFileIn, mangledName))
+  {
+     std::getline(tmpDemangledNamesFileIn, demangledName);
+
+     demangledName.erase(std::remove_if(demangledName.begin(), demangledName.end(), [](unsigned char x) { return std::isspace(x); }), demangledName.end());
+
+     functions.at(mangledName).demangledName = demangledName;
+     //std::cout << demangledName << "\n";
+  }
+
+  tmpMangledNamesFileIn.close();
+  tmpDemangledNamesFileIn.close();
+  std::remove("tmpMangledNames.txt");
+  std::remove("tmpDemangledNames.txt");
+
   return true;
 }
 }

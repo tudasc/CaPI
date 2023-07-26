@@ -62,9 +62,18 @@ public:
 
 class NameSelector : public FilterSelector {
   std::regex nameRegex;
+  bool isMangled;
 
 public:
-  NameSelector(std::string regexStr): nameRegex(regexStr) {}
+  NameSelector(std::string regexStr) {
+    if (regexStr[0] == '@') {
+      isMangled = true;
+      nameRegex = regexStr.substr(1, regexStr.size());
+    } else {
+      isMangled = false;
+      nameRegex = regexStr;
+    }
+  }
 
   bool accept(const CGNode* fNode) override;
 

@@ -16,7 +16,11 @@ bool ExcludeListSelector::accept(const CGNode* fNode) {
 
 bool NameSelector::accept(const CGNode* fNode) {
   std::smatch nameMatch;
-  bool matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
+  bool matches;
+  if (isMangled)
+    matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
+  else
+    matches = std::regex_match(fNode->getFunctionInfo().demangledName, nameMatch, nameRegex);
   //    if (!matches)
   //       std::cout << fName << " does not match "  << "\n";
   //    else
