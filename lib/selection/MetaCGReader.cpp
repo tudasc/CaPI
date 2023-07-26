@@ -24,22 +24,6 @@ MetaCGReader::getOrInsert(const std::string &key) {
   } else {
     FunctionInfo fi;
     fi.name = key;
-
-    /*std::string demangleCommand = "llvm-cxxfilt ";
-    FILE* pipe = popen(demangleCommand.append(key).c_str(), "r");
-    if (!pipe) {
-        std::cerr << "Error: Failed to open pipe\n";
-    }
-    char buffer[256];
-    while (!feof(pipe)) {
-        if (fgets(buffer, 256, pipe) != nullptr) {
-            fi.demangledName += buffer;
-        }
-    }
-    pclose(pipe);
-
-    std::cout << fi.demangledName << "\n";*/
-
     functions.insert({key, fi});
     auto &rfi = functions[key];
     return rfi;
@@ -143,10 +127,11 @@ bool MetaCGReader::read() {
   tmpMangledNamesFileOut.close();
 
   std::system("(llvm-cxxfilt < tmpMangledNames.txt) > tmpDemangledNames.txt");
-  std::string mangledName, demangledName;
+
   std::ifstream tmpMangledNamesFileIn("tmpMangledNames.txt");
   std::ifstream tmpDemangledNamesFileIn("tmpDemangledNames.txt");
 
+  std::string mangledName, demangledName;
   while (std::getline(tmpMangledNamesFileIn, mangledName))
   {
      std::getline(tmpDemangledNamesFileIn, demangledName);
@@ -154,7 +139,6 @@ bool MetaCGReader::read() {
      demangledName.erase(std::remove_if(demangledName.begin(), demangledName.end(), [](unsigned char x) { return std::isspace(x); }), demangledName.end());
 
      functions.at(mangledName).demangledName = demangledName;
-     //std::cout << demangledName << "\n";
   }
 
   tmpMangledNamesFileIn.close();
