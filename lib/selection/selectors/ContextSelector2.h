@@ -11,9 +11,10 @@ namespace capi {
 
 class ContextSelector2 : public Selector {
   CallGraph *cg{nullptr};
+  int maxLCADist;
 
 public:
-  ContextSelector2() = default;
+  explicit ContextSelector2(int maxLCADist) : maxLCADist(maxLCADist) {};
 
   void init(CallGraph &cg) override {
     this->cg = &cg;

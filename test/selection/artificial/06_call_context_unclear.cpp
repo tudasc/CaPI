@@ -1,6 +1,6 @@
 // clang-format off
 //
-// This case has two distinct relevant calling contexts.
+// This case has two distinct relevant common ancestors.
 // See 06_call_context_unclear.svg for the CG.
 //
 // Note: This code doesn't do anything useful and is not meant to be run.
@@ -9,6 +9,9 @@
 //
 // RUN: infile="%s"; timeout 10s %capi -i 'callContext2(byName("_Z1bv", %%%%), byName("_Z1dv", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
+//
+// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(1, byName("_Z1bv", %%%%), byName("_Z1dv", %%%%))  ' -o %s_dist1.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_dist1.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST1 %s
 //
 // clang-format on
 
@@ -36,3 +39,13 @@ int main(int argc, char** argv) {
 // CHECK-NOT: main
 // CHECK-NOT: MPI_1
 // CHECK-NOT: MPI_2
+
+// MAX-DIST1: a
+// MAX-DIST1: b
+// MAX-DIST1: c
+// MAX-DIST1: d
+// MAX-DIST1: e
+// MAX-DIST1: main
+// MAX-DIST1-NOT: MPI_1
+// MAX-DIST1-NOT: MPI_2
+
