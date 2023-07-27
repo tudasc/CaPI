@@ -39,10 +39,10 @@ CGNode *CallGraph::get(const std::string &name)
 //    for (auto& callee : )
 //}
 
-void CallGraph::addCallee(CGNode &parent, CGNode &child)
+void CallGraph::addCallee(CGNode &parent, CGNode &child, bool isVirtual)
 {
-  parent.addCallee(&child);
-  child.addCaller(&parent);
+  parent.addCallee(&child, isVirtual);
+  child.addCaller(&parent, isVirtual);
 }
 
 void CallGraph::removeCallee(CGNode &parent, CGNode &child)
@@ -67,10 +67,12 @@ std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap)
   for (auto &[name, info] : fInfoMap) {
     auto &node = cg->getOrCreate(name);
     node.setFunctionInfo(info);
+    auto& vCalls = info.virtualCalls;
     std::for_each(info.callees.begin(), info.callees.end(),
-                  [&cg, &node](const std::string& callee) {
+                  [&cg, &node, &vCalls](const std::string& callee) {
                     auto &calleeNode = cg->getOrCreate(callee);
-                    cg->addCallee(node, calleeNode);
+                    bool isVirtual = std::find(vCalls.begin(), vCalls.end(), callee) != vCalls.end();
+                    cg->addCallee(node, calleeNode, isVirtual);
                   });
     std::for_each(info.overrides.begin(), info.overrides.end(),
         [&cg, &node](const std::string& overridesName) {

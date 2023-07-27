@@ -122,6 +122,12 @@ bool MetaCGReader::read() {
       if (jInlined.is_boolean()) {
         fi.isInlined = jInlined.get<bool>();
       }
+      auto jVCalls = jMeta["virtualCalls"];
+      if (!jVCalls.is_null()) {
+        std::for_each(jVCalls.begin(), jVCalls.end(), [&fi](auto &jVCallName) {
+          fi.virtualCalls.push_back(jVCallName.template get<std::string>());
+        });
+      }
     }
   }
   tmpMangledNamesFileOut.close();

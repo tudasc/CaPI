@@ -48,6 +48,8 @@ class CGNode
   std::vector<CGNode *> callees;
   std::vector<CGNode *> overrides;
   std::vector<CGNode *> overriddenBy;
+  std::vector<CGNode *> virtualCalls;
+  std::vector<CGNode *> virtualCalledBy;
   FunctionInfo info;
   bool destructor;
 
@@ -93,25 +95,33 @@ public:
     return destructor;
   }
 
-  void addCallee(CGNode *callee) {
+  void addCallee(CGNode *callee, bool isVirtual) {
     callees.push_back(callee);
+    if (isVirtual)
+      virtualCalls.push_back(callee);
     calleesChanged = true;
   }
 
   void removeCallee(CGNode *callee) {
     callees.erase(std::remove(callees.begin(), callees.end(), callee),
                   callees.end());
+    virtualCalls.erase(std::remove(virtualCalls.begin(), virtualCalls.end(), callee),
+                  virtualCalls.end());
     calleesChanged = true;
   }
 
-  void addCaller(CGNode *caller) {
+  void addCaller(CGNode *caller, bool isVirtual) {
     callers.push_back(caller);
+    if (isVirtual)
+      virtualCalledBy.push_back(caller);
     callersChanged = true;
   }
 
   void removeCaller(CGNode *caller) {
     callers.erase(std::remove(callers.begin(), callers.end(), caller),
                   callers.end());
+    virtualCalledBy.erase(std::remove(virtualCalledBy.begin(), virtualCalledBy.end(), caller),
+                       virtualCalledBy.end());
     callersChanged = true;
   }
 
@@ -226,8 +236,8 @@ private:
     if (traverseVirtualDtors || !isDestructor()) {
       for(const auto *overrides: findAllOverrides()) {
         allCallers.insert(allCallers.end(),
-                            overrides->getCallers().begin(),
-                            overrides->getCallers().end());
+                            overrides->virtualCalledBy.begin(),
+                            overrides->virtualCalledBy.end());
       }
     }
   }
@@ -238,7 +248,7 @@ private:
     }
     allCallees.clear();
     allCallees.insert(allCallees.end(), callees.begin(), callees.end());
-    for (const auto* callee: callees) {
+    for (const auto* callee: virtualCalls) {
       if (!traverseVirtualDtors && callee->isDestructor()) {
         continue;
       }
@@ -277,7 +287,7 @@ public:
 
   //    bool deleteNode(const std::string& name);
 
-  void addCallee(CGNode &parent, CGNode &child);
+  void addCallee(CGNode &parent, CGNode &child, bool isVirtual);
 
   void removeCallee(CGNode &parent, CGNode &child);
 
