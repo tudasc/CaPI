@@ -3,14 +3,20 @@
 //
 // RUN: infile="%s"; %capi -i 'byName(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
 //
-// RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'byName("(main)|(a)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
 //
-// RUN: infile="%s"; %capi -i 'byName("(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'byName("@(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-MANGLED
+//
+// RUN: infile="%s"; %capi -i 'byName("(main)|(a)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
 // RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON
 //
-// RUN: infile="%s"; %capi -i 'byName("^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg
-// RUN: cat %s_name2.filt | c++filt | sort | %filecheck %s -check-prefix=NAME2
+// RUN: infile="%s"; %capi -i 'byName("@(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON-MANGLED
+//
+// RUN: infile="%s"; %capi -i 'byName("@^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_name2.filt | c++filt | sort | %filecheck %s -check-prefix=NAME2-MANGLED
 //
 // RUN: infile="%s"; %capi -i 'loopDepth(">=", 1, %%%%)' -o %s_loop.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_loop.filt | c++filt | sort | %filecheck %s -check-prefix=LOOP
@@ -78,15 +84,25 @@ int main(int argc, char** argv) {
 // NAME-NOT: c
 // NAME: main
 
+// NAME-MANGLED: a
+// NAME-MANGLED-NOT: b
+// NAME-MANGLED-NOT: c
+// NAME-MANGLED: main
+
 // NAME-JSON: a
 // NAME-JSON-NOT: b
 // NAME-JSON-NOT: c
 // NAME-JSON: main
 
-// NAME2-NOT: a
-// NAME2-NOT: b
-// NAME2-NOT: c
-// NAME2: main
+// NAME-JSON-MANGLED: a
+// NAME-JSON-MANGLED-NOT: b
+// NAME-JSON-MANGLED-NOT: c
+// NAME-JSON-MANGLED: main
+
+// NAME2-MANGLED-NOT: a
+// NAME2-MANGLED-NOT: b
+// NAME2-MANGLED-NOT: c
+// NAME2-MANGLED: main
 
 // LOOP: a
 // LOOP: b

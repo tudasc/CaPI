@@ -17,6 +17,7 @@ namespace capi {
 struct FunctionInfo
 {
   std::string name;
+  std::string demangledName;
 
   std::vector<std::string> callees;
   std::vector<std::string> callers;
