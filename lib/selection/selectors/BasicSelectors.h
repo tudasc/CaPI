@@ -71,7 +71,11 @@ public:
       nameRegex = regexStr.substr(1, regexStr.size());
     } else {
       isMangled = false;
-      nameRegex = regexStr;
+      std::string::size_type paramStartPos = regexStr.find('(');
+      if (paramStartPos != std::string::npos)
+        nameRegex = regexStr.substr(0, paramStartPos);
+      else
+        nameRegex = regexStr;
     }
   }
 
