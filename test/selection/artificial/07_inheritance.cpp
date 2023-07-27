@@ -4,8 +4,11 @@
 // RUN: infile="%s"; %capi -i 'onCallPathFrom(byName("main", %%%%))' -o %s_down.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_down.filt | c++filt | sort | %filecheck %s -check-prefix=DOWN
 //
-// RUN: infile="%s"; %capi -i 'onCallPathTo(byName("_ZN1C3fooEv", %%%%))' -o %s_up.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'onCallPathTo(byName("C::foo", %%%%))' -o %s_up.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_up.filt | c++filt | sort | %filecheck %s -check-prefix=UP
+//
+// RUN: infile="%s"; %capi -i 'onCallPathTo(byName("@_ZN1C3fooEv", %%%%))' -o %s_up.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_up.filt | c++filt | sort | %filecheck %s -check-prefix=UP-MANGLED
 //
 // clang-format on
 
@@ -37,3 +40,8 @@ int main(int argc, char** argv) {
 // UP-NOT: B::foo
 // UP: C::foo
 // UP: main
+
+// UP-MANGLED-NOT: A::foo
+// UP-MANGLED-NOT: B::foo
+// UP-MANGLED: C::foo
+// UP-MANGLED: main

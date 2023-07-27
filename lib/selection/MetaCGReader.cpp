@@ -10,6 +10,9 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <cctype>
 
 namespace capi {
 
@@ -56,8 +59,12 @@ bool MetaCGReader::read() {
     return false;
   }
 
+  std::ofstream tmpMangledNamesFileOut("tmpMangledNames.txt");
+
   for (auto it = jsonCG.begin(); it != jsonCG.end(); ++it) {
     auto &fi = getOrInsert(it.key());
+
+    tmpMangledNamesFileOut << it.key() << "\n";
 
     auto jCallees = it.value()["callees"];
     if (!jCallees.is_null()) {
@@ -117,6 +124,28 @@ bool MetaCGReader::read() {
       }
     }
   }
+  tmpMangledNamesFileOut.close();
+
+  std::system("(llvm-cxxfilt < tmpMangledNames.txt) > tmpDemangledNames.txt");
+
+  std::ifstream tmpMangledNamesFileIn("tmpMangledNames.txt");
+  std::ifstream tmpDemangledNamesFileIn("tmpDemangledNames.txt");
+
+  std::string mangledName, demangledName;
+  while (std::getline(tmpMangledNamesFileIn, mangledName))
+  {
+     std::getline(tmpDemangledNamesFileIn, demangledName);
+
+     demangledName.erase(std::remove_if(demangledName.begin(), demangledName.end(), [](unsigned char x) { return std::isspace(x); }), demangledName.end());
+
+     functions.at(mangledName).demangledName = demangledName;
+  }
+
+  tmpMangledNamesFileIn.close();
+  tmpDemangledNamesFileIn.close();
+  std::remove("tmpMangledNames.txt");
+  std::remove("tmpDemangledNames.txt");
+
   return true;
 }
 }
