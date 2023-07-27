@@ -41,16 +41,14 @@ DereferenceIterator<Iterator> dereference_iterator(Iterator t)
   return DereferenceIterator<Iterator>(t);
 }
 
-inline std::ostream &logInfo()
-{
+inline std::ostream &logInfo() {
   return std::cout << "[Info] ";
 }
 
-
-inline std::ostream &logError()
-{
+inline std::ostream &logError() {
   return std::cerr << "[Error] ";
 }
+
 
 class Timer {
   using clock = std::chrono::steady_clock;

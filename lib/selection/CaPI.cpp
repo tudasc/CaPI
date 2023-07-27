@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "capi_version.h"
 #include "CallGraph.h"
 #include "DOTWriter.h"
 #include "FunctionFilter.h"
@@ -20,6 +21,10 @@
 #include "SymbolRetriever.h"
 
 using namespace capi;
+
+namespace capi {
+  bool traverseVirtualDtors{false};
+}
 
 namespace {
 
@@ -34,13 +39,14 @@ void printHelp() {
   std::cout
       << " -i <specstr>   Parse the selection spec from the given string.\n";
   std::cout
-      << " --write-dot  Write a dotfile of the selected call-graph subset.\n";
+      << " --write-dot <file>  Write a dotfile of the selected call-graph subset.\n";
   std::cout
       << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
   std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default), \"json\" and \"simple\"\n";
   std::cout
       << " --debug  Enable debugging mode.\n";
   std::cout << " --print-scc-stats  Prints information about the strongly connected components (SCCs) of this call graph.\n";
+  std::cout << " --traverse-virtual-dtors Enable traversal of virtual destructors, which may lead to an over-approximation of the function set.\n";
 }
 
 enum class InputMode { PRESET, FILE, STRING };
@@ -70,7 +76,7 @@ std::string loadFromFile(std::string_view filename) {
   if (filename.empty()) {
     std::cerr << "Need to specify either a preset or pass a selection file.\n";
     printHelp();
-    return nullptr;
+    return {};
   }
 
   std::ifstream in(std::string{filename});
@@ -166,6 +172,9 @@ std::string getPreset(SelectionPreset preset) {
 
 int main(int argc, char **argv) {
 
+  std::cout << "CaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << "\n";
+  std::cout << "Git revision: " << CAPI_GIT_SHA1 << "\n";
+
   if (argc < 3) {
     std::cerr << "Missing input arguments.\n";
     printHelp();
@@ -173,6 +182,7 @@ int main(int argc, char **argv) {
   }
 
   bool shouldWriteDOT{false};
+  std::string dotFile;
   bool replaceInlined{false};
   std::string cgfile, specfile;
   std::string execFile;
@@ -192,6 +202,12 @@ int main(int argc, char **argv) {
         auto option = arg.substr(2);
         if (option == "write-dot") {
           shouldWriteDOT = true;
+          if (++i >= argc) {
+            std::cerr << "Need to pass a name for the output dot file. \n";
+            printHelp();
+            return EXIT_FAILURE;
+          }
+          dotFile = argv[i];
         } else if (option == "debug") {
           debugMode = true;
         } else if (option == "replace-inlined") {
@@ -222,10 +238,12 @@ int main(int argc, char **argv) {
           }
         } else if (option == "print-scc-stats") {
           printSCCStats = true;
+        } else if (option == "traverse-virtual-dtors") {
+          traverseVirtualDtors = true;
         } else {
-          std::cerr << "Invalid parameter --" << option << "\n";
-          printHelp();
-          return EXIT_FAILURE;
+            std::cerr << "Invalid parameter --" << option << "\n";
+            printHelp();
+            return EXIT_FAILURE;
         }
       } else {
         auto option = arg.substr(1);
@@ -342,16 +360,16 @@ int main(int argc, char **argv) {
 
   std::cout << "Running graph analysis...\n";
 
-  decltype(computeSCCs(*cg)) sccs;
+  decltype(computeSCCs(*cg, true)) sccResults;
   {
     Timer sccTimer("SCC Analysis took ", std::cout);
-    sccs = std::move(computeSCCs(*cg));
+    sccResults = std::move(computeSCCs(*cg, true));
   }
   if (printSCCStats) {
-    auto largestSCC = std::max_element(sccs.begin(), sccs.end(), [](const auto& sccA, const auto& sccB) {return sccA.size() < sccB.size();});
+    auto largestSCC = std::max_element(sccResults.sccs.begin(), sccResults.sccs.end(), [](const auto& sccA, const auto& sccB) {return sccA.size() < sccB.size();});
     int numLargerOne = 0;
     int numLargerTwo = 0;
-    for(const auto& scc : sccs) {
+    for(const auto& scc : sccResults.sccs) {
       if (scc.size() > 1) {
          numLargerOne++;
          if (scc.size() > 2) {
@@ -359,7 +377,7 @@ int main(int argc, char **argv) {
          }
       }
     }
-    std::cout << "Number of SCCs: " << sccs.size() << "\n";
+    std::cout << "Number of SCCs: " << sccResults.size() << "\n";
     std::cout << "Largest SCC: " << largestSCC->size() << "\n";
     std::cout << "Number of SCCs containing more than 1 node: " << numLargerOne << "\n";
     std::cout << "Number of SCCs containing more than 2 nodes: " << numLargerTwo << "\n";
@@ -418,9 +436,11 @@ int main(int argc, char **argv) {
   }
 
   if (shouldWriteDOT) {
-    std::ofstream os("cg.dot");
+    std::ofstream os(dotFile);
     if (os.is_open()) {
       writeDOT(*cg, afterPostProcessing, os);
+    } else {
+      logError() << "Could not write DOT file to '" << dotFile << "'.\n";
     }
   }
 

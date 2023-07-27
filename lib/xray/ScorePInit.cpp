@@ -34,4 +34,7 @@ void initScoreP(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
 
 }
 
+void finalizeScoreP() XRAY_NEVER_INSTRUMENT {
+}
+
 }

@@ -1,0 +1,12 @@
+//
+// Created by sebastian on 25.07.23.
+//
+
+#ifndef CAPI_CAPI_VERSION_H
+#define CAPI_CAPI_VERSION_H
+
+#define CAPI_VERSION_MAJOR @capi_VERSION_MAJOR@
+#define CAPI_VERSION_MINOR @capi_VERSION_MINOR@
+#define CAPI_GIT_SHA1 "@GIT_SHA1@"
+
+#endif // CAPI_CAPI_VERSION_H

@@ -4,6 +4,9 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 #find_package(Clang REQUIRED CONFIG)
 #message(STATUS "Found Clang ${CLANG_PACKAGE_VERSION}")
 
+find_package(MPI REQUIRED)
+message(STATUS "Found MPI ${MPI_C_VERSION}")
+
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
 include(FetchContent)
@@ -60,6 +63,10 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${capi_SOURCE_DIR}/install/capi" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
+
+function(add_version_include target)
+  target_include_directories(${target} PUBLIC "${PROJECT_BINARY_DIR}")
+endfunction()
 
 function(target_project_compile_options target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
