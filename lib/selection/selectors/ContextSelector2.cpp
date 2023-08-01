@@ -89,16 +89,9 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     auto nodeData = workQueue.front();
     workQueue.pop_front();
 
-    std::cout << "Working on " << *nodeData << "\n";
+    //std::cout << "Working on " << *nodeData << "\n";
 
     for (auto& caller : nodeData->node->findAllCallers()) {
-
-      // TODO: Use shrinking mechanism
-      //auto callerSCCSize = sccResults.getSCCSize(*caller);
-      //if (callerSCCSize > 1)  {
-      //  std::cout << "Caller is in SCC of size " << callerSCCSize << ": " << caller->getName() << " - skipping...\n";
-      //  continue;
-      //}
 
       auto& callerData = nodeDataMap[caller];
       bool relaxCaller{false};
@@ -106,7 +99,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
       if (!callerData.node) {
         callerData.node = caller;
       }
-      std::cout << "Caller: " << callerData << "\n";
+      //std::cout << "Caller: " << callerData << "\n";
 
       if (callerData.node == nodeData->node) {
         continue;
@@ -140,14 +133,28 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 //      }
 
       if (relaxCaller) {
-        std::cout << "Entering in queue after update " << callerData << "\n";
+        //std::cout << "Entering in queue after update " << callerData << "\n";
         if (callerData.isCA()) {
-          std::cout << "Caller is common ancestor\n";
+          //std::cout << "Caller is common ancestor\n";
           addToSet(commonAncestors, &callerData);
           if (!nodeData->isLCA && !nodeData->isCA()) {
             callerData.isLCA = true;
             std::cout << "Found potential LCA: " << callerData.node->getName() << "\n";
           }
+
+//          // TODO: Use shrinking mechanism
+//          auto scc = sccResults.getSCC(*caller);
+//          auto callerSCCSize = scc->size();
+//          if (callerSCCSize > 1) {
+//            std::cout << "Caller is CA and in SCC of size " << callerSCCSize << ": "
+//                      << caller->getName() << " - skipping...\n";
+////            FunctionSet out;
+////            for (auto &node : *scc) {
+////              addToSet(out, node);
+////            }
+////            return out;
+//          }
+
 //          if (nodeData->lcaDist < 0) {
 //            callerData.lcaDist = 0;
 //          }
@@ -165,6 +172,14 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
   for (auto& ca : commonAncestors) {
     if (ca->isLCA) {
+      // Ignore CAs in cycles
+      auto scc = sccResults.getSCC(*ca->node);
+      auto callerSCCSize = scc->size();
+      if (callerSCCSize > 1) {
+        std::cout << "LCA is in SCC of size " << callerSCCSize << ": "
+                  << ca->node->getName() << " - skipping...\n";
+//        continue;
+      }
       // LCAs are by definition interesting
       ca->isInteresting = true;
       ca->lcaDist = 0;
@@ -190,7 +205,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     auto nodeData = workQueue.front();
     workQueue.pop_front();
 
-    std::cout << "Working on " << *nodeData << "\n";
+   // std::cout << "Working on " << *nodeData << "\n";
 
     // Check if current node is interesting
     if (!nodeData->isInteresting) {
@@ -207,7 +222,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
       }
     }
     if (nodeData->isInteresting) {
-      std::cout << "Node is interesting!\n";
+      //std::cout << "Node is interesting!\n";
       addToSet(interestingCAs, nodeData);
     }
 
@@ -220,7 +235,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
       auto& callerData = nodeDataMap[caller];
       auto oldSize = callerData.lcaDescendants.size();
-      std::cout << "Caller: " << callerData << "\n";
+      //std::cout << "Caller: " << callerData << "\n";
 
       // Update interesting descendants of caller
 //      if (nodeData->isInteresting) {
@@ -232,7 +247,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
       bool updateLCADist = callerData.lcaDist < 0 || altLCADist < callerData.lcaDist;
       if (updateLCADist) {
         callerData.lcaDist = altLCADist;
-        std::cout << "Updated LCA dist: " << callerData.lcaDist << "\n";
+       // std::cout << "Updated LCA dist: " << callerData.lcaDist << "\n";
       }
 
       // Only add caller to queue if something changed

@@ -225,14 +225,19 @@ public:
   }
 };
 
-class MinCallDepthSelector : public FilterSelector {
+class MinCallDepthSelector : public Selector {
+  CallGraph *cg{nullptr};
   IntCmpOp op;
   int val;
 public:
   MinCallDepthSelector(IntCmpOp op, int val) : op(op), val(val){
   }
 
-  bool accept(const CGNode* fNode) override;
+  void init(CallGraph &cg) override {
+    this->cg = &cg;
+  }
+
+  FunctionSet apply(const FunctionSetList&parent) override;
 
   std::string getName() override {
     return "MinCallDepthSelector";

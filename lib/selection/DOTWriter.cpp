@@ -24,7 +24,7 @@ bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &o
 
   for (auto &node : cg.getNodes()) {
     if (selection.find(node.get()) != selection.end()) {
-      for (auto &callee : node->getCallees()) {
+      for (auto &callee : node->findAllCallees()) {
         if (selection.find(callee) != selection.end()) {
           out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
         }

@@ -184,32 +184,73 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
   return out;
 }
 
-bool MinCallDepthSelector::accept(const CGNode* fNode) {
-  if (!fNode) {
-    return false;
+FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
+  if (input.size() != 1) {
+    logError() << "Expected exactly one input set, got " << input.size() << " instead.\n";
+    return {};
   }
 
+  FunctionSet in = input.front();
+
   std::function<int(const CGNode*, std::unordered_set<const CGNode*>)> determineMinDepth = [&](const CGNode* node, std::unordered_set<const CGNode*> visited) -> int {
-    if (node->getCallers().size() == 0) {
+    auto allCallers = node->findAllCallers();
+    std::vector<const CGNode*> filteredCallers;
+    for (const auto& caller : allCallers) {
+      if (in.find(caller) != in.end()) {
+        filteredCallers.push_back(caller);
+      }
+    }
+    if (filteredCallers.empty()) {
       return 0;
     }
     visited.insert(node);
-    std::vector<int> childDepths;
+    std::vector<int> parentDepths;
     // Recursively determine minimum depth of all unvisited callers.
-    std::transform(node->getCallers().begin(), node->getCallers().end(), std::back_inserter(childDepths), [&](CGNode* child) -> int {
-      if (visited.find(child) == visited.end()) {
-        return determineMinDepth(child, visited);
+    std::transform(filteredCallers.begin(), filteredCallers.end(), std::back_inserter(parentDepths), [&](const CGNode* parent) -> int {
+      if (visited.find(parent) == visited.end()) {
+        return determineMinDepth(parent, visited);
       }
       return INT32_MAX;
     });
-    return *std::min_element(childDepths.begin(), childDepths.end()) + 1;
+    return *std::min_element(parentDepths.begin(), parentDepths.end()) + 1;
   };
 
-  int result = determineMinDepth(fNode, {});
-
-  //logInfo() << "Min depth of " << fNode->getName() << ": " << result << "\n";
-
-  return evalCmpOp(op, result, val);
+  FunctionSet out;
+  for (auto& f : in) {
+    int minDepth = determineMinDepth(f, {});
+    if (evalCmpOp(op, minDepth, val)) {
+      addToSet(out, f);
+    }
+  }
+  return out;
 }
+
+//bool MinCallDepthSelector::accept(const CGNode* fNode) {
+//  if (!fNode) {
+//    return false;
+//  }
+//
+//  std::function<int(const CGNode*, std::unordered_set<const CGNode*>)> determineMinDepth = [&](const CGNode* node, std::unordered_set<const CGNode*> visited) -> int {
+//    if (node->getCallers().size() == 0) {
+//      return 0;
+//    }
+//    visited.insert(node);
+//    std::vector<int> childDepths;
+//    // Recursively determine minimum depth of all unvisited callers.
+//    std::transform(node->getCallers().begin(), node->getCallers().end(), std::back_inserter(childDepths), [&](CGNode* child) -> int {
+//      if (visited.find(child) == visited.end()) {
+//        return determineMinDepth(child, visited);
+//      }
+//      return INT32_MAX;
+//    });
+//    return *std::min_element(childDepths.begin(), childDepths.end()) + 1;
+//  };
+//
+//  int result = determineMinDepth(fNode, {});
+//
+//  //logInfo() << "Min depth of " << fNode->getName() << ": " << result << "\n";
+//
+//  return evalCmpOp(op, result, val);
+//}
 
 }
