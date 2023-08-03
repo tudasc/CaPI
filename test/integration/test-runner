@@ -1,0 +1,16 @@
+#!/bin/bash
+
+@CAPI_LIB_DIR@/lib/selection/capi
+
+#cd into example dir
+cd @CMAKE_BINARY_DIR@/build/example/lulesh
+
+#execute capi (generate json)
+dt=$(date)
+$(capi) -f groundtruth_lulesh_compute.json	--outputf-format json -o lulesh_compute EINGABE_mcg
+
+$(./test-driver EINGAABE_gt lulesh_compute_$(dt))
+
+
+
+
