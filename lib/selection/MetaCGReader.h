@@ -18,6 +18,8 @@ struct FunctionInfo
 {
   std::string name;
   std::string demangledName;
+  //std::string demangledNameTemplated;
+  std::vector<std::string> parameters;
 
   std::vector<std::string> callees;
   std::vector<std::string> callers;
@@ -54,6 +56,8 @@ private:
   FInfoMap functions;
 
   FInfoMap::mapped_type &getOrInsert(const std::string &key);
+
+  void parseDemangledNames();
 };
 }
 
