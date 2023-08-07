@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#source testfunctions
+source ./testfunctions
+temp_lulesh_mcg=../../examples/lulesh/lulesh_full.mcg
+if [ "$#" -ne 1 ]; then
+    echo "Invalid input argument!"
+    echo "Usage: runTestCases -tc=path/to/testcase"
+    exit 1
+fi
+#Command option
+for arg in "$@" ; do
+    case $arg in
+        -tc=*)
+            echo "$arg"
+            if [ -d "${arg#*=}" ]; then
+                tc="${arg#*=}"
+            else
+                echo "Invalid argument!"
+                echo "Usage: runTestCase -tc=path/to/testcase"
+                exit 1
+            fi
+            shift   
+            ;;
+        *)
+            echo "Invalid option."          
+            echo "Usage: runTestCases -tc=path/to/testcase"
+            exit 1
+            ;;
+    esac
+done
+
+testcases=$tc/*.capi
+echo "testcases: $testcases"
+fails=0
+for testcase in ${testcases}; do
+  echo "Running testcase ${testcase}"
+  runTestcase ${testcase} ${temp_lulesh_mcg}
+  fail=$?
+  fails=$(($fails + $fail))
+done
+echo "Finished testcases with $fails failures"
