@@ -34,7 +34,6 @@ int main(int argc, char **argv){
     }
     else {
         std::cerr << "Test failure" << std::endl;
-        std::cerr << json::diff(groundTruth, testItem) << std::endl;
 
         return 1;
     }
