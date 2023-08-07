@@ -109,12 +109,11 @@ bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>&
     return false;
   }
   json j;
-  auto& fList = j["selection"];
+  auto& jSelectionMap = j["selection"];
   for (auto &f : filter) {
     json fj;
-    fj["name"] = f;
     fj["isTrigger"] = std::find(triggers.begin(), triggers.end(), f) != triggers.end();
-    fList.push_back(fj);
+    jSelectionMap[f] = fj;
   }
   os << j;
   return true;
@@ -127,11 +126,12 @@ bool readJSONFilterFile(FunctionFilter &filter, std::vector<std::string>& trigge
   }
   json j;
   in >> j;
-  auto fList = j["selection"];
-  for (auto &fj : fList) {
-    filter.addIncludedFunction(fj["name"]);
-    if (fj["isTrigger"].get<bool>()) {
-      triggers.push_back(fj["name"]);
+  auto jSelectionMap = j["selection"];
+  for (json::iterator it = jSelectionMap.begin(); it != jSelectionMap.end(); ++it) {
+    auto& fname = it.key();
+    filter.addIncludedFunction(fname);
+    if (it.value()["isTrigger"].get<bool>()) {
+      triggers.push_back(fname);
     }
   }
   return true;
