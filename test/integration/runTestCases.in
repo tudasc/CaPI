@@ -2,13 +2,14 @@
 
 #source testfunctions
 source ./testfunctions
-temp_lulesh_mcg=../../examples/lulesh/lulesh_full.mcg
-if [ "$#" -ne 1 ]; then
+
+#Command option
+if [ "$#" -ne 2 ]; then
     echo "Invalid input argument!"
-    echo "Usage: runTestCases -tc=path/to/testcase"
+    echo "Usage: runTestCases -tc=path/to/testcase -mcg=path/to/MCGfile"
     exit 1
 fi
-#Command option
+
 for arg in "$@" ; do
     case $arg in
         -tc=*)
@@ -17,25 +18,36 @@ for arg in "$@" ; do
                 tc="${arg#*=}"
             else
                 echo "Invalid argument!"
-                echo "Usage: runTestCase -tc=path/to/testcase"
+                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
                 exit 1
             fi
             shift   
             ;;
+        -mcg=*)
+            if [ -f "${arg#*=}" ]; then
+                mcg="${arg#*=}"
+            else 
+                echo "Invalid argument!"
+                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+                exit 1
+            fi
+            shift
+            ;;
         *)
             echo "Invalid option."          
-            echo "Usage: runTestCases -tc=path/to/testcase"
+            echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
             exit 1
             ;;
     esac
 done
 
+#Running testcases
 testcases=$tc/*.capi
 echo "testcases: $testcases"
 fails=0
 for testcase in ${testcases}; do
   echo "Running testcase ${testcase}"
-  runTestcase ${testcase} ${temp_lulesh_mcg}
+  runTestcase ${testcase} ${mcg}
   fail=$?
   fails=$(($fails + $fail))
 done
