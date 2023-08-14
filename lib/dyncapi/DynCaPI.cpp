@@ -182,7 +182,7 @@ extern "C" {
   std::cout << "\n";
   std::cout << "------------------\n";
 
-  auto selectorGraph = buildSelectorGraph(*ast);
+  auto selectorGraph = buildSelectorGraph(*ast, true);
 
   if (!selectorGraph) {
     std::cerr << "Could not build selector pipeline.\n";
@@ -200,9 +200,10 @@ extern "C" {
 
   std::cout << "Selected " << result.size() << " functions.\n";
 
+  // FIXME: Currently broken, need to adopt behavior of CaPI RT
   FunctionFilter filter;
   for (auto &f : result) {
-    filter.addIncludedFunction(f->getName());
+//    filter.addIncludedFunction(f->getName());
   }
 
   auto execPath = getExecPath();

@@ -16,19 +16,32 @@ FunctionFilter::FunctionFilter()
 {}
 
 bool FunctionFilter::accepts(const std::string &f) const {
-  return std::find(includedFunctionsMangled.begin(), includedFunctionsMangled.end(), f) != includedFunctionsMangled.end();
+  auto it = instFlags.find(f);
+  return it != instFlags.end() && isInstrumented(it->second);
 }
 
-void FunctionFilter::addIncludedFunction(const std::string &f)
+int FunctionFilter::getFlags(const std::string &f) const {
+  auto it = instFlags.find(f);
+  if (it == instFlags.end()) {
+    return InstrumentationType::NONE;
+  }
+  return it->second;
+}
+
+void FunctionFilter::addIncludedFunction(const std::string &f, int flags)
 {
-  includedFunctionsMangled.push_back(f);
+  auto it = instFlags.find(f);
+  if (it == instFlags.end()) {
+    instFlags[f] = flags;
+  } else {
+    it->second |= flags;
+  }
 }
 
 void FunctionFilter::removeIncludedFunction(const std::string &f)
 {
-  includedFunctionsMangled.erase(std::remove(includedFunctionsMangled.begin(),
-                                             includedFunctionsMangled.end(), f),
-                                 includedFunctionsMangled.end());
+
+  instFlags.erase(f);
 }
 
 bool readScorePFilterFile(FunctionFilter &filter, const std::string &filename)
@@ -81,7 +94,7 @@ bool writeSimpleFilterFile(FunctionFilter& filter, const std::string& filename) 
     return false;
   }
   for (auto &f : filter) {
-    os << f << "\n";
+    os << f.first << "\n";
   }
   return true;
 }
@@ -97,13 +110,13 @@ bool writeScorePFilterFile(FunctionFilter &filter,
   os << "EXCLUDE *\n";
   os << "INCLUDE MANGLED\n";
   for (auto &f : filter) {
-    os << f << "\n";
+    os << f.first << "\n";
   }
   os << "SCOREP_REGION_NAMES_END\n";
   return true;
 }
 
-bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>& triggers, const std::string& filename) {
+bool writeJSONFilterFile(FunctionFilter &filter, const std::string& filename) {
   std::ofstream os(filename);
   if (!os) {
     return false;
@@ -112,14 +125,14 @@ bool writeJSONFilterFile(FunctionFilter &filter, const std::vector<std::string>&
   auto& jSelectionMap = j["selection"];
   for (auto &f : filter) {
     json fj;
-    fj["isTrigger"] = std::find(triggers.begin(), triggers.end(), f) != triggers.end();
-    jSelectionMap[f] = fj;
+    fj["flags"] = f.second;
+    jSelectionMap[f.first] = fj;
   }
   os << j;
   return true;
 }
 
-bool readJSONFilterFile(FunctionFilter &filter, std::vector<std::string>& triggers, const std::string& filename) {
+bool readJSONFilterFile(FunctionFilter &filter, const std::string& filename) {
   std::ifstream in(filename);
   if (!in) {
     return false;
@@ -129,10 +142,7 @@ bool readJSONFilterFile(FunctionFilter &filter, std::vector<std::string>& trigge
   auto jSelectionMap = j["selection"];
   for (json::iterator it = jSelectionMap.begin(); it != jSelectionMap.end(); ++it) {
     auto& fname = it.key();
-    filter.addIncludedFunction(fname);
-    if (it.value()["isTrigger"].get<bool>()) {
-      triggers.push_back(fname);
-    }
+    filter.addIncludedFunction(fname, it.value()["flags"].get<int>());
   }
   return true;
 }

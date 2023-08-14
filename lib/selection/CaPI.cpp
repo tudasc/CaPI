@@ -96,7 +96,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
 
   int numAdded = 0;
 
-  std::function<void(const CGNode&, std::unordered_set<const CGNode*>)> addValidCallers = [&](const CGNode& node, std::unordered_set<const CGNode*> visited) {
+  std::function<void(const CGNode&, bool, std::unordered_set<const CGNode*>)> addValidCallers = [&](const CGNode& node, bool trigger, std::unordered_set<const CGNode*> visited) {
     visited.insert(&node);
     for (const auto* caller : node.getCallers()) {
       if (visited.find(caller) != visited.end()) {
@@ -104,10 +104,13 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
       }
       if (findSymbol(symSets, caller->getName())) {
         if (addToSet(newSet, caller)) {
+          if (trigger) {
+            caller->isTrigger = true;
+          }
           numAdded++;
         }
       } else {
-        addValidCallers(*caller, visited);
+        addValidCallers(*caller, trigger, visited);
       }
     }
   };
@@ -133,7 +136,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const Function
       continue;
     }
     // Recursively looks for the first available callers and adds them.
-    addValidCallers(*fn, {});
+    addValidCallers(*fn, fn->isTrigger, {});
     numProcessed++;
 
     // Status output
@@ -323,7 +326,9 @@ int main(int argc, char **argv) {
   std::cout << "\n";
   std::cout << "------------------\n";
 
-  preprocessAST(*ast);
+  InstrumentationHints hints;
+  preprocessAST(*ast, hints);
+  bool instHintsSpecified = !hints.empty();
 
   std::cout << "AST after pre-processing:\n";
   std::cout << "------------------\n";
@@ -331,11 +336,15 @@ int main(int argc, char **argv) {
   std::cout << "\n";
   std::cout << "------------------\n";
 
-  auto selectorGraph = buildSelectorGraph(*ast);
+  auto selectorGraph = buildSelectorGraph(*ast, !instHintsSpecified);
 
   if (!selectorGraph) {
     std::cerr << "Could not build selector pipeline.\n";
     return EXIT_FAILURE;
+  }
+
+  for (auto& hint : hints) {
+    selectorGraph->addEntryNode(hint.selRefName);
   }
 
   std::cout << "Selector pipeline:\n";
@@ -387,29 +396,86 @@ int main(int argc, char **argv) {
 
   auto result = runSelectorPipeline(*selectorGraph, *cg, debugMode);
 
-  std::cout << "Selected " << result.size() << " functions.\n";
+  // If hints empty, use full instrumentation of last defined selector instance
+  if (hints.empty()) {
+    hints.push_back({capi::InstrumentationType::ALWAYS_INSTRUMENT, selectorGraph->getEntryNodes().back()->getName()});
+  }
 
-  auto afterPostProcessing = result;
+  FunctionFilter filter;
 
-  if (replaceInlined) {
-    auto symSets = loadSymbolSets(execFile);
-    if (symSets.empty()) {
-      std::cout << "Skipping inline compensation.\n";
-    } else {
-      afterPostProcessing = replaceInlinedFunctions(symSets, result, *cg);
-      std::cout << afterPostProcessing.size() << " functions selected after inline compensation.\n";
+  for (auto& hint: hints) {
+    auto it = result.find(hint.selRefName);
+    if (it == result.end()) {
+      logError() << "No selection results for '" << hint.selRefName <<"'\n";
+      continue;
+    }
+    auto selResult = it->second;
+
+    switch(hint.type) {
+    case capi::InstrumentationType::ALWAYS_INSTRUMENT: {
+      std::cout << "Selected " << selResult.size() << " functions for instrumentation.\n";
+      break;
+    }
+    case capi::InstrumentationType::BEGIN_TRIGGER: {
+      std::cout << "Selected " << selResult.size() << " functions triggering the start of measurement.\n";
+      break;
+    }
+    case capi::InstrumentationType::END_TRIGGER: {
+      std::cout << "Selected " << selResult.size() << " functions triggering the end of measurement.\n";
+      break;
+    }
+    case capi::InstrumentationType::SCOPE_TRIGGER: {
+      std::cout << "Selected " << selResult.size() << " functions triggering scope measurement.\n";
+      break;
+    }
+    default:
+      assert(false && "Unhandled instrumentation type");
+    }
+
+    auto afterPostProcessing = selResult;
+
+    // Only run inline compensation for functions that are actually measured.
+    if (replaceInlined && hint.type == InstrumentationType::ALWAYS_INSTRUMENT) {
+      auto symSets = loadSymbolSets(execFile);
+      if (symSets.empty()) {
+         std::cout << "Skipping inline compensation.\n";
+      } else {
+         afterPostProcessing = replaceInlinedFunctions(symSets, selResult, *cg);
+         std::cout << afterPostProcessing.size() << " functions selected after inline compensation.\n";
+      }
+    }
+
+    for (auto &f : afterPostProcessing) {
+      filter.addIncludedFunction(f->getName(), hint.type);
+      if (hint.type == ALWAYS_INSTRUMENT && f->isTrigger) {
+         filter.addIncludedFunction(f->getName(), InstrumentationType::SCOPE_TRIGGER);
+      }
     }
   }
+
+ // std::cout << "Selected " << result.size() << " functions.\n";
+
+//  auto afterPostProcessing = result;
+//
+//  if (replaceInlined) {
+//    auto symSets = loadSymbolSets(execFile);
+//    if (symSets.empty()) {
+//      std::cout << "Skipping inline compensation.\n";
+//    } else {
+//      afterPostProcessing = replaceInlinedFunctions(symSets, result, *cg);
+//      std::cout << afterPostProcessing.size() << " functions selected after inline compensation.\n";
+//    }
+//  }
 
   if (outfile.empty()) {
     outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
   }
 
   {
-    FunctionFilter filter;
-    for (auto &f : afterPostProcessing) {
-      filter.addIncludedFunction(f->getName());
-    }
+//    FunctionFilter filter;
+//    for (auto &f : afterPostProcessing) {
+//      filter.addIncludedFunction(f->getName());
+//    }
     bool writeSuccess{false};
     switch(outputFormat) {
     case OutputFormat::SIMPLE:
@@ -420,13 +486,7 @@ int main(int argc, char **argv) {
       break;
     case OutputFormat::JSON:
       // FIXME: This data should not be stored in the CG! It should be part of the selection result.
-      std::vector<std::string> triggerFuncs;
-      for (auto& node : cg->getNodes()) {
-         if (node->isTrigger) {
-          triggerFuncs.push_back(node->getName());
-         }
-      }
-      writeSuccess = writeJSONFilterFile(filter, triggerFuncs, outfile);
+      writeSuccess = writeJSONFilterFile(filter, outfile);
       break;
     }
     if (!writeSuccess) {
@@ -438,7 +498,7 @@ int main(int argc, char **argv) {
   if (shouldWriteDOT) {
     std::ofstream os(dotFile);
     if (os.is_open()) {
-      writeDOT(*cg, afterPostProcessing, os);
+      writeDOT(*cg, filter, os);
     } else {
       logError() << "Could not write DOT file to '" << dotFile << "'.\n";
     }

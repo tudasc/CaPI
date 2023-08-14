@@ -38,12 +38,15 @@ bool recordOutsideMPI = true;
 bool initialized{false};
 
 thread_local std::vector<int> callStack{};
-thread_local bool active{false};
+thread_local bool globalActive{false};
+thread_local bool threadInitialized{false};
+thread_local bool scopeActive{false};
 
 inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
-  if (capi::globalCaPIData->useTriggers && !active) {
-    if (capi::globalCaPIData->triggerSet.find(id) != capi::globalCaPIData->triggerSet.end()) {
-      active = true;
+
+  if (capi::globalCaPIData->useScopeTriggers && !scopeActive) {
+    if (capi::globalCaPIData->scopeTriggerSet.find(id) != capi::globalCaPIData->scopeTriggerSet.end()) {
+      scopeActive = true;
     } else {
       return;
     }
@@ -57,17 +60,17 @@ inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
 }
 
 inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
-  if (capi::globalCaPIData->useTriggers && !active) {
+  if (capi::globalCaPIData->useScopeTriggers && !scopeActive) {
     return;
   }
   int nextEvt = 0;
   callStack.pop_back();
   if (!callStack.empty()) {
     nextEvt = callStack.back();
-  } else if (capi::globalCaPIData->useTriggers) {
+  } else if (capi::globalCaPIData->useScopeTriggers) {
     // We don't record the call stack before the triggering function.
     // Therefore, it is always at the top of the call chain.
-    active = false;
+    scopeActive = false;
   }
   Extrae_eventandcounters(ExtraeXRayEvt, nextEvt);
   if (capi::globalCaPIData->logCalls) {
@@ -89,6 +92,19 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
       failedBefore = true;
     }
     return;
+  }
+  if (!threadInitialized) {
+    globalActive = globalCaPIData->beginActive;
+    threadInitialized = true;
+  }
+
+  // TODO: Currently no support for end trigger
+  // Long term, use different event handler function when patching to reduce lookup overhead
+  if (!globalActive && type == XRayEntryType::ENTRY) {
+    if (globalCaPIData->beginTriggerSet.find(id) == globalCaPIData->beginTriggerSet.end()) {
+      return;
+    }
+    globalActive = true;
   }
 
   #ifdef WITH_MPI

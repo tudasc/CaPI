@@ -5,6 +5,7 @@
 #include "DOTWriter.h"
 #include "Selector.h"
 
+
 #include <ostream>
 
 namespace capi {
@@ -14,18 +15,18 @@ static inline std::string getNodeId(CGNode &node)
   return "n_" + std::to_string(reinterpret_cast<uintptr_t>(&node));
 }
 
-bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &out)
+bool writeDOT(const CallGraph &cg, const FunctionFilter& filter, std::ostream &out)
 {
   out << "digraph {\n";
   for (auto &node : cg.getNodes()) {
-    if (selection.find(node.get()) != selection.end())
+    if (filter.accepts(node->getName()))
       out << getNodeId(*node) << " [label=\"" << node->getName() << "\"]\n";
   }
 
   for (auto &node : cg.getNodes()) {
-    if (selection.find(node.get()) != selection.end()) {
+    if (filter.accepts(node->getName())) {
       for (auto &callee : node->findAllCallees()) {
-        if (selection.find(callee) != selection.end()) {
+        if (filter.accepts(callee->getName())) {
           out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
         }
       }

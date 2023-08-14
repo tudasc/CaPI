@@ -36,6 +36,7 @@ class SelectorEmitter: public ASTVisitor {
 
   SpecAST& ast;
   SelectorGraph& graph;
+  bool lastDeclIsEntry;
 
   bool encounteredError{false};
 
@@ -46,7 +47,7 @@ class SelectorEmitter: public ASTVisitor {
 
 public:
 
-  SelectorEmitter(SpecAST& ast, SelectorGraph& graph) : ast(ast), graph(graph), nameGen("anon_") {
+  SelectorEmitter(SpecAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), nameGen("anon_") {
     selectorDeclName = "";
     graph.createNode("%", std::make_unique<EverythingSelector>());
   }
@@ -130,7 +131,9 @@ public:
 
   void visitAST(SpecAST &specAst) override {
     visitChildren(specAst);
-    graph.setEntryNode(lastDeclName);
+    if (lastDeclIsEntry) {
+      graph.addEntryNode(lastDeclName);
+    }
   }
 
   void visitDirective(Directive &directive) override {
@@ -202,9 +205,9 @@ public:
 
 };
 
-SelectorGraphPtr buildSelectorGraph(SpecAST& ast) {
+SelectorGraphPtr buildSelectorGraph(SpecAST& ast, bool lastDeclIsEntry) {
   auto graph = std::make_unique<SelectorGraph>();
-  SelectorEmitter emitter(ast, *graph);
+  SelectorEmitter emitter(ast, *graph, lastDeclIsEntry);
   emitter.visitAST(ast);
   if (emitter.hasEncounteredError())
     return {};
