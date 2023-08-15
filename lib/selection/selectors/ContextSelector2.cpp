@@ -300,20 +300,25 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
   int numDistinct = 0;
 
-  // Select all interesting CAs with lcaDist <= maxLCADist
+  // Select all interesting CAs with lcaDist <= maxLCADist matching the heuristic
   for (auto& ca : candidateLCAs) {
     int cappedLcaDist = std::min(ca->lcaDist, NumLCABuckets-1);
     lcaDistCount[cappedLcaDist]++;
+    bool consideredInHeuristic = type == CAHeuristicType::ALL;
     if (ca->isPartiallyDistinct) {
       lcaDistCountPartiallyDistinct[cappedLcaDist]++;
+      if (!consideredInHeuristic && type != CAHeuristicType::DISTINCT) {
+        consideredInHeuristic = true;
+      }
     }
     if (ca->isDistinct) {
       if (ca->lcaDist > 1) {
         logError() << "Candidate with LCA-Dist " << ca->lcaDist << " is marked as distinct!\n";
       }
       numDistinct++;
+      consideredInHeuristic = true;
     }
-    if (ca->lcaDist <= maxLCADist) {
+    if (consideredInHeuristic && ca->lcaDist <= maxLCADist) {
       // TODO: Output trigger information as part of selection result. Also add option for user to control if this should be set at all.
       ca->node->isTrigger = true;
       addToQueue(ca);
@@ -414,31 +419,25 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     std::cout << "Number of candidate dLCAs with LCADist <= " << maxLCADist << ": " << workQueue.size() << "\n";
   }
 
+  FunctionSet out = getInstrumented(workQueue);
 
-  // Always select the target functions
-  FunctionSet out{targetNodeA, targetNodeB};
-
-  if (workQueue.empty()) {
-    return out;
-  }
-
-  do {
-    auto nodeData = workQueue.front();
-    workQueue.pop_front();
-    const auto* node = nodeData->node;
-    addToSet(out, node);
-    nodeData->node = nullptr; // Using this as a marker for processed nodes to prevent cycles.
-    for (auto& callee : node->findAllCallees()) {
-      auto& calleeData = nodeDataMap[callee];
-      if (!calleeData.node) {
-        // This node has already been visited, skip.
-        continue;
-      }
-      if (calleeData.predA || calleeData.predB) {
-        addToQueue(&calleeData);
-      }
-    }
-  } while (!workQueue.empty());
+//  do {
+//    auto nodeData = workQueue.front();
+//    workQueue.pop_front();
+//    const auto* node = nodeData->node;
+//    addToSet(out, node);
+//    nodeData->node = nullptr; // Using this as a marker for processed nodes to prevent cycles.
+//    for (auto& callee : node->findAllCallees()) {
+//      auto& calleeData = nodeDataMap[callee];
+//      if (!calleeData.node) {
+//        // This node has already been visited, skip.
+//        continue;
+//      }
+//      if (calleeData.predA || calleeData.predB) {
+//        addToQueue(&calleeData);
+//      }
+//    }
+//  } while (!workQueue.empty());
 
   return out;
 }

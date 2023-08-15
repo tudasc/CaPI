@@ -92,6 +92,7 @@ SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
   return std::make_unique<MinCallDepthSelector>(*cmpOp, intVal);
 }
 
+template<CAHeuristicType T>
 SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
   int maxOrder = 0;
   if (!params.empty()) {
@@ -99,7 +100,7 @@ SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
     CHECK_KIND(params[0], Param::INT)
     maxOrder = std::get<int>(params[0].val);
   }
-  return std::make_unique<ContextSelector2>(maxOrder);
+  return std::make_unique<ContextSelector2>(maxOrder, T);
 }
 
 RegisterSelector registerFilePathSelector("byPath", createFilePathSelector);
@@ -145,8 +146,11 @@ RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector
 
 // ContextSelector
 RegisterSelector callContextSelector("callContext", createSimpleSelector<ContextSelector>);
-RegisterSelector callContextSelector2("callContext2", createCallContextSelector2);
+RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
 
+RegisterSelector caSelectorAll("common_caller", createCallContextSelector2<CAHeuristicType::ALL>);
+RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCallContextSelector2<CAHeuristicType::PARTIALLY_DISTINCT>);
+RegisterSelector caSelectorDistinct("common_caller_distinct", createCallContextSelector2<CAHeuristicType::DISTINCT>);
 
 }
 
