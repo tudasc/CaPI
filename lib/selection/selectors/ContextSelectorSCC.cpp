@@ -314,10 +314,10 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
       }
     }
     if (ca->isDistinct) {
-      if (ca->lcaDist > 1) {
-        logError() << "Candidate with LCA-Dist " << ca->lcaDist << " is marked as distinct!\n";
-        logError() << "SCC size: " << ca->node->size() << "\n";
-      }
+//      if (ca->lcaDist > 1) {
+//        logError() << "Candidate with LCA-Dist " << ca->lcaDist << " is marked as distinct!\n";
+//        logError() << "SCC size: " << ca->node->size() << "\n";
+//      }
       numDistinct++;
       consideredInHeuristic = true;
     }
