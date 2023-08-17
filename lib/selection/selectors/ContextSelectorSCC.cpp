@@ -296,8 +296,10 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
 
   constexpr int NumLCABuckets = 11;
   std::array<int, NumLCABuckets> lcaDistCount;
+  std::array<int, NumLCABuckets> lcaDistCountDistinct;
   std::array<int, NumLCABuckets> lcaDistCountPartiallyDistinct;
   lcaDistCount.fill(0);
+  lcaDistCountDistinct.fill(0);
   lcaDistCountPartiallyDistinct.fill(0);
 
   int numDistinct = 0;
@@ -314,6 +316,7 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
       }
     }
     if (ca->isDistinct) {
+      lcaDistCountDistinct[cappedLcaDist]++;
 //      if (ca->lcaDist > 1) {
 //        logError() << "Candidate with LCA-Dist " << ca->lcaDist << " is marked as distinct!\n";
 //        logError() << "SCC size: " << ca->node->size() << "\n";
@@ -406,20 +409,21 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
 
     std::cout << "------------------------------" << std::endl;
 
-    std::cout << "Fully distinct candidates: " << numDistinct << std::endl;
-    std::cout << "Fully distinct candidates (non-LCA): "
-              << (numDistinct - lcaDistCount[0]) << std::endl;
     for (int i = 0; i < NumLCABuckets - 1; i++) {
       std::cout << "Candidates with LCA-Dist = " << i << ": " << lcaDistCount[i]
                 << std::endl;
 
       std::cout << "  of these partially distinct: "
                 << lcaDistCountPartiallyDistinct[i] << std::endl;
+      std::cout << "  of these distinct: "
+                << lcaDistCountDistinct[i] << std::endl;
     }
     std::cout << "Candidates with LCA-Dist >= " << NumLCABuckets - 1 << ": "
               << lcaDistCount.back() << std::endl;
     std::cout << "  of these partially distinct: "
               << lcaDistCountPartiallyDistinct.back() << std::endl;
+    std::cout << "  of these distinct: "
+              << lcaDistCountDistinct.back() << std::endl;
 
     // Number of instrumented function for each bucket
 
