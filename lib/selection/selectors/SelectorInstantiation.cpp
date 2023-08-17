@@ -7,6 +7,7 @@
 #include "SetOperations.h"
 #include "ContextSelector.h"
 #include "ContextSelector2.h"
+#include "ContextSelectorSCC.h"
 #include "SelectorRegistry.h"
 
 namespace  {
@@ -103,6 +104,17 @@ SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
   return std::make_unique<ContextSelector2>(maxOrder, T);
 }
 
+template<ContextSelectorSCC::CAHeuristicType T>
+SelectorPtr createCallContextSelectorSCC(const std::vector<Param>& params) {
+  int maxOrder = 0;
+  if (!params.empty()) {
+    CHECK_NUM_ARGS(ContextSelectorSCC, params, 1)
+    CHECK_KIND(params[0], Param::INT)
+    maxOrder = std::get<int>(params[0].val);
+  }
+  return std::make_unique<ContextSelectorSCC>(maxOrder, T);
+}
+
 RegisterSelector registerFilePathSelector("byPath", createFilePathSelector);
 
 // InlineSelector
@@ -148,9 +160,9 @@ RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector
 RegisterSelector callContextSelector("callContext", createSimpleSelector<ContextSelector>);
 RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
 
-RegisterSelector caSelectorAll("common_caller", createCallContextSelector2<CAHeuristicType::ALL>);
-RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCallContextSelector2<CAHeuristicType::PARTIALLY_DISTINCT>);
-RegisterSelector caSelectorDistinct("common_caller_distinct", createCallContextSelector2<CAHeuristicType::DISTINCT>);
+RegisterSelector caSelectorAll("common_caller", createCallContextSelectorSCC<ContextSelectorSCC::ALL>);
+RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCallContextSelectorSCC<ContextSelectorSCC::PARTIALLY_DISTINCT>);
+RegisterSelector caSelectorDistinct("common_caller_distinct", createCallContextSelectorSCC<ContextSelectorSCC::DISTINCT>);
 
 }
 

@@ -7,10 +7,10 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(byName("b", %%%%), byName("d", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(byName("b", %%%%), byName("d", %%%%))  ' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(1, byName("b", %%%%), byName("d", %%%%))  ' -o %s_dist1.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(1, byName("b", %%%%), byName("d", %%%%))  ' -o %s_dist1.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_dist1.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST1 %s
 //
 // clang-format on

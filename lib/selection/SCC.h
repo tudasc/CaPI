@@ -9,27 +9,35 @@
 
 namespace capi {
 
+struct SCCNode {
+  std::vector<const CGNode*> nodes;
+
+  size_t size() const {
+    return nodes.size();
+  }
+};
+
 struct SCCAnalysisResults {
 
   SCCAnalysisResults() = default;
-  explicit SCCAnalysisResults(std::vector<std::vector<const CGNode*>> sccs) : sccs(std::move(sccs))
+  explicit SCCAnalysisResults(std::vector<SCCNode> sccs) : sccs(std::move(sccs))
   {
     for (auto& scc : this->sccs) {
-      for (auto& node: scc) {
+      for (auto& node: scc.nodes) {
         nodeMap[node] = &scc;
       }
     }
   }
 
-  std::vector<std::vector<const CGNode*>> sccs;
+  std::vector<SCCNode> sccs;
 
-  std::unordered_map<const CGNode*, std::vector<const CGNode*>*> nodeMap;
+  std::unordered_map<const CGNode*, SCCNode*> nodeMap;
 
   size_t size() const {
     return sccs.size();
   }
 
-  const std::vector<const CGNode*>* getSCC(const CGNode& node) const {
+  const SCCNode* getSCC(const CGNode& node) const {
     auto it = nodeMap.find(&node);
     if (it == nodeMap.end()) {
       std::cerr << "Node not found in SCC\n";
@@ -41,6 +49,38 @@ struct SCCAnalysisResults {
   int getSCCSize(const CGNode& node) const {
     auto* scc = getSCC(node);
     return scc ? scc->size() : 0;
+  }
+
+  std::vector<const SCCNode*> findAllCallers(const SCCNode* node) const {
+    std::vector<const SCCNode*> callers;
+    for (auto& v : node->nodes) {
+      auto vCallers = v->findAllCallers();
+      for (auto& w : vCallers)  {
+        auto callerSCC = getSCC(*w);
+        if (callerSCC == node)
+          continue;
+        if (std::find(callers.begin(), callers.end(), callerSCC) == callers.end()) {
+          callers.push_back(callerSCC);
+        }
+      }
+    }
+    return callers;
+  }
+
+  std::vector<const SCCNode*> findAllCallees(const SCCNode* node) const {
+    std::vector<const SCCNode*> callees;
+    for (auto& v : node->nodes) {
+      auto vCallees = v->findAllCallees();
+      for (auto& u : vCallees)  {
+        auto calleeSCC = getSCC(*u);
+        if (calleeSCC == node)
+          continue;
+        if (std::find(callees.begin(), callees.end(), calleeSCC) == callees.end()) {
+          callees.push_back(calleeSCC);
+        }
+      }
+    }
+    return callees;
   }
 
 };

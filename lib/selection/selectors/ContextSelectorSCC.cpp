@@ -2,7 +2,7 @@
 // Created by sebastian on 29.06.23.
 //
 
-#include "ContextSelector2.h"
+#include "ContextSelectorSCC.h"
 
 #include <deque>
 #include <unordered_map>
@@ -12,8 +12,8 @@
 
 namespace capi {
 
-struct CommonCallerSearchNodeData {
-  const CGNode* node{nullptr};
+struct CommonCallerSearchNodeDataSCC {
+  const SCCNode* node{nullptr};
   int distA{-1};
   int distB{-1};
   int lcaDist{-1};
@@ -21,16 +21,16 @@ struct CommonCallerSearchNodeData {
   bool isLCA{false};
   bool isDistinct{false};
   bool isPartiallyDistinct{false};
-  const CGNode* predA{nullptr};
-  const CGNode* predB{nullptr};
-  std::unordered_set<const CommonCallerSearchNodeData*> lcaDescendants{};
+  const SCCNode* predA{nullptr};
+  const SCCNode* predB{nullptr};
+  std::unordered_set<const CommonCallerSearchNodeDataSCC*> lcaDescendants{};
 
   bool reachesA() const {
-      return distA >= 0;
+    return distA >= 0;
   };
 
   bool reachesB() const {
-      return distB >= 0;
+    return distB >= 0;
   };
 
   bool canReachExactlyOne() const {
@@ -42,11 +42,11 @@ struct CommonCallerSearchNodeData {
   }
 };
 
-std::ostream& operator<<(std::ostream& os, const CommonCallerSearchNodeData& nd) {
-   return os << (nd.node ? nd.node->getName() : "null") << " (" << nd.distA << ", " << nd.distB << ", " << (nd.isLCA ? "true" : "false") << ")";
+std::ostream& operator<<(std::ostream& os, const CommonCallerSearchNodeDataSCC& nd) {
+   return os << (nd.node ? nd.node->nodes.front()->getName() : "null") << " (" << nd.distA << ", " << nd.distB << ", " << (nd.isLCA ? "true" : "false") << ")";
 }
 
-FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
+FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
   if (input.size() != 2) {
     logError() << "Expected exactly two input sets, got " << input.size() << " instead.\n";
     return {};
@@ -76,19 +76,23 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
   SCCAnalysisResults sccResults = computeSCCs(*cg, true);
 
-  if (sccResults.getSCC(*targetNodeA) == sccResults.getSCC(*targetNodeB)) {
+  const auto* targetSCCA = sccResults.getSCC(*targetNodeA);
+  const auto* targetSCCB = sccResults.getSCC(*targetNodeB);
+
+  if (targetSCCA == targetSCCB) {
     logError() << "Target nodes are located in the same SCC\n";
     return {};
   }
 
-  std::unordered_map<const CGNode*, CommonCallerSearchNodeData> nodeDataMap {{targetNodeA, {targetNodeA, 0, -1, -1, false, false, false, false, nullptr, nullptr, {}}},
-                                                                       {targetNodeB, {targetNodeB, -1, 0, -1, false, false, false, false, nullptr, nullptr, {}}}};
 
-  std::vector<CommonCallerSearchNodeData*> commonAncestors;
+  std::unordered_map<const SCCNode*, CommonCallerSearchNodeDataSCC> sccDataMap {{targetSCCA, {targetSCCA, 0, -1, -1, false, false, false, false, nullptr, nullptr, {}}},
+                                                                             {targetSCCB, {targetSCCB, -1, 0, -1, false, false, false, false, nullptr, nullptr, {}}}};
 
-  std::deque<CommonCallerSearchNodeData*> workQueue{&nodeDataMap[targetNodeA], &nodeDataMap[targetNodeB]};
+  std::vector<CommonCallerSearchNodeDataSCC*> commonAncestors;
 
-  auto addToQueue = [&workQueue](CommonCallerSearchNodeData* data) {
+  std::deque<CommonCallerSearchNodeDataSCC*> workQueue{&sccDataMap[targetSCCA], &sccDataMap[targetSCCB]};
+
+  auto addToQueue = [&workQueue](CommonCallerSearchNodeDataSCC* data) {
     if (std::find(workQueue.begin(), workQueue.end(), data) ==
         workQueue.end()) {
       workQueue.push_back(data);
@@ -101,9 +105,9 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
     //std::cout << "Working on " << *nodeData << "\n";
 
-    for (auto& caller : nodeData->node->findAllCallers()) {
+    for (auto& caller : sccResults.findAllCallers(nodeData->node)) {
 
-      auto& callerData = nodeDataMap[caller];
+      auto& callerData = sccDataMap[caller];
       bool relaxCaller{false};
 
       if (!callerData.node) {
@@ -182,11 +186,10 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
   for (auto& ca : commonAncestors) {
     if (ca->isLCA) {
       // Ignore CAs in cycles
-      auto scc = sccResults.getSCC(*ca->node);
-      auto callerSCCSize = scc->size();
+      auto callerSCCSize = ca->node->size();
       if (callerSCCSize > 1) {
-        std::cout << "LCA is in SCC of size " << callerSCCSize << ": "
-                  << ca->node->getName() << " - skipping...\n";
+        std::cout << "LCA is SCC of size " << callerSCCSize << ", first node: "
+                  << ca->node->nodes.front()->getName() << " - skipping...\n";
         continue;
       }
       // LCAs are by definition candidates
@@ -210,7 +213,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
   // - it has more than one LCA descendant or
   // - it has a child that is ancestor of either x or y, but not both
 
-  std::vector<CommonCallerSearchNodeData*> candidateLCAs;
+  std::vector<CommonCallerSearchNodeDataSCC*> candidates;
 
   do {
     auto nodeData = workQueue.front();
@@ -222,8 +225,8 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     if (!nodeData->isCandidate) {
       nodeData->isCandidate = nodeData->lcaDescendants.size() > 1;
       if (!nodeData->isCandidate) {
-        for (auto &child : nodeData->node->findAllCallees()) {
-          const auto &childData = nodeDataMap[child];
+        for (auto &child : sccResults.findAllCallees(nodeData->node)) {
+          const auto &childData = sccDataMap[child];
           // Check if child can reach one, but not the other target node
           if (childData.canReachExactlyOne()) {
             nodeData->isCandidate = true;
@@ -234,11 +237,11 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     }
     if (nodeData->isCandidate) {
       //std::cout << "Node is interesting!\n";
-      addToSet(candidateLCAs, nodeData);
+      addToSet(candidates, nodeData);
       bool childReachesOnlyA = false;
       bool childReachesOnlyB = false;
-      for (auto &child : nodeData->node->findAllCallees()) {
-        const auto &childData = nodeDataMap[child];
+      for (auto &child : sccResults.findAllCallees(nodeData->node)) {
+        const auto &childData = sccDataMap[child];
         if (childData.isCA())
           continue;
         if (childData.reachesA())
@@ -260,9 +263,9 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
       altLCADist++;
     }
 
-    for (auto& caller : nodeData->node->findAllCallers()) {
+    for (auto& caller : sccResults.findAllCallers(nodeData->node)) {
 
-      auto& callerData = nodeDataMap[caller];
+      auto& callerData = sccDataMap[caller];
       auto oldSize = callerData.lcaDescendants.size();
       //std::cout << "Caller: " << callerData << "\n";
 
@@ -289,7 +292,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
   assert(workQueue.empty());
 
-  std::cout << "Number of candidate dLCAs: " << candidateLCAs.size() << "\n";
+  std::cout << "Number of candidate dLCAs: " << candidates.size() << "\n";
 
   constexpr int NumLCABuckets = 11;
   std::array<int, NumLCABuckets> lcaDistCount;
@@ -300,7 +303,7 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
   int numDistinct = 0;
 
   // Select all candidate CAs with lcaDist <= maxLCADist matching the heuristic
-  for (auto& ca : candidateLCAs) {
+  for (auto& ca : candidates) {
     int cappedLcaDist = std::min(ca->lcaDist, NumLCABuckets-1);
     lcaDistCount[cappedLcaDist]++;
     bool consideredInHeuristic = type == CAHeuristicType::ALL;
@@ -313,34 +316,40 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
     if (ca->isDistinct) {
       if (ca->lcaDist > 1) {
         logError() << "Candidate with LCA-Dist " << ca->lcaDist << " is marked as distinct!\n";
+        logError() << "SCC size: " << ca->node->size() << "\n";
       }
       numDistinct++;
       consideredInHeuristic = true;
     }
     if (consideredInHeuristic && ca->lcaDist <= maxLCADist) {
       // TODO: Output trigger information as part of selection result. Also add option for user to control if this should be set at all.
-      ca->node->isTrigger = true;
+
+      for (auto& member : ca->node->nodes) {
+        member->isTrigger = true;
+      }
       addToQueue(ca);
     }
   }
 
-  auto getInstrumented = [&targetNodeA, &targetNodeB, &nodeDataMap](std::deque<CommonCallerSearchNodeData*>& queue) {
+  auto getInstrumented = [&targetNodeA, &targetNodeB, &sccResults, &sccDataMap](std::deque<CommonCallerSearchNodeDataSCC*>& queue) {
     FunctionSet out{targetNodeA, targetNodeB};
 
     if (queue.empty()) {
       return out;
     }
 
-    std::unordered_set<const CGNode*> visited;
+    std::unordered_set<const SCCNode*> visited;
 
     do {
       auto nodeData = queue.front();
       queue.pop_front();
       const auto* node = nodeData->node;
-      addToSet(out, node);
+      for (auto& member : node->nodes) {
+        addToSet(out, member);
+      }
       visited.insert(node);
-      for (auto& callee : node->findAllCallees()) {
-        auto& calleeData = nodeDataMap[callee];
+      for (auto& callee : sccResults.findAllCallees(node)) {
+        auto& calleeData = sccDataMap[callee];
         if (setContains(visited, calleeData.node)) {
           // This node has already been visited, skip.
           continue;
@@ -363,11 +372,11 @@ FunctionSet ContextSelector2::apply(const FunctionSetList& input) {
 
     for (int i = 0; i < NumLCABuckets; i++) {
 
-      std::deque<CommonCallerSearchNodeData*> candidateQ;
-      std::deque<CommonCallerSearchNodeData*> partiallyDistinctQ;
-      std::deque<CommonCallerSearchNodeData*> distinctQ;
+      std::deque<CommonCallerSearchNodeDataSCC*> candidateQ;
+      std::deque<CommonCallerSearchNodeDataSCC*> partiallyDistinctQ;
+      std::deque<CommonCallerSearchNodeDataSCC*> distinctQ;
 
-      for (auto &ca : candidateLCAs) {
+      for (auto &ca : candidates) {
         int cappedLcaDist = std::min(ca->lcaDist, NumLCABuckets - 1);
         if (cappedLcaDist <= i) {
           candidateQ.push_back(ca);
