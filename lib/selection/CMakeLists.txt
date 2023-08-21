@@ -14,7 +14,7 @@ set(SOURCES CallGraph.cpp
         selectors/BasicSelectors.cpp
         selectors/ContextSelector.cpp
         selectors/ContextSelector2.cpp
-        selectors/ContextSelectorSCC.cpp)
+        selectors/CommonCallerSelectorSCC.cpp)
 
 add_executable(capi ${SOURCES})
 target_include_directories(capi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../symbol_retriever)

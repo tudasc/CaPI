@@ -29,6 +29,7 @@
 #include <mpi.h>
 #endif
 
+CAPI_DEFINE_VERBOSITY
 
 namespace capi {
 

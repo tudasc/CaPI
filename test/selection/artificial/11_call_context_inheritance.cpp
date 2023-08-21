@@ -3,7 +3,7 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'common_caller(byName("a", %%%%), byName("b", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'common_caller(by_name("a", %%%%), by_name("b", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
 // clang-format on

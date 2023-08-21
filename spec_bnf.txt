@@ -27,4 +27,4 @@
 
 
 MPI Example:
-mpi=onCallPathTo(byName(\"MPI_.*\", %%)) exclude=join(byPath(\"excludethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)
+mpi=onCallPathTo(by_name(\"MPI_.*\", %%)) exclude=join(byPath(\"excludethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)

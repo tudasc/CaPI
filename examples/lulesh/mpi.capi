@@ -1,2 +1,2 @@
-mpi = byName("MPI_.*", %%)
-mpi_reduced = subtract(%mpi, byName("^(_ZNK?3)?MPI.*", %%))
+mpi = by_name("MPI_.*", %%)
+mpi_reduced = subtract(%mpi, by_name("^(_ZNK?3)?MPI.*", %%))

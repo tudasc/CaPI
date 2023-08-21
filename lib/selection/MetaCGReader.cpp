@@ -94,8 +94,8 @@ bool MetaCGReader::read() {
 
     auto jOverridenBy = it.value()["overridenBy"];
     if (!jOverridenBy.is_null()) {
-      std::for_each(jOverridenBy.begin(), jOverridenBy.end(), [&fi](auto &jOverridenByName) {
-        fi.overridenBy.push_back(jOverridenByName.template get<std::string>());
+      std::for_each(jOverridenBy.begin(), jOverridenBy.end(), [&fi](auto &jOverridenby_name) {
+        fi.overridenBy.push_back(jOverridenby_name.template get<std::string>());
       });
     }
 

@@ -23,6 +23,10 @@ inline bool isInstrumented(int flags) {
   return flags & 0b1111;
 }
 
+inline bool isAlwaysInstrumented(int flags) {
+  return flags & ALWAYS_INSTRUMENT;
+}
+
 inline bool isScopeTrigger(int flags) {
   return flags & SCOPE_TRIGGER;
 }

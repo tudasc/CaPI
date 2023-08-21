@@ -4,11 +4,11 @@
 
 #include "BasicSelectors.h"
 #include "CallPathSelector.h"
-#include "SetOperations.h"
+#include "CommonCallerSelectorSCC.h"
 #include "ContextSelector.h"
 #include "ContextSelector2.h"
-#include "ContextSelectorSCC.h"
 #include "SelectorRegistry.h"
+#include "SetOperations.h"
 
 namespace  {
 
@@ -43,7 +43,6 @@ SelectorPtr createNameSelector(const std::vector<Param>& params) {
   return std::make_unique<NameSelector>(regexStr);
 }
 
-RegisterSelector registerNameSelector("byName", createNameSelector);
 
 // FilePathSelector
 
@@ -93,6 +92,7 @@ SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
   return std::make_unique<MinCallDepthSelector>(*cmpOp, intVal);
 }
 
+// TODO: Replaced by CommonCallerSelectorSCC, remove
 template<CAHeuristicType T>
 SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
   int maxOrder = 0;
@@ -104,27 +104,29 @@ SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
   return std::make_unique<ContextSelector2>(maxOrder, T);
 }
 
-template<ContextSelectorSCC::CAHeuristicType T>
-SelectorPtr createCallContextSelectorSCC(const std::vector<Param>& params) {
+template<CommonCallerSelectorSCC::CAHeuristicType T>
+SelectorPtr createCommmonCallerSelectorSCC(const std::vector<Param>& params) {
   int maxOrder = 0;
   if (!params.empty()) {
-    CHECK_NUM_ARGS(ContextSelectorSCC, params, 1)
+    CHECK_NUM_ARGS(CommonCallerSelectorSCC, params, 1)
     CHECK_KIND(params[0], Param::INT)
     maxOrder = std::get<int>(params[0].val);
   }
-  return std::make_unique<ContextSelectorSCC>(maxOrder, T);
+  return std::make_unique<CommonCallerSelectorSCC>(maxOrder, T);
 }
 
-RegisterSelector registerFilePathSelector("byPath", createFilePathSelector);
+RegisterSelector registerNameSelector("by_name", createNameSelector);
+
+RegisterSelector registerFilePathSelector("by_path", createFilePathSelector);
 
 // InlineSelector
-RegisterSelector registerInlineSelector("inlineSpecified", createSimpleSelector<InlineSelector>);
+RegisterSelector registerInlineSelector("inline_specified", createSimpleSelector<InlineSelector>);
 
 // CallPathSelectorUp
-RegisterSelector registerCallPathUpSelector("onCallPathTo", createSimpleSelector<CallPathSelector<TraverseDir::TraverseUp>>);
+RegisterSelector registerCallPathUpSelector("on_call_path_to", createSimpleSelector<CallPathSelector<TraverseDir::TraverseUp>>);
 
 // CallPathSelectorDown
-RegisterSelector registerCallPathDownSelector("onCallPathFrom", createSimpleSelector<CallPathSelector<TraverseDir::TraverseDown>>);
+RegisterSelector registerCallPathDownSelector("on_call_path_from", createSimpleSelector<CallPathSelector<TraverseDir::TraverseDown>>);
 
 // UnionSelector
 RegisterSelector registerUnionSelector("join", createSimpleSelector<SetOperationSelector<SetOperation::UNION>>);
@@ -136,33 +138,35 @@ RegisterSelector registerIntersectionSelector("intersect", createSimpleSelector<
 RegisterSelector registerComplementSelector("subtract", createSimpleSelector<SetOperationSelector<SetOperation::COMPLEMENT>>);
 
 // SystemIncludeSelector
-RegisterSelector registerSystemHeaderSelector("inSystemHeader", createSimpleSelector<SystemHeaderSelector>);
+RegisterSelector registerSystemHeaderSelector("in_system_header", createSimpleSelector<SystemHeaderSelector>);
 
 // UnresolveCallSelector
-RegisterSelector registerUnresolvedCallSelector("containsUnresolvedCalls", createSimpleSelector<UnresolvedCallSelector>);
+RegisterSelector registerUnresolvedCallSelector("contains_unresolved_calls", createSimpleSelector<UnresolvedCallSelector>);
 
 // FlopSelector
 RegisterSelector registerFlopSelector("flops", createMetricSelector<FlopSelector>);
 
 // MemOpSelector
-RegisterSelector registerMemOpSelector("memOps", createMetricSelector<MemOpSelector>);
+RegisterSelector registerMemOpSelector("memops", createMetricSelector<MemOpSelector>);
 
 // LoopDepthSelector
-RegisterSelector registerLoopDepthSelector("loopDepth", createMetricSelector<LoopDepthSelector>);
+RegisterSelector registerLoopDepthSelector("loop_depth", createMetricSelector<LoopDepthSelector>);
 
 // CoarseSelector
 RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>);
 
 // MinCallDepthSelector
-RegisterSelector minCallDepthSelector("minCallDepth", createMinCallDepthSelector);
+RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelector);
 
+// TODO: Replaced by common_caller selector, remove
 // ContextSelector
-RegisterSelector callContextSelector("callContext", createSimpleSelector<ContextSelector>);
 RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
 
-RegisterSelector caSelectorAll("common_caller", createCallContextSelectorSCC<ContextSelectorSCC::ALL>);
-RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCallContextSelectorSCC<ContextSelectorSCC::PARTIALLY_DISTINCT>);
-RegisterSelector caSelectorDistinct("common_caller_distinct", createCallContextSelectorSCC<ContextSelectorSCC::DISTINCT>);
+RegisterSelector caSelectorAll("common_caller",
+                  createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>);
+RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::PARTIALLY_DISTINCT>);
+RegisterSelector caSelectorDistinct("common_caller_distinct",
+    createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>);
 
 }
 

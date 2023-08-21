@@ -2,8 +2,8 @@
 // Created by sebastian on 29.06.23.
 //
 
-#ifndef CAPI_CONTEXTSELECTORSCC_H
-#define CAPI_CONTEXTSELECTORSCC_H
+#ifndef CAPI_COMMONCALLERSELECTORSCC_H
+#define CAPI_COMMONCALLERSELECTORSCC_H
 
 #include "Selector.h"
 
@@ -11,7 +11,7 @@ namespace capi {
 
 
 
-class ContextSelectorSCC : public Selector {
+class CommonCallerSelectorSCC : public Selector {
 public:
   enum CAHeuristicType {
     ALL, PARTIALLY_DISTINCT, DISTINCT
@@ -24,7 +24,7 @@ private:
 
 public:
 
-  explicit ContextSelectorSCC(int maxLCADist, CAHeuristicType type) : maxLCADist(maxLCADist), type(type) {};
+  explicit CommonCallerSelectorSCC(int maxLCADist, CAHeuristicType type) : maxLCADist(maxLCADist), type(type) {};
 
   void init(CallGraph &cg) override {
     this->cg = &cg;
@@ -42,4 +42,4 @@ public:
 }
 
 
-#endif // CAPI_CONTEXTSELECTORSCC_H
+#endif // CAPI_COMMONCALLERSELECTORSCC_H

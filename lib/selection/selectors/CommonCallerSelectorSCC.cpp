@@ -2,7 +2,7 @@
 // Created by sebastian on 29.06.23.
 //
 
-#include "ContextSelectorSCC.h"
+#include "CommonCallerSelectorSCC.h"
 
 #include <deque>
 #include <unordered_map>
@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& os, const CommonCallerSearchNodeDataSCC& 
    return os << (nd.node ? nd.node->nodes.front()->getName() : "null") << " (" << nd.distA << ", " << nd.distB << ", " << (nd.isLCA ? "true" : "false") << ")";
 }
 
-FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
+FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
   if (input.size() != 2) {
     logError() << "Expected exactly two input sets, got " << input.size() << " instead.\n";
     return {};
@@ -59,8 +59,8 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
     if (inSet.empty())
       return false;
     if (inSet.size() > 1) {
-      logInfo() << "Warning: Input for ContextSelector contains more than one element (" << inSet.size() << ")\n";
-      logInfo() << "Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getName() << "\n";
+      LOG_CRITICAL("Warning: Input for ContextSelector contains more than one element (" << inSet.size() << ")\n");
+      LOG_CRITICAL("Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getName() << "\n");
     }
     return true;
   };
@@ -131,20 +131,12 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
         callerData.predB = nodeData->node;
         relaxCaller = true;
       }
-//      int altpLCAOrder = nodeData->pLCAOrder + 1;
-//      if (nodeData->pLCAOrder >= 0 && (callerData.pLCAOrder < 0 || altpLCAOrder ))
 
       if (nodeData->isLCA && callerData.isLCA) {
 //        std::cout << callerData.node->getName() << " was marked as potential LCA, but is not anymore.\n";
         callerData.isLCA = false;
 //        relaxCaller = true;
       }
-
-//      int altLCADist = nodeData->lcaDist + 1;
-//      if (nodeData->lcaDist >= 0 && (callerData.lcaDist < 0 || altLCADist > callerData.lcaDist)) {
-//        callerData.lcaDist = altLCADist;
-//        relaxCaller = true;
-//      }
 
       if (relaxCaller) {
         //std::cout << "Entering in queue after update " << callerData << "\n";
@@ -155,25 +147,6 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
             callerData.isLCA = true;
 //            std::cout << "Found potential LCA: " << callerData.node->getName() << "\n";
           }
-
-//          auto scc = sccResults.getSCC(*caller);
-//          auto callerSCCSize = scc->size();
-//          if (callerSCCSize > 1) {
-//            std::cout << "Caller is CA and in SCC of size " << callerSCCSize << ": "
-//                      << caller->getName() << " - skipping...\n";
-////            FunctionSet out;
-////            for (auto &node : *scc) {
-////              addToSet(out, node);
-////            }
-////            return out;
-//          }
-
-//          if (nodeData->lcaDist < 0) {
-//            callerData.lcaDist = 0;
-//          }
-//          if (callerData.lcaDist == 0) {
-//            std::cout << "Found potential LCA: " << callerData.node->getName() << "\n";
-//          }
         }
         addToQueue(&callerData);
       }
@@ -188,8 +161,8 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
       // Ignore CAs in cycles
       auto callerSCCSize = ca->node->size();
       if (callerSCCSize > 1) {
-        std::cout << "LCA is SCC of size " << callerSCCSize << ", first node: "
-                  << ca->node->nodes.front()->getName() << " - skipping...\n";
+        LOG_CRITICAL("LCA is SCC of size " << callerSCCSize << ", first node: "
+                  << ca->node->nodes.front()->getName() << " - skipping...\n");
         continue;
       }
       // LCAs are by definition candidates
@@ -202,7 +175,7 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
     }
   }
 
-  std::cout << "Number of LCAs: " << workQueue.size() << "\n";
+  LOG_STATUS("Number of LCAs: " << workQueue.size() << "\n");
 
   if (workQueue.empty()) {
     return {targetNodeA, targetNodeB};
@@ -219,8 +192,6 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
     auto nodeData = workQueue.front();
     workQueue.pop_front();
 
-   // std::cout << "Working on " << *nodeData << "\n";
-
     // Check if current node is candidate
     if (!nodeData->isCandidate) {
       nodeData->isCandidate = nodeData->lcaDescendants.size() > 1;
@@ -236,7 +207,6 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
       }
     }
     if (nodeData->isCandidate) {
-      //std::cout << "Node is interesting!\n";
       addToSet(candidates, nodeData);
       bool childReachesOnlyA = false;
       bool childReachesOnlyB = false;
@@ -292,7 +262,7 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
 
   assert(workQueue.empty());
 
-  std::cout << "Number of candidate dLCAs: " << candidates.size() << "\n";
+  LOG_STATUS("Number of candidate dLCAs: " << candidates.size() << "\n");
 
   constexpr int NumLCABuckets = 11;
   std::array<int, NumLCABuckets> lcaDistCount;
@@ -368,7 +338,7 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
     return out;
   };
 
-  bool printCandidateStats = true;
+  bool printCandidateStats = checkVerbosity(LOG_EXTRA);
 
   // Print stats
   if (printCandidateStats) {
@@ -391,65 +361,47 @@ FunctionSet ContextSelectorSCC::apply(const FunctionSetList& input) {
           }
         }
       }
-      std::cout << "Candidates with LCA-Dist <= " << i << ": " << candidateQ.size()
+      logInfo() << "Candidates with LCA-Dist <= " << i << ": " << candidateQ.size()
                 << std::endl;
       auto instrCandidates = getInstrumented(candidateQ);
-      std::cout << " -> instrumented functions: " << instrCandidates.size() << std::endl;
+      logInfo() << " -> instrumented functions: " << instrCandidates.size() << std::endl;
 
-      std::cout << "  of these partially distinct: "
+      logInfo() << "  of these partially distinct: "
                 << partiallyDistinctQ.size() << std::endl;
       auto instrPartiallyDistinctCandidates = getInstrumented(partiallyDistinctQ);
-      std::cout << "  -> instrumented functions: " << instrPartiallyDistinctCandidates.size() << std::endl;
+      logInfo() << "  -> instrumented functions: " << instrPartiallyDistinctCandidates.size() << std::endl;
 
-      std::cout << "  of these fully distinct: "
+      logInfo() << "  of these fully distinct: "
                 << distinctQ.size() << std::endl;
       auto instrDistinctCandidates = getInstrumented(distinctQ);
-      std::cout << "   -> instrumented functions: " << instrDistinctCandidates.size() << std::endl;
+      logInfo() << "   -> instrumented functions: " << instrDistinctCandidates.size() << std::endl;
     }
 
-    std::cout << "------------------------------" << std::endl;
+    logInfo() << "------------------------------" << std::endl;
 
     for (int i = 0; i < NumLCABuckets - 1; i++) {
-      std::cout << "Candidates with LCA-Dist = " << i << ": " << lcaDistCount[i]
+      logInfo() << "Candidates with LCA-Dist = " << i << ": " << lcaDistCount[i]
                 << std::endl;
 
-      std::cout << "  of these partially distinct: "
+      logInfo() << "  of these partially distinct: "
                 << lcaDistCountPartiallyDistinct[i] << std::endl;
-      std::cout << "  of these distinct: "
+      logInfo() << "  of these distinct: "
                 << lcaDistCountDistinct[i] << std::endl;
     }
-    std::cout << "Candidates with LCA-Dist >= " << NumLCABuckets - 1 << ": "
+    logInfo() << "Candidates with LCA-Dist >= " << NumLCABuckets - 1 << ": "
               << lcaDistCount.back() << std::endl;
-    std::cout << "  of these partially distinct: "
+    logInfo() << "  of these partially distinct: "
               << lcaDistCountPartiallyDistinct.back() << std::endl;
-    std::cout << "  of these distinct: "
+    logInfo() << "  of these distinct: "
               << lcaDistCountDistinct.back() << std::endl;
 
     // Number of instrumented function for each bucket
 
   } else {
-    std::cout << "Number of candidate dLCAs with LCADist <= " << maxLCADist << ": " << workQueue.size() << "\n";
+    LOG_STATUS("Number of candidate dLCAs with LCADist <= " << maxLCADist << ": " << workQueue.size() << "\n");
   }
 
   FunctionSet out = getInstrumented(workQueue);
-
-//  do {
-//    auto nodeData = workQueue.front();
-//    workQueue.pop_front();
-//    const auto* node = nodeData->node;
-//    addToSet(out, node);
-//    nodeData->node = nullptr; // Using this as a marker for processed nodes to prevent cycles.
-//    for (auto& callee : node->findAllCallees()) {
-//      auto& calleeData = nodeDataMap[callee];
-//      if (!calleeData.node) {
-//        // This node has already been visited, skip.
-//        continue;
-//      }
-//      if (calleeData.predA || calleeData.predB) {
-//        addToQueue(&calleeData);
-//      }
-//    }
-//  } while (!workQueue.empty());
 
   return out;
 }

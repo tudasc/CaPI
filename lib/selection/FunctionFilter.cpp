@@ -94,7 +94,9 @@ bool writeSimpleFilterFile(FunctionFilter& filter, const std::string& filename) 
     return false;
   }
   for (auto &f : filter) {
-    os << f.first << "\n";
+    if (isAlwaysInstrumented(f.second)) {
+      os << f.first << "\n";
+    }
   }
   return true;
 }
@@ -110,7 +112,9 @@ bool writeScorePFilterFile(FunctionFilter &filter,
   os << "EXCLUDE *\n";
   os << "INCLUDE MANGLED\n";
   for (auto &f : filter) {
-    os << f.first << "\n";
+    if (isAlwaysInstrumented(f.second)) {
+      os << f.first << "\n";
+    }
   }
   os << "SCOREP_REGION_NAMES_END\n";
   return true;
