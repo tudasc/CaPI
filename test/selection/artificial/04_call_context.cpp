@@ -1,13 +1,13 @@
 // clang-format off
 //
 // This case has two distinct relevant calling contexts.
-// See 04_call_context.svg for the CG.
+// See 04_common_caller.svg for the CG.
 //
 // Note: This code doesn't do anything useful and is not meant to be run.
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'callContext2(byName("@_Z2c1v", %%%%), byName("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'common_caller(by_name("@_Z2c1v", %%%%), by_name("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
 // clang-format on

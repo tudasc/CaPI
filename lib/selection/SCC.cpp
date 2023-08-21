@@ -18,7 +18,7 @@ struct SCCData {
 };
 
 
-static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bool followVirtualCall, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<std::vector<const CGNode*>>& sccs) {
+static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bool followVirtualCall, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<SCCNode>& sccs) {
   nodeData.index = index;
   nodeData.lowlink = index;
   index++;
@@ -44,13 +44,13 @@ static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bo
       member->onStack = false;
       scc.push_back(member->node);
     } while(member->node != nodeData.node);
-    sccs.push_back(scc);
+    sccs.push_back({scc});
   }
 }
 
 // Implements Tarjan's algorithm
 SCCAnalysisResults computeSCCs(const CallGraph& cg, bool followVirtualCalls) {
-  std::vector<std::vector<const CGNode*>> sccs;
+  std::vector<SCCNode> sccs;
   std::unordered_map<const CGNode*, SCCData> sccMap;
   std::vector<SCCData*> nodeStack;
   int index = 0;

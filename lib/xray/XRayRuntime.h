@@ -33,8 +33,11 @@ using XRayFunctionMap = std::unordered_map<int, XRayFunctionInfo>;
 
 struct GlobalCaPIData {
   XRayFunctionMap xrayFuncMap;
-  std::unordered_set<int32_t> triggerSet;
-  bool useTriggers{false};
+  std::unordered_set<int32_t> scopeTriggerSet;
+  std::unordered_set<int32_t> beginTriggerSet;
+  std::unordered_set<int32_t> endTriggerSet;
+  bool beginActive{true};
+  bool useScopeTriggers{false};
   bool logCalls;
   std::unique_ptr<CallLogger> logger;
 };

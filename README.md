@@ -67,13 +67,13 @@ The last definition in the sequence is used as the entry point for the selection
 
 For example, the following selector, named `mpi`, finds all functions starting with `MPI_`.
 ```
-mpi = byName("MPI_.*", %%)
+mpi = by_name("MPI_.*", %%)
 ```
 
 This can be used to find all functions that are on a callpath to a MPI call:
 
 ```
-mpi          = byName("MPI_.*", %%)
+mpi          = by_name("MPI_.*", %%)
 mpi_callpath = onCallPathTo(%mpi)
 ```
 
@@ -81,13 +81,13 @@ To reduce overhead, it is typically sensible to exclude functions that are marke
 Adding this to the previous spec, the result might look like this:
 
 ```
-mpi          = byName("MPI_.*", %%)
+mpi          = by_name("MPI_.*", %%)
 mpi_callpath = onCallPathTo(%mpi)
 final        = subtract(%mpi_callpath, inlineSpecified(%%))
 ```
 or shortened:
 ```
-subtract(onCallPathTo(byName("MPI_.*", %%)),inlineSpecified(%%))
+subtract(onCallPathTo(by_name("MPI_.*", %%)),inlineSpecified(%%))
 ```
 
 Recently, support for loading pre-defined selection modules via the `!import` statement was added.
@@ -102,11 +102,11 @@ List of available selectors:
 
 | Name                    | Parameters                | Selector inputs | Example                            | Explanation                                                                               |
 |-------------------------|---------------------------|-----------------|------------------------------------|-------------------------------------------------------------------------------------------|
-| byName                  | regex string              | 1               | `byName("foo.*", %%)`              | Selects functions with names starting with "foo".                                         |
+| by_name                  | regex string              | 1               | `by_name("foo.*", %%)`              | Selects functions with names starting with "foo".                                         |
 | byPath                  | regex string              | 1               | `byPath("foo/.*", %%)`             | Selects functions contained in directory "foo".                                           |
 | inlineSpecified         | -                         | 1               | `inlineSpecified(%%)`              | Selects functions marked as `inline`.                                                     |
-| onCallPathTo            | -                         | 1               | `onCallPathTo(byName("foo", %%))`  | Selects functions in the call chain to function "foo".                                    |
-| onCallPathFrom          | -                         | 1               | `onCallPathFrom(byName("foo", %%))` | Selects functions in the call chain from function "foo".                                  |
+| onCallPathTo            | -                         | 1               | `onCallPathTo(by_name("foo", %%))`  | Selects functions in the call chain to function "foo".                                    |
+| onCallPathFrom          | -                         | 1               | `onCallPathFrom(by_name("foo", %%))` | Selects functions in the call chain from function "foo".                                  |
 | inSystemHeader          | -                         | 1               | `inSystemHeader(%%)`               | Selects functions defined in system headers.                                              |
 | containsUnresolvedCalls | -                         | 1               | `containsUnresolvedCalls(%%)`      | Selects functions containing calls to unknown target functions.                           |
 | join                    | -                         | 2               | `join(%A, %B)`                     | Union of the two input sets.                                                              |

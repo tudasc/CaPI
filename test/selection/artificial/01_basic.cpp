@@ -1,49 +1,49 @@
 // clang-format off
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'byName(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
+// RUN: infile="%s"; %capi -i 'by_name(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
 //
-// RUN: infile="%s"; %capi -i 'byName("(main)|(a)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("(main)|(a)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
 //
-// RUN: infile="%s"; %capi -i 'byName("@(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-MANGLED
 //
-// RUN: infile="%s"; %capi -i 'byName("(main)|(a)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("(main)|(a)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
 // RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON
 //
-// RUN: infile="%s"; %capi -i 'byName("@(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
 // RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON-MANGLED
 //
-// RUN: infile="%s"; %capi -i 'byName("@^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("@^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name2.filt | c++filt | sort | %filecheck %s -check-prefix=NAME2-MANGLED
 //
-// RUN: infile="%s"; %capi -i 'loopDepth(">=", 1, %%%%)' -o %s_loop.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'loop_depth(">=", 1, %%%%)' -o %s_loop.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_loop.filt | c++filt | sort | %filecheck %s -check-prefix=LOOP
 //
-// RUN: infile="%s"; %capi -i 'loopDepth("==", 2, %%%%)' -o %s_loop2.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'loop_depth("==", 2, %%%%)' -o %s_loop2.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_loop2.filt | c++filt | sort | %filecheck %s -check-prefix=LOOP2
 //
 // TODO: Global loop depth selection not implemented
-// infile="%s"; %capi -i 'globalLoopDepth(">", 2, %%%%)' -o %s_gloop.filt --output-format simple ${infile%%.*}.ipcg
+// infile="%s"; %capi -i 'global_loop_depth(">", 2, %%%%)' -o %s_gloop.filt --output-format simple ${infile%%.*}.ipcg
 // cat %s_gloop.filt | c++filt | sort | %filecheck %s -check-prefix=GLOOP
 //
 // RUN: infile="%s"; %capi -i 'flops(">=", 1, %%%%)' -o %s_flops.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_flops.filt | c++filt | sort | %filecheck %s -check-prefix=FLOPS
 //
-// RUN: infile="%s"; %capi -i 'onCallPathTo(loopDepth("==", 2, %%%%))' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_to(loop_depth("==", 2, %%%%))' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-B
 //
-// RUN: infile="%s"; %capi -i 'onCallPathTo(loopDepth("==", 2, %%%%))' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_to(loop_depth("==", 2, %%%%))' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-B
 //
-// RUN: infile="%s"; %capi -i 'onCallPathFrom(loopDepth("==", 2, %%%%))' -o %s_callees_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_from(loop_depth("==", 2, %%%%))' -o %s_callees_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callees_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLEES-B
 //
-// RUN: infile="%s"; %capi -i 'minCallDepth(%%%%, ">=", 2)' -o %s_call_depth.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'min_call_depth(%%%%, ">=", 2)' -o %s_call_depth.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_call_depth.filt | c++filt | sort | %filecheck %s -check-prefix=CALLDEPTH
 //
-// RUN: infile="%s"; %capi -i 'minCallDepth(%%%%, "<=", 1)' -o %s_call_depth2.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'min_call_depth(%%%%, "<=", 1)' -o %s_call_depth2.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_call_depth2.filt | c++filt | sort | %filecheck %s -check-prefix=CALLDEPTH2
 //
 // clang-format on

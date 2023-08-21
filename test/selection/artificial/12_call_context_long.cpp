@@ -4,16 +4,16 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(0, byName("t1", %%%%), byName("t2", %%%%))' -o %s_dist0.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(0, by_name("t1", %%%%), by_name("t2", %%%%))' -o %s_dist0.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_dist0.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST0 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(1, byName("t1", %%%%), byName("t2", %%%%))' -o %s_dist1.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(1, by_name("t1", %%%%), by_name("t2", %%%%))' -o %s_dist1.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_dist1.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST1 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(2, byName("t1", %%%%), byName("t2", %%%%))' -o %s_dist2.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(2, by_name("t1", %%%%), by_name("t2", %%%%))' -o %s_dist2.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_dist2.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST2 %s
 //
-// RUN: infile="%s"; timeout 10s %capi -i 'callContext2(3, byName("t1", %%%%), byName("t2", %%%%))' -o %s_dist3.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; timeout 10s %capi -i 'common_caller(3, by_name("t1", %%%%), by_name("t2", %%%%))' -o %s_dist3.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_dist3.filt | c++filt | sort | %filecheck -check-prefix=MAX-DIST3 %s
 //
 // clang-format on

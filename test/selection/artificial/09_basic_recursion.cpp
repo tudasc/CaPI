@@ -1,18 +1,18 @@
 // clang-format off
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'byName(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
+// RUN: infile="%s"; %capi -i 'by_name(".*", %%%%)' -o /dev/null --print-scc-stats ${infile%%.*}.ipcg | %filecheck %s -check-prefix=LOG
 //
-// RUN: infile="%s"; %capi -i 'onCallPathTo(byName("a", %%%%))' -o %s_callers_a.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_to(by_name("a", %%%%))' -o %s_callers_a.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_a.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-A
 //
-// RUN: infile="%s"; %capi -i 'onCallPathTo(byName("f", %%%%))' -o %s_callers_f.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_to(by_name("f", %%%%))' -o %s_callers_f.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_f.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-F
 //
-// RUN: infile="%s"; %capi -i 'onCallPathFrom(byName("a", %%%%))' -o %s_callees_a.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_from(by_name("a", %%%%))' -o %s_callees_a.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callees_a.filt | c++filt | sort | %filecheck %s -check-prefix=CALLEES-A
 //
-// RUN: infile="%s"; %capi -i 'onCallPathFrom(byName("f", %%%%))' -o %s_callees_f.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'on_call_path_from(by_name("f", %%%%))' -o %s_callees_f.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callees_f.filt | c++filt | sort | %filecheck %s -check-prefix=CALLEES-F
 //
 // clang-format on

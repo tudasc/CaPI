@@ -25,6 +25,8 @@ struct FunctionInfo
   std::vector<std::string> overrides;
   std::vector<std::string> overridenBy;
 
+  std::vector<std::string> virtualCalls;
+
   bool isVirtual{false};
   bool instrument{false};
   bool containsPointerCall{false};

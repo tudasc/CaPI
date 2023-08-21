@@ -12,6 +12,10 @@ namespace capi {
 
 namespace {
   void processNode(SelectorNode *node, CallGraph &cg, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
+    if (resultsMap.find(node->getName()) != resultsMap.end()) {
+      // Already run
+      return;
+    }
     auto& selector = *node->getSelector();
     logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << " ...\n";
     selector.init(cg);
@@ -73,69 +77,70 @@ static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<Select
   return true;
 }
 
-FunctionSet runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, bool debugMode) {
-  auto entry = selectorGraph.getEntryNode();
-  if (!entry) {
+SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, bool debugMode) {
+  auto entries = selectorGraph.getEntryNodes();
+
+  if (entries.empty()) {
     logError() << "No entry node specified!\n";
     return {};
   }
 
-  std::vector<SelectorNode*> executionOrder;
-  std::vector<SelectorNode*> visited;
+  SelectionResults resultsMap;
 
-  bool success = dfsSort(entry, selectorGraph, executionOrder, visited);
+  for (auto& entry : entries) {
 
-  if (!success) {
-    logError() << "Invalid selector pipeline.\n";
-    return {};
-  }
+    std::vector<SelectorNode *> executionOrder;
+    std::vector<SelectorNode *> visited;
 
+    bool success = dfsSort(entry, selectorGraph, executionOrder, visited);
 
-
-//  std::cout << "Execution order: \n";
-//  for (auto it = executionOrder.rbegin(); it != executionOrder.rend(); ++it) {
-//    std::cout << "<" << (*it)->getSelector()->getName() << "> " << (*it)->getName() << ", ";
-//  }
-//  std::cout << "\n";
-
-
-  std::unordered_map<std::string, FunctionSet> resultsMap;
-
-  if (debugMode) {
-    for (int i = 0; i < executionOrder.size(); i++) {
-      auto node = executionOrder[i];
-
-      processNode(node, cg, resultsMap, true);
-    }
-  }
-  else
-  {
-    std::unordered_map<std::string, int> nodeOrderMap;
-
-    for (int i = 0; i < executionOrder.size(); i++) {
-      nodeOrderMap[executionOrder[i]->getName()] = i;
+    if (!success) {
+      logError() << "Invalid selector pipeline.\n";
+      return {};
     }
 
-    #pragma omp parallel
-    {
-      #pragma omp single
+    //  std::cout << "Execution order: \n";
+    //  for (auto it = executionOrder.rbegin(); it != executionOrder.rend(); ++it) {
+    //    std::cout << "<" << (*it)->getSelector()->getName() << "> " << (*it)->getName() << ", ";
+    //  }
+    //  std::cout << "\n";
+
+
+    if (debugMode) {
+      for (int i = 0; i < executionOrder.size(); i++) {
+        auto node = executionOrder[i];
+
+        processNode(node, cg, resultsMap, true);
+      }
+    } else {
+      std::unordered_map<std::string, int> nodeOrderMap;
+
+      for (int i = 0; i < executionOrder.size(); i++) {
+        nodeOrderMap[executionOrder[i]->getName()] = i;
+      }
+
+#pragma omp parallel
       {
-        for (int i = 0; i < executionOrder.size(); i++) {
-          auto node = executionOrder[i];
-          auto& deps = node->getInputDependencies();
+#pragma omp single
+        {
+            for (int i = 0; i < executionOrder.size(); i++) {
+              auto node = executionOrder[i];
+              auto &deps = node->getInputDependencies();
 
-          #pragma omp task depend(iterator(j=0:deps.size()), in: executionOrder[nodeOrderMap.at(deps[j])]) depend(out: executionOrder[i]) shared(resultsMap,cg,executionOrder)
-          processNode(node, cg, resultsMap, false);
+#pragma omp task depend(iterator(j = 0 : deps.size()), in : executionOrder[nodeOrderMap.at(deps[j])]) depend(out : executionOrder[i]) shared(resultsMap, cg, executionOrder)
+              processNode(node, cg, resultsMap, false);
+            }
         }
       }
     }
   }
 
-  return resultsMap[selectorGraph.getEntryNode()->getName()];
+  return resultsMap;
 
 }
 
 void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
+  auto entries = graph.getEntryNodes();
   for (auto&& [name, nodePtr] : graph.getNodes()) {
     auto& deps = nodePtr->getInputDependencies();
     os << name;
@@ -144,7 +149,7 @@ void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
     for (auto it = deps.begin(); it != deps.end(); ++it) {
       os << *it << (it+1 == deps.end() ? "" : ", ");
     }
-    if (graph.getEntryNode() == nodePtr.get()) {
+    if (std::find(entries.begin(), entries.end(), nodePtr.get()) != entries.end()) {
       os << " [Entry]";
     }
     os << "\n";

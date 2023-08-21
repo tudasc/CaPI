@@ -43,11 +43,14 @@ public:
 
 using SelectorNodePtr = std::unique_ptr<SelectorNode>;
 
+using SelectionResults = std::unordered_map<std::string, FunctionSet>;
+
+
 class SelectorGraph {
 
   std::unordered_map<std::string, SelectorNodePtr> nodes;
 
-  std::string entryNodeName;
+  std::unordered_set<std::string> entryNodeNames;
 
 public:
   SelectorGraph() = default;
@@ -60,17 +63,32 @@ public:
     return nullptr;
   }
 
+  const SelectorNode* getNode(const std::string& name) const {
+    auto it = nodes.find(name);
+    if (it != nodes.end()) {
+      return it->second.get();
+    }
+    return nullptr;
+  }
+
   SelectorNode* createNode(const std::string& name, SelectorPtr selector) {
     nodes[name] = std::make_unique<SelectorNode>(name, std::move(selector));
     return nodes[name].get();
   }
 
-  void setEntryNode(std::string name) {
-    this->entryNodeName = std::move(name);
+  void addEntryNode(std::string name) {
+    entryNodeNames.insert(std::move(name));
   }
 
-  SelectorNode* getEntryNode() {
-    return getNode(entryNodeName);
+  std::vector<SelectorNode*> getEntryNodes()  {
+    std::vector<SelectorNode*> entryNodes;
+    for (auto& name : entryNodeNames) {
+      auto n = getNode(name);
+      if (n) {
+        entryNodes.push_back(n);
+      }
+    }
+    return entryNodes;
   }
 
   bool hasNode(const std::string& name) {
@@ -84,7 +102,7 @@ public:
 
 using SelectorGraphPtr = std::unique_ptr<SelectorGraph>;
 
-FunctionSet runSelectorPipeline(SelectorGraph& graph, CallGraph &cg, bool debugMode);
+SelectionResults runSelectorPipeline(SelectorGraph& graph, CallGraph &cg, bool debugMode);
 
 void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph);
 
