@@ -25,7 +25,7 @@ struct C: public B {
 };
 
 int main(int argc, char** argv) {
-  // This is of course nonsense, but prevents any kind of inference of the subclass.
+  // This is of course nonsense, but prevents any kind of inference of the direct call target.
   A* a = (A*) (argv[0]);
   a->foo();
   return 0;

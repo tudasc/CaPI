@@ -123,7 +123,10 @@ bool MetaCGReader::read() {
         fi.isInlined = jInlined.get<bool>();
       }
       auto jVCalls = jMeta["virtualCalls"];
-      if (!jVCalls.is_null()) {
+      if (jVCalls.is_null()) {
+        // Backwards compatibility: if there is no virtual call data, assume that every call is virtual
+        fi.virtualCalls = fi.callees;
+      } else {
         std::for_each(jVCalls.begin(), jVCalls.end(), [&fi](auto &jVCallName) {
           fi.virtualCalls.push_back(jVCallName.template get<std::string>());
         });
