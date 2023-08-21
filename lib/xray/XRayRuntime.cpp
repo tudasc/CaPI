@@ -29,6 +29,7 @@
 #include <mpi.h>
 #endif
 
+CAPI_DEFINE_VERBOSITY
 
 namespace capi {
 
@@ -167,12 +168,11 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   bool noFilter{true};
   FunctionFilter filter;
-  std::vector<std::string> triggers;
   auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
   if (filterEnv) {
     bool success{false};
     if (0 == strncmp( filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
-      success = readJSONFilterFile(filter, triggers, filterEnv);
+      success = readJSONFilterFile(filter, filterEnv);
     } else {
       success = readScorePFilterFile(filter, filterEnv);
     }
@@ -255,8 +255,17 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       if (patchStatus == SUCCESS) {
         auto packedId = __xray_pack_id(fid, objId);
         xrayMap[packedId] = fInfo;
-        if (std::find(triggers.begin(), triggers.end(), fInfo.name) != triggers.end()) {
-          globalCaPIData->triggerSet.insert(packedId);
+        int flags = filter.getFlags(fInfo.name);
+        if (isScopeTrigger(flags)) {
+          globalCaPIData->scopeTriggerSet.insert(packedId);
+        }
+        if (isBeginTrigger(flags)) {
+          globalCaPIData->beginTriggerSet.insert(packedId);
+          // If there are begin triggers, start in inactive mode
+          globalCaPIData->beginActive = false;
+        }
+        if (isEndTrigger(flags)) {
+          globalCaPIData->endTriggerSet.insert(packedId);
         }
         numPatched++;
       } else {
@@ -268,7 +277,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   }
 
   globalCaPIData->xrayFuncMap = xrayMap;
-  globalCaPIData->useTriggers = !globalCaPIData->triggerSet.empty();
+  globalCaPIData->useScopeTriggers = !globalCaPIData->scopeTriggerSet.empty();
   globalCaPIData->logCalls = logCalls;
   if (logCalls) {
     logInfo() << "Call logging is active\n";

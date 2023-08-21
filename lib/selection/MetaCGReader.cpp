@@ -94,8 +94,8 @@ bool MetaCGReader::read() {
 
     auto jOverridenBy = it.value()["overridenBy"];
     if (!jOverridenBy.is_null()) {
-      std::for_each(jOverridenBy.begin(), jOverridenBy.end(), [&fi](auto &jOverridenByName) {
-        fi.overridenBy.push_back(jOverridenByName.template get<std::string>());
+      std::for_each(jOverridenBy.begin(), jOverridenBy.end(), [&fi](auto &jOverridenby_name) {
+        fi.overridenBy.push_back(jOverridenby_name.template get<std::string>());
       });
     }
 
@@ -121,6 +121,15 @@ bool MetaCGReader::read() {
       auto jInlined = jMeta["isInlined"];
       if (jInlined.is_boolean()) {
         fi.isInlined = jInlined.get<bool>();
+      }
+      auto jVCalls = jMeta["virtualCalls"];
+      if (jVCalls.is_null()) {
+        // Backwards compatibility: if there is no virtual call data, assume that every call is virtual
+        fi.virtualCalls = fi.callees;
+      } else {
+        std::for_each(jVCalls.begin(), jVCalls.end(), [&fi](auto &jVCallName) {
+          fi.virtualCalls.push_back(jVCallName.template get<std::string>());
+        });
       }
     }
   }

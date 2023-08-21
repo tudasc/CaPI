@@ -7,10 +7,11 @@
 
 #include "CallGraph.h"
 #include "Selector.h"
+#include "FunctionFilter.h"
 
 namespace capi {
 
-bool writeDOT(const CallGraph &cg, const FunctionSet& selection, std::ostream &out);
+bool writeDOT(const CallGraph &cg, const FunctionFilter& selection, std::ostream &out);
 
 }
 

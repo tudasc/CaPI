@@ -5,6 +5,8 @@
 #include "../Utils.h"
 #include "SymbolRetriever.h"
 
+CAPI_DEFINE_VERBOSITY
+
 #ifdef CAPI_SCOREP_SUPPORT
 #include "ScorePInit.h"
 #endif
@@ -98,12 +100,12 @@ std::string loadFromFile(std::string_view filename) {
 std::string getPreset(SelectionPreset preset) {
   switch (preset) {
   case SelectionPreset::MPI:
-    return R"(onCallPathTo(byName("MPI_.*", %%)))";
-//    return selector::onCallPathTo(selector::byName("MPI_.*", selector::all()));
+    return R"(onCallPathTo(by_name("MPI_.*", %%)))";
+//    return selector::onCallPathTo(selector::by_name("MPI_.*", selector::all()));
   case SelectionPreset::OPENFOAM_MPI:
-    return R"(mpi=onCallPathTo(byName("MPI_.*", %%)) exclude=join(byPath(".*\\/OpenFOAM\\/db\\/.*", %%), inlineSpecified(%%)) subtract(%mpi, %exclude))";
+    return R"(mpi=onCallPathTo(by_name("MPI_.*", %%)) exclude=join(byPath(".*\\/OpenFOAM\\/db\\/.*", %%), inlineSpecified(%%)) subtract(%mpi, %exclude))";
 //    return selector::subtract(
-//        selector::onCallPathTo(selector::byName("MPI_.*", selector::all())),
+//        selector::onCallPathTo(selector::by_name("MPI_.*", selector::all())),
 //        selector::join(
 //            selector::byPath(".*\\/OpenFOAM\\/db\\/.*", selector::all()),
 //            selector::inlineSpecified(selector::all())));
@@ -182,7 +184,7 @@ extern "C" {
   std::cout << "\n";
   std::cout << "------------------\n";
 
-  auto selectorGraph = buildSelectorGraph(*ast);
+  auto selectorGraph = buildSelectorGraph(*ast, true);
 
   if (!selectorGraph) {
     std::cerr << "Could not build selector pipeline.\n";
@@ -200,9 +202,10 @@ extern "C" {
 
   std::cout << "Selected " << result.size() << " functions.\n";
 
+  // FIXME: Currently broken, need to adopt behavior of CaPI RT
   FunctionFilter filter;
   for (auto &f : result) {
-    filter.addIncludedFunction(f->getName());
+//    filter.addIncludedFunction(f->getName());
   }
 
   auto execPath = getExecPath();

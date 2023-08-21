@@ -5,11 +5,12 @@
 #ifndef CAPI_PREPROCESSOR_H
 #define CAPI_PREPROCESSOR_H
 
+#include "InstrumentationHint.h"
 #include "SelectionSpecAST.h"
 
 namespace capi {
 
-bool preprocessAST(SpecAST &ast);
+bool preprocessAST(SpecAST &ast, InstrumentationHints& instHints);
 
 }
 

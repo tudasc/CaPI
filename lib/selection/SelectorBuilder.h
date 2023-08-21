@@ -13,7 +13,7 @@
 
 namespace capi {
 
-SelectorGraphPtr buildSelectorGraph(SpecAST& ast);
+SelectorGraphPtr buildSelectorGraph(SpecAST& ast, bool lastDeclIsEntry);
 
 }
 
