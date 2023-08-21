@@ -19,6 +19,8 @@
 #include "SelectorGraph.h"
 #include "SpecParser.h"
 #include "SymbolRetriever.h"
+#include "support/Logging.h"
+#include "../support/Timer.h"
 
 using namespace capi;
 

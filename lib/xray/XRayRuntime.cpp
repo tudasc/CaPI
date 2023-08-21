@@ -4,7 +4,8 @@
 
 #include "capi_version.h"
 #include "XRayRuntime.h"
-#include "../Utils.h"
+#include "support/Logging.h"
+#include "support/Timer.h"
 #include "../selection/FunctionFilter.h"
 #include "SymbolRetriever.h"
 #include "CallLogger.h"

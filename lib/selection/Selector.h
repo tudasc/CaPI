@@ -8,9 +8,9 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "../Utils.h"
 #include "CallGraph.h"
 #include "MetaCGReader.h"
+#include "support/Logging.h"
 
 namespace capi {
 

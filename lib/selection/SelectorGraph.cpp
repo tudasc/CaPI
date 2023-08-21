@@ -3,10 +3,12 @@
 //
 
 #include "SelectorGraph.h"
-#include "../Utils.h"
+
 #include <cassert>
 #include <fstream>
 #include <omp.h>
+
+#include "support/Logging.h"
 
 namespace capi {
 

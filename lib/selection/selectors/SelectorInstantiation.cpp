@@ -5,7 +5,6 @@
 #include "BasicSelectors.h"
 #include "CallPathSelector.h"
 #include "CommonCallerSelectorSCC.h"
-#include "ContextSelector.h"
 #include "ContextSelector2.h"
 #include "SelectorRegistry.h"
 #include "SetOperations.h"

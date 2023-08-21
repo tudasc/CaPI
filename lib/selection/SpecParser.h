@@ -13,7 +13,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "../Utils.h"
 #include "SelectionSpecAST.h"
 
 namespace capi {

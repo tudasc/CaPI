@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "../Utils.h"
+#include "support/Logging.h"
 
 #ifdef WITH_MPI
 #include <mpi.h>

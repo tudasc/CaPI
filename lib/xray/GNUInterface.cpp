@@ -2,7 +2,7 @@
 // Created by sebastian on 30.08.22.
 //
 
-#include "../Utils.h"
+#include "support/Logging.h"
 #include "SymbolRetriever.h"
 #include "XRayRuntime.h"
 
