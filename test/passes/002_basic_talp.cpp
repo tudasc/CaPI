@@ -26,7 +26,7 @@ int __attribute__((noinline)) bar(int x) {
   return x * 2;
 }
 
-// CHECK: define dso_local i32 @_Z3fooi(i32 %x) local_unnamed_addr #4 {
+// CHECK: define dso_local i32 @_Z3fooi(i32 %x) local_unnamed_addr
 // CHECK:  %0 = call %dlb_monitor_t* @DLB_MonitoringRegionRegister(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @0, i32 0, i32 0))
 // CHECK-NEXT:  %1 = call i32 @DLB_MonitoringRegionStart(%dlb_monitor_t* %0)
 // CHECK-NEXT:  %call = tail call i32 @_Z3bari(i32 %x

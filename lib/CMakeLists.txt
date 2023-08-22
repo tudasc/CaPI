@@ -1,7 +1,7 @@
 
 set(PASS_SOURCES
-        ReadMetaCG.cpp
-        MetaCGReader.cpp)
+        passes/ReadMetaCG.cpp
+        passes/MetaCGReader.cpp)
 
 make_llvm_module(readmetacg
         "${PASS_SOURCES}"
@@ -23,10 +23,9 @@ install(
 
 add_subdirectory(passes)
 add_subdirectory(selection)
-add_subdirectory(calltree_verifier)
+add_subdirectory(calltree_logger)
 add_subdirectory(symbol_retriever)
 
 if (ENABLE_XRAY)
     add_subdirectory(xray)
-    add_subdirectory(dyncapi)
 endif()

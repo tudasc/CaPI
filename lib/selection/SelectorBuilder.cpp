@@ -3,10 +3,10 @@
 //
 
 #include "SelectorBuilder.h"
-#include "../Utils.h"
+#include "support/Logging.h"
 #include "SelectionSpecAST.h"
 #include "SelectorRegistry.h"
-#include <selectors/BasicSelectors.h>
+#include "selectors/BasicSelectors.h"
 
 namespace capi {
 

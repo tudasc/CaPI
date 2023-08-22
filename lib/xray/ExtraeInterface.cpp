@@ -8,7 +8,7 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "../Utils.h"
+#include "support/Logging.h"
 #include "SymbolRetriever.h"
 
 #ifdef WITH_MPI

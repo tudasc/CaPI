@@ -3,7 +3,7 @@
 //
 
 #include "SymbolRetriever.h"
-#include "../Utils.h"
+#include "support/Logging.h"
 
 #include <cstring>
 #include <fstream>

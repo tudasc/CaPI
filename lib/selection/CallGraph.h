@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "MetaCGReader.h"
+#include "../support/IteratorUtils.h"
 
 namespace capi {
 
@@ -20,26 +21,6 @@ namespace capi {
 extern bool traverseVirtualDtors;
 
 using FInfoMap = std::unordered_map<std::string, FunctionInfo>;
-
-template<typename T>
-struct IterRange
-{
-  IterRange(T begin, T end) : beginIt(begin), endIt(end)
-  {}
-
-  T begin()
-  { return beginIt; }
-
-  T end()
-  { return endIt; }
-
-  size_t size() const {
-    return std::distance(beginIt, endIt);
-  }
-
-private:
-  T beginIt, endIt;
-};
 
 class CGNode
 {

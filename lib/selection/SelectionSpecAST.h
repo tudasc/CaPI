@@ -5,12 +5,12 @@
 #ifndef CAPI_SELECTIONSPECAST_H
 #define CAPI_SELECTIONSPECAST_H
 
-#include "../Utils.h"
-
 #include <vector>
 #include <memory>
 #include <iostream>
 #include <algorithm>
+
+#include "support/IteratorUtils.h"
 
 namespace capi {
 
