@@ -4,7 +4,7 @@ CaPI is a selective code instrumentation tool, designed for streamlining the per
 
 CaPI selects functions for instrumentation according to the needs of the analyst, based on a static call graph of the target application,.
 This creates instrumentation configurations (ICs) that capture relevant parts of the code, while keeping the runtime overhead low.
-![capi_idea.png](capi_idea.png)
+![capi_overview.png](capi_overview.png)
 
 It consists of two major components:
 - A selection tool, that creates ICs tailored to the target code and measurement objective.
