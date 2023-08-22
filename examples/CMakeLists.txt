@@ -11,7 +11,7 @@ set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 set(CC_PATH ${LLVM_BINARY_DIR}/bin/clang)
 set(CXX_PATH ${LLVM_BINARY_DIR}/bin/clang++)
 set(LLVM_CONFIG ${LLVM_BINARY_DIR}/bin/llvm-config)
-set(SCOREP_CONFIG ${SCOREP_PATH}/bin/scorep-config)
+set(SCOREP_CONFIG ${SCOREP_DIR}/bin/scorep-config)
 
 configure_file(lulesh/Makefile.in lulesh/Makefile @ONLY)
 

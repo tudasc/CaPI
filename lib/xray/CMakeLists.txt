@@ -36,7 +36,7 @@ if (ENABLE_TALP)
     install(TARGETS capixray_talp ARCHIVE DESTINATION lib)
 endif()
 
-if (SCOREP_SUPPORT)
+if (ENABLE_SCOREP)
     set(CAPI_XRAY_SCOREP_SOURCES ${CAPI_XRAY_SOURCES} GNUInterface.cpp ScorePInit.cpp)
     add_library(capixray_scorep STATIC ${CAPI_XRAY_SCOREP_SOURCES})
     add_json(capixray_scorep)

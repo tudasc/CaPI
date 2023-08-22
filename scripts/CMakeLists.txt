@@ -14,7 +14,7 @@ function(configure_script input output)
     set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
     set(LLVM_CONFIG ${LLVM_BINARY_DIR}/bin/llvm-config)
-    set(SCOREP_CONFIG ${SCOREP_PATH}/bin/scorep-config)
+    set(SCOREP_CONFIG ${SCOREP_DIR}/bin/scorep-config)
     set(CC_PATH ${LLVM_BINARY_DIR}/bin/clang)
     set(CXX_PATH ${LLVM_BINARY_DIR}/bin/clang++)
 

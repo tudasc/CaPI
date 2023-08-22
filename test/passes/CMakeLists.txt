@@ -12,7 +12,7 @@ function(configure_lit_site_cfg input output)
   set(CAPI_MPICC ${CMAKE_BINARY_DIR}/scripts/clang-mpi-inst)
   set(CAPI_MPICXX ${CMAKE_BINARY_DIR}/scripts/clang-mpi-inst++)
 
-  if (SCOREP_SUPPORT)
+  if (ENABLE_SCOREP)
     set(CAPI_SCOREP_SUPPORT True)
   else()
     set(CAPI_SCOREP_SUPPORT False)

@@ -10,8 +10,6 @@ It consists of two major components:
 - A selection tool, that creates ICs tailored to the target code and measurement objective.
 - A runtime library, enabling runtime-adaptable binary instrumentation based on [LLVM XRay](https://llvm.org/docs/XRay.html). 
 
-
-
 CaPI currently supports the following measurement APIs:
 - GNU interface: compatible with GCC's `-finstrument-functions`
 - TALP (part of the DLB library): Parallel performance metrics of MPI regions
@@ -27,18 +25,25 @@ This project is currently in a pre-release state, frequent changes to the code a
 - ScoreP >=7 (optional)
 - DLB 3.3 (optional, other versions may work)
 - Extrae 3.8.3 (optional, other versions may work)
+- LLVM-Lit (testing only)
 
 ## Build
-You can build CaPI as follows ([Ninja](https://github.com/ninja-build/ninja) is not required and can be substituted with `make`).
+CaPI is built as follows ([Ninja](https://github.com/ninja-build/ninja) is not required and can be substituted with `make`).
 ```
 mkdir build && cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++) -DDLB_DIR=$(which dlb)/../.. -DSCOREP_PATH=$(which scorep)/../.. .. 
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++) -DDLB_DIR=$(which dlb)/../.. -DSCOREP_DIR=$(which scorep)/../.. .. 
 ninja
 ```
-Options
-- `ENABLE_TALP=ON/OFF`: Enable/Disable support for TALP interface. Default is `ON`.
-- `ENABLE_XRAY=ON/OFF`: Enable/Disable support for runtime-adaptable instrumentation with LLVM XRay. Default is `ON`.
 
+CMake Options
+- `ENABLE_TALP=ON/OFF`: Enable/Disable support for TALP. Default is `ON`.
+  - `DLB_DIR`: Path to DLB installation.
+- `ENABLE_SCOREP=ON/OFF`: Enable/Disable support for Score-P. Default is `ON`.
+  - `SCOREP_DIR`: Path to Score-P installation.
+- `ENABLE_EXTRAE=ON/OFF`: Enable/Disable support for Extrae. Default is `ON`.
+- `ENABLE_XRAY=ON/OFF`: Enable/Disable support for runtime-adaptable instrumentation with LLVM XRay. Default is `ON`.
+- `ENABLE_TESTING=ON/OFF`: Enable/Disable testing. Requires MetaCG and LLVM-Lit.
+  - Set `metacg_DIR` to MetaCG installation directory.
 ## Examples
 To verify your build, you may test out the instrumentation of proxy applications LULESH and AMG in the `example` folder (located in your current build directory).
 For details, refer to `CAPI_README` in the `lulesh` folder.

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(capi VERSION 0.1)
+project(capi VERSION 0.2)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)

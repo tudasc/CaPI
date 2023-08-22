@@ -39,13 +39,13 @@ if (ENABLE_TESTING)
 endif()
 
 option(ENABLE_XRAY "Enable XRay dynamic instrumentation interface" ON)
-option(SCOREP_SUPPORT "Enable Score-P support" ON)
+option(ENABLE_SCOREP "Enable Score-P support" ON)
 
-if (SCOREP_SUPPORT)
-  set(SCOREP_PATH "" CACHE PATH "Path to ScoreP installation")
+if (ENABLE_SCOREP)
+  set(SCOREP_DIR "" CACHE PATH "Path to ScoreP installation")
 
-  find_library(scorep_mgmt  NAMES scorep_adapter_compiler_mgmt HINTS "${SCOREP_PATH}/lib"  REQUIRED)
-  find_library(scorep_measurement  NAMES scorep_measurement HINTS "${SCOREP_PATH}/lib" REQUIRED)
+  find_library(scorep_mgmt  NAMES scorep_adapter_compiler_mgmt HINTS "${SCOREP_DIR}/lib"  REQUIRED)
+  find_library(scorep_measurement  NAMES scorep_measurement HINTS "${SCOREP_DIR}/lib" REQUIRED)
 
   message(STATUS "Score-P libs: ${scorep_mgmt} ${scorep_measurement}")
 endif()
