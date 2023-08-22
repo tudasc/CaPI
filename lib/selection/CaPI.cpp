@@ -35,10 +35,11 @@ namespace {
 void printHelp() {
   std::cout << "Usage: capi [options] <metacg_file>\n";
   std::cout << "Options:\n";
+  std::cout << "-h   Print this help message.\n";
   std::cout
-      << " -i <specstr>   Parse the selection spec from the given string.\n";
-  std::cout << " -f <file>      Use a selection spec file.\n";
-  std::cout << " -o <file>      The output filter file.\n";
+      << " -i <query>   Parse the selection query from the given string.\n";
+  std::cout << " -f <file>      Use a selection query file.\n";
+  std::cout << " -o <file>      The output IC file.\n";
   std::cout << " -v <verbosity>     Set verbosity level (0-3, default is 2). Passing -v without argument sets it to 3.\n";
   std::cout << " --write-dot <file>  Write a dotfile of the selected call-graph subset.\n";
   std::cout << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
@@ -263,6 +264,12 @@ int main(int argc, char **argv) {
             }
           }
           verbosity = static_cast<LogLevel>(lvl);
+        } else if (option == "h") {
+          printHelp();
+        } else {
+          std::cerr << "Unsupported option: " << option << "\n";
+          printHelp();
+          return EXIT_FAILURE;
         }
       }
       continue;
