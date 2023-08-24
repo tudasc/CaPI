@@ -1,7 +1,7 @@
 //
 // Created by silasm on 30.07.23.
 //
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 #include <fstream>
 #include <iostream>
