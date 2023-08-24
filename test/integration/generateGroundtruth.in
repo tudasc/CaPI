@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# Generates new Groundtruthes
+#
+
+#Command option
+if [ "$#" -ne 2 ]; then
+    echo "Invalid input argument!"
+    echo "Usage: runTestCases -tc=path/to/testcase -mcg=path/to/MCGfile"
+    exit 1
+fi
+
+for arg in "$@" ; do
+    case $arg in
+        -tc=*)
+            echo "$arg"
+            if [ -d "${arg#*=}" ]; then
+                tc="${arg#*=}"
+            else
+                echo "Invalid argument!"
+                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+                exit 1
+            fi
+            shift   
+            ;;
+        -mcg=*)
+            if [ -f "${arg#*=}" ]; then
+                mcg="${arg#*=}"
+            else 
+                echo "Invalid argument!"
+                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+                exit 1
+            fi
+            shift
+            ;;
+        *)
+            echo "Invalid option."          
+            echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+            exit 1
+            ;;
+    esac
+done
+
+builddir=@CAPI_BIN_DIR@
+capi=$builddir/lib/selection/capi
+
+testcases=$tc/*.capi
+echo "groundtruthes: $groundtruthes"
+
+for testcase in ${testcases}; do
+	GTjson=${testcase/capi/gtjson}
+	echo "Generating new groundtruth for $groundtruth"
+	$capi -f $testcase --output-format json -o $GTjson $mcg
+
+done
