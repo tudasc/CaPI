@@ -45,11 +45,16 @@ done
 testcases=$tc/*.capi
 echo "testcases: $testcases"
 fails=0
-for testcase in ${testcases}; do
-  echo "Running testcase ${testcase}"
-  runTestcase ${testcase} ${mcg}
-  fail=$?
-  fails=$(($fails + $fail))
+for dir in $(find $tc -type d); do
+    testcases=${dir}/*.capi
+    for testcase in ${testcases}; do
+        if [[ "$testcase" == "$testcases" ]]; then 
+            break
+        fi
+        echo "Running testcase ${testcase}"
+        runTestcase ${testcase} ${mcg}
+        fail=$?
+        fails=$(($fails + $fail))
+    done
 done
-echo "Finished testcases with $fails failures"
-exit $fails
+

@@ -44,12 +44,17 @@ done
 builddir=@CAPI_BIN_DIR@
 capi=$builddir/lib/selection/capi
 
+
 testcases=$tc/*.capi
-echo "groundtruthes: $groundtruthes"
+for dir in $(find $tc -type d); do
+    testcases=${dir}/*.capi
+    for testcase in ${testcases}; do
+         if [[ "$testcase" == "$testcases" ]]; then 
+            break
+        fi
 
-for testcase in ${testcases}; do
 	GTjson=${testcase/capi/gtjson}
-	echo "Generating new groundtruth for $groundtruth"
+	echo "Generating new groundtruth for $testcase"
 	$capi -f $testcase --output-format json -o $GTjson $mcg
-
+    done
 done
