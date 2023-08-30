@@ -58,3 +58,4 @@ for dir in $(find $tc -type d); do
     done
 done
 
+exit $fails
