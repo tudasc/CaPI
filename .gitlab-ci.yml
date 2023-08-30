@@ -111,3 +111,18 @@ capi-build-example:
     - cd ../AMG2013 
     - make veryclean
     - make all
+
+capi-test-example:
+  <<: *job-setup
+  stage: test
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
+    - module load scorepnoplugin/7.1
+    - module load dlb/3.3a
+    - cd $CAPI_BUILD/test/integration
+    - ./runTestCases -tc=input -mcg=../../examples/lulesh/lulesh_full.mcg 
