@@ -52,4 +52,4 @@ for testcase in ${testcases}; do
   fails=$(($fails + $fail))
 done
 echo "Finished testcases with $fails failures"
-return $fails
+exit $fails
