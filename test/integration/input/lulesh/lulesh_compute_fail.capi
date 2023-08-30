@@ -1,0 +1,4 @@
+compute = flops(">=", 10, loop_depth(">=", 1, %%))
+callpaths = on_call_path_to(%compute)
+
+# capi -f lulesh_compute.capi --output-format json -o /dev/stdout lulesh_full.mcg
