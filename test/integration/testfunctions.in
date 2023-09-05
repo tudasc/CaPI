@@ -1,0 +1,33 @@
+#!/bin/bash
+
+builddir=@CAPI_BIN_DIR@
+capi=$builddir/lib/selection/capi
+testExe=./simpleTester
+
+#Function runs test
+# Parameter 1: Path to the testcase (*.capi)
+# Parameter 2: Path to MetaCG file
+function runTestcase {
+  testCaseFile=$1
+  mcg=$2
+
+  #set up diffrent data files:
+  testFile=$testCaseFile
+  # groundtruth file (.gtjson)
+  gtFile=${testCaseFile/capi/gtjson}
+  # generated json file for comparison
+  gFile=${testCaseFile/capi/json}
+    #compile with `capi -f example.capi --output-format json -o example.json lulesh_full.mcg`
+    $capi -f $testFile --output-format json -o $gFile $mcg 
+  
+
+  $testExe $gFile $gtFile
+  if [ $? -ne 0 ]; then
+    fail=1
+    echo "Failure for file: $gFile. Keeping generated file for inspection"
+  else
+    fail=0
+    rm $gFile
+  fi
+  return $fail 
+}

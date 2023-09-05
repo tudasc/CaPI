@@ -1,0 +1,27 @@
+set(CAPI_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+
+
+macro(make_executable input output)
+    # Executable permission: In CMAKE 3.19 we can simply use file(CHMOD) instead of file(copy) workaround
+    configure_file(${input} ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output} @ONLY)
+    file(
+            COPY ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output}
+            DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+            FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    )
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/tmp)
+endmacro()
+
+function(configure_script input output)
+    set(CAPI_BIN_DIR ${CMAKE_BINARY_DIR})
+    set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
+
+    # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
+    make_executable(${input} ${output})
+endfunction()
+add_executable(simpleTester simpleTester.cpp)
+add_json(simpleTester)
+configure_script(testfunctions.in testfunctions)
+configure_script(runTestCases.in runTestCases)
+configure_script(generateGroundtruth.in generateGroundtruthes)
