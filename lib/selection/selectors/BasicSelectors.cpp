@@ -19,10 +19,18 @@ bool NameSelector::accept(const CGNode* fNode) {
   bool matches;
   if (isMangled)
     matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
-  else
-  {
-    std::string functionSubStr = fNode->getFunctionInfo().demangledName.substr(0, fNode->getFunctionInfo().demangledName.find('('));
-    matches = std::regex_match(functionSubStr, nameMatch, nameRegex);
+  else if ((matches = std::regex_match(fNode->getFunctionInfo().demangledName, nameMatch, nameRegex))) {
+    if (!parameterRegexes.empty()) {
+	    std::string emptyMatching = "()";
+      if (std::regex_match(emptyMatching, nameMatch, parameterRegexes[0]))
+        matches = fNode->getFunctionInfo().parameters.empty();
+      else if ((matches = (fNode->getFunctionInfo().parameters.size() == parameterRegexes.size()))) {
+        for (int i = 0; i < fNode->getFunctionInfo().parameters.size(); i++) {
+          if (!(matches = std::regex_match(fNode->getFunctionInfo().parameters[i], nameMatch, parameterRegexes[i])))
+            break;
+        }
+      }
+    }
   }
   //    if (!matches)
   //       std::cout << fName << " does not match "  << "\n";

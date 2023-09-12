@@ -62,17 +62,17 @@ public:
 
 class NameSelector : public FilterSelector {
   std::regex nameRegex;
+  std::vector<std::regex> parameterRegexes;
   bool isMangled;
 
 public:
-  NameSelector(std::string regexStr) {
-    if (regexStr[0] == '@') {
-      isMangled = true;
-      nameRegex = regexStr.substr(1, regexStr.size());
-    } else {
-      isMangled = false;
-      nameRegex = regexStr;
-    }
+  NameSelector(std::string regexStr, std::vector<std::string>& parameterRegexStrings, bool isMangled)
+      : isMangled(isMangled)
+  {
+      nameRegex = std::regex(isMangled ? regexStr.substr(1, regexStr.size()) : regexStr);
+      for (auto& param : parameterRegexStrings) {
+        parameterRegexes.emplace_back(param);
+      }
   }
 
   bool accept(const CGNode* fNode) override;
