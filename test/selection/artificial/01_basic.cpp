@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 }
 
 // LOG: Running graph analysis
-// LOG: Number of SCCs: 4
+// LOG: Number of SCCs: 5
 // LOG: Largest SCC: 1
 // LOG: Number of SCCs containing more than 1 node: 0
 // LOG: Number of SCCs containing more than 2 nodes: 0
