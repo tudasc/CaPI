@@ -64,14 +64,18 @@ class NameSelector : public FilterSelector {
   std::regex nameRegex;
   std::vector<std::regex> parameterRegexes;
   bool isMangled;
+  bool isEmptyMatching{false};
 
 public:
   NameSelector(std::string regexStr, std::vector<std::string>& parameterRegexStrings, bool isMangled)
       : isMangled(isMangled)
   {
       nameRegex = std::regex(isMangled ? regexStr.substr(1, regexStr.size()) : regexStr);
+
       for (auto& param : parameterRegexStrings) {
         parameterRegexes.emplace_back(param);
+	if (param == "()")
+         isEmptyMatching = true;
       }
   }
 

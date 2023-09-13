@@ -21,8 +21,7 @@ bool NameSelector::accept(const CGNode* fNode) {
     matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
   else if ((matches = std::regex_match(fNode->getFunctionInfo().demangledName, nameMatch, nameRegex))) {
     if (!parameterRegexes.empty()) {
-	    std::string emptyMatching = "()";
-      if (std::regex_match(emptyMatching, nameMatch, parameterRegexes[0]))
+      if (isEmptyMatching)
         matches = fNode->getFunctionInfo().parameters.empty();
       else if ((matches = (fNode->getFunctionInfo().parameters.size() == parameterRegexes.size()))) {
         for (int i = 0; i < fNode->getFunctionInfo().parameters.size(); i++) {
