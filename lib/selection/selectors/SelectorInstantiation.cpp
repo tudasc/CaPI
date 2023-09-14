@@ -19,6 +19,12 @@ if (params.size() != expected) { \
       return nullptr; \
 }
 
+#define CHECK_MIN_NUM_ARGS(selectorName, params, expected) \
+if (params.size() < expected) { \
+      logError() << "##selectorName expects at least " << expected << " arguments, but received " << params.size() << "\n"; \
+      return nullptr; \
+}
+
 #define CHECK_KIND(param, expected) \
 if (param.kind != expected) { \
       logError() << "Expected argument of type expected, but received " << param.kindNames[param.kind] << "\n"; \
@@ -34,12 +40,26 @@ SelectorPtr createSimpleSelector(const std::vector<Param>& params) {
 // NameSelector
 
 SelectorPtr createNameSelector(const std::vector<Param>& params) {
-  CHECK_NUM_ARGS(NameSelector, params, 1)
+  CHECK_MIN_NUM_ARGS(NameSelector, params, 1)
   CHECK_KIND(params[0], Param::STRING)
 
   auto regexStr = std::get<std::string>(params[0].val);
+  std::vector<std::string> parameterRegexStrings;
+  bool isMangled = true;
 
-  return std::make_unique<NameSelector>(regexStr);
+  if (regexStr[0] != '@') {
+    isMangled = false;
+      for (int i = 1; i < params.size(); i++) {
+        CHECK_KIND(params[i], Param::STRING)
+        parameterRegexStrings.push_back(std::get<std::string>(params[i].val));
+      }
+  }
+  else if (params.size() > 1) {
+    logError() << "##selectorName expects only one argument when using mangled matching, but received " << params.size() << "\n";
+    return nullptr;
+  }
+
+  return std::make_unique<NameSelector>(regexStr, parameterRegexStrings, isMangled);
 }
 
 
