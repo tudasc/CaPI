@@ -6,6 +6,12 @@
 // RUN: infile="%s"; %capi -i 'by_name("(main)|(a)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME
 //
+// RUN: infile="%s"; %capi -i 'by_name("(a)|(c)", "int", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-PARAMS-MATCH
+//
+// RUN: infile="%s"; %capi -i 'by_name("(d)|(a)", "()", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-EMPTY-MATCH
+//
 // RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-MANGLED
 //
@@ -67,6 +73,8 @@ void a(int n) {
   }
 }
 
+void d() {}
+
 int main(int argc, char** argv) {
   a(argc);
   c(0, 1);
@@ -74,7 +82,7 @@ int main(int argc, char** argv) {
 }
 
 // LOG: Running graph analysis
-// LOG: Number of SCCs: 4
+// LOG: Number of SCCs: 5
 // LOG: Largest SCC: 1
 // LOG: Number of SCCs containing more than 1 node: 0
 // LOG: Number of SCCs containing more than 2 nodes: 0
@@ -83,6 +91,18 @@ int main(int argc, char** argv) {
 // NAME-NOT: b
 // NAME-NOT: c
 // NAME: main
+
+// NAME-PARAMS-MATCH: a
+// NAME-PARAMS-MATCH-NOT: c
+// NAME-PARAMS-MATCH-NOT: main
+// NAME-PARAMS-MATCH-NOT: b
+// NAME-PARAMS-MATCH-NOT: d
+
+// NAME-EMPTY-MATCH: d
+// NAME-EMPTY-MATCH-NOT: a
+// NAME-EMPTY-MATCH-NOT: c
+// NAME-EMPTY-MATCH-NOT: b
+// NAME-EMPTY-MATCH-NOT: main
 
 // NAME-MANGLED: a
 // NAME-MANGLED-NOT: b

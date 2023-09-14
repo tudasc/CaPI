@@ -30,6 +30,79 @@ MetaCGReader::getOrInsert(const std::string &key) {
   }
 }
 
+void MetaCGReader::parseDemangledNames() {
+  std::system("(llvm-cxxfilt < tmpMangledNames.txt) > tmpDemangledNames.txt");
+
+  std::ifstream tmpMangledNamesFileIn("tmpMangledNames.txt");
+  std::ifstream tmpDemangledNamesFileIn("tmpDemangledNames.txt");
+
+  std::string mangledName, demangledNameFull;
+  while (std::getline(tmpMangledNamesFileIn, mangledName)) {
+     FunctionInfo& functionInfo = functions.at(mangledName);
+
+     std::getline(tmpDemangledNamesFileIn, demangledNameFull);
+     
+     size_t parameterStartPos = demangledNameFull.find('(');
+     std::string demangledNoParameters = demangledNameFull.substr(0, parameterStartPos);
+     
+     // remove templating from name
+     int currentNumBrackets = 0;
+     demangledNoParameters.erase(std::remove_if(demangledNoParameters.begin(), demangledNoParameters.end(), [&currentNumBrackets](unsigned char x) { 
+       if (x == '<') {
+         currentNumBrackets++;
+         return true;
+       } 
+       else if (x == '>') {
+         currentNumBrackets--;
+         return true;
+       } 
+       else
+         return currentNumBrackets > 0;
+     }), demangledNoParameters.end());
+     
+     // remove return value from name
+     size_t returnValueEnd = 0;
+     for (size_t i = 1; i < demangledNoParameters.size(); i++) {
+       if (std::isspace(demangledNoParameters[i]))
+         returnValueEnd = i;
+     }
+
+     if (returnValueEnd > 0) 
+       demangledNoParameters = demangledNoParameters.substr(returnValueEnd+1);
+
+     functionInfo.demangledName = demangledNoParameters;
+
+     // extract parameters
+     std::string parameterString = demangledNameFull.substr(parameterStartPos+1, demangledNameFull.size() - parameterStartPos - 1);
+     int bracketDepth = 0;
+     size_t currentStartPos = 0;
+     for (int i = 0; i < parameterString.size(); i++) {
+       if (parameterString[i] == '<' || parameterString[i] == '(') {
+         bracketDepth++;
+         continue;
+       }
+       else if (parameterString[i] == '>' || parameterString[i] == ')') {
+         bracketDepth--;
+         if (bracketDepth < 0 && parameterString.size() > 1) {
+           functionInfo.parameters.push_back(parameterString.substr(currentStartPos, i - currentStartPos));
+           break;
+         }
+         continue;
+       }
+
+       if (parameterString[i] == ',' && bracketDepth == 0) {
+         functionInfo.parameters.push_back(parameterString.substr(currentStartPos, i - currentStartPos));
+         currentStartPos = i + 2;
+       }
+     }
+  }
+
+  tmpMangledNamesFileIn.close();
+  tmpDemangledNamesFileIn.close();
+  std::remove("tmpMangledNames.txt");
+  std::remove("tmpDemangledNames.txt");
+}
+
 bool MetaCGReader::read() {
   functions.clear();
   json j;
@@ -135,26 +208,8 @@ bool MetaCGReader::read() {
   }
   tmpMangledNamesFileOut.close();
 
-  std::system("(llvm-cxxfilt < tmpMangledNames.txt) > tmpDemangledNames.txt");
-
-  std::ifstream tmpMangledNamesFileIn("tmpMangledNames.txt");
-  std::ifstream tmpDemangledNamesFileIn("tmpDemangledNames.txt");
-
-  std::string mangledName, demangledName;
-  while (std::getline(tmpMangledNamesFileIn, mangledName))
-  {
-     std::getline(tmpDemangledNamesFileIn, demangledName);
-
-     demangledName.erase(std::remove_if(demangledName.begin(), demangledName.end(), [](unsigned char x) { return std::isspace(x); }), demangledName.end());
-
-     functions.at(mangledName).demangledName = demangledName;
-  }
-
-  tmpMangledNamesFileIn.close();
-  tmpDemangledNamesFileIn.close();
-  std::remove("tmpMangledNames.txt");
-  std::remove("tmpDemangledNames.txt");
-
+  parseDemangledNames();
+  
   return true;
 }
 }
