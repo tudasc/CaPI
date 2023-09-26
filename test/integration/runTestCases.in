@@ -37,7 +37,6 @@ for dir in $(find $tc -type d); do
         mcgs=${dir}/*.mcg
         for mcg in ${mcgs}; do
             if [[ $mcgs != $mcg ]]; then 
-                echo "mcg:$mcg; mcgs=$mcgs"
                 currentmcg=$mcg
             fi
             if [[ "$testcase" == "$testcases" ]]; then
@@ -52,4 +51,5 @@ for dir in $(find $tc -type d); do
     done
 done
 
+echo "Finished tests with $fails failures!"
 exit $fails
