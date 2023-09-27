@@ -13,15 +13,16 @@ function runTestcase {
 
   #set up diffrent data files:
   testFile=$testCaseFile
-  # groundtruth file (.gtjson)
-  gtFile=${testCaseFile/capi/gtjson}
-  # generated json file for comparison
-  gFile=${testCaseFile/capi/json}
+
+  ##output filename 
+  gFile=$(generateOutputFilename ${testCaseFile} ${mcg})
+  ##name of existing gtjson file
+  gtFile=${gFile/.json/.gtjson}
     #compile with `capi -f example.capi --output-format json -o example.json lulesh_full.mcg`
     $capi -f $testFile --output-format json -o $gFile $mcg 
   
-
-  $testExe $gFile $gtFile
+    #running testexe
+    $testExe $gFile $gtFile
   if [ $? -ne 0 ]; then
     fail=1
     echo "Failure for file: $gFile. Keeping generated file for inspection"
@@ -30,4 +31,29 @@ function runTestcase {
     rm $gFile
   fi
   return $fail 
+}
+#Function merges names of $1 and $2 to a .json file
+# Parameter 1: Path to testcase
+# Parameter 2: Path to MetaCG file
+function generateOutputFilename {
+  testCaseFile=$1
+  mcg=$2
+
+  filename=$(basename -- "$testCaseFile")
+  extension="${filename##*.}"
+  filename_tc="${filename%.*}"
+
+  filename=$(basename -- "$mcg")
+  extension="${filename##*.}"
+  filename_mcg="${filename%.*}"
+  
+  filename="${filename_tc}_${filename_mcg}.json"
+  #set up diffrent data files:
+  testFile=$testCaseFile
+  # generated json file for comparison
+  path=$(dirname "$testCaseFile")
+  gtFilename="$(pwd)/${path}/$filename"
+  echo $gtFilename 
+
+  return 0;
 }
