@@ -125,4 +125,4 @@ capi-test-example:
     - module load scorepnoplugin/7.1
     - module load dlb/3.3a
     - cd $CAPI_BUILD/test/integration
-    - ./runTestCases -tc=input -mcg=../../examples/lulesh/lulesh_full.mcg 
+    - ./runTestCases -tc=input
