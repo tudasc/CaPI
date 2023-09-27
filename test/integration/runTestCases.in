@@ -2,40 +2,27 @@
 
 #source testfunctions
 source ./testfunctions
-
-#Command option
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 1 ]; then
     echo "Invalid input argument!"
-    echo "Usage: runTestCases -tc=path/to/testcase -mcg=path/to/MCGfile"
+    echo "Usage: runTestCases -tc=path/to/testcase"
     exit 1
 fi
 
 for arg in "$@" ; do
     case $arg in
         -tc=*)
-            echo "$arg"
             if [ -d "${arg#*=}" ]; then
                 tc="${arg#*=}"
             else
                 echo "Invalid argument!"
-                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+                echo "Usage: runTestCase -tc=path/to/testcase"
                 exit 1
             fi
             shift   
             ;;
-        -mcg=*)
-            if [ -f "${arg#*=}" ]; then
-                mcg="${arg#*=}"
-            else 
-                echo "Invalid argument!"
-                echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
-                exit 1
-            fi
-            shift
-            ;;
         *)
             echo "Invalid option."          
-            echo "Usage: runTestCase -tc=path/to/testcase -mcg=path/to/MCGfile"
+            echo "Usage: runTestCase -tc=path/to/testcase"
             exit 1
             ;;
     esac
@@ -43,19 +30,23 @@ done
 
 #Running testcases
 testcases=$tc/*.capi
-echo "testcases: $testcases"
 fails=0
 for dir in $(find $tc -type d); do
     testcases=${dir}/*.capi
     for testcase in ${testcases}; do
-        if [[ "$testcase" == "$testcases" ]]; then 
-            break
-        fi
-        echo "Running testcase ${testcase}"
-        runTestcase ${testcase} ${mcg}
-        fail=$?
-        fails=$(($fails + $fail))
+        mcgs=${dir}/*.mcg
+        for mcg in ${mcgs}; do
+            if [[ "$testcase" == "$testcases" ]]; then
+                break
+            fi
+            echo "Running testcase ${testcase} with ${mcg}"
+            runTestcase ${testcase} ${mcg}
+            fail=$?
+            echo "-------------------------------------------------------------------------------"
+            fails=$(($fails + $fail))
+        done
     done
 done
 
+echo "Finished tests with $fails failures!"
 exit $fails

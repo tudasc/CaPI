@@ -19,13 +19,23 @@ int main(int argc, char **argv){
     json groundTruth;
     {
         std::ifstream file(argv[1]);
-        groundTruth = json::parse(file);
+        try {
+            groundTruth = json::parse(file);
+        }
+        catch (...) {
+            return -1;
+        }
     }
 
     json testItem;
     {
         std::ifstream file(argv[2]);
-        testItem = json::parse(file);
+        try {
+            testItem = json::parse(file);
+        }
+        catch (...){
+            return -1;
+        }
     }
 
     if(groundTruth == testItem){
