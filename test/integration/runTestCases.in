@@ -36,16 +36,13 @@ for dir in $(find $tc -type d); do
     for testcase in ${testcases}; do
         mcgs=${dir}/*.mcg
         for mcg in ${mcgs}; do
-            if [[ $mcgs != $mcg ]]; then 
-                currentmcg=$mcg
-            fi
             if [[ "$testcase" == "$testcases" ]]; then
                 break
             fi
-            echo "Running testcase ${testcase} with ${currentmcg}"
-            runTestcase ${testcase} ${currentmcg}
-            echo "-------------------------------------------------------------------------------"
+            echo "Running testcase ${testcase} with ${mcg}"
+            runTestcase ${testcase} ${mcg}
             fail=$?
+            echo "-------------------------------------------------------------------------------"
             fails=$(($fails + $fail))
         done
     done
