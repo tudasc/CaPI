@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "PostDom.h"
 #include "SCC.h"
 
 namespace capi {
@@ -155,6 +156,11 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
   } while(!workQueue.empty());
 
   assert(workQueue.empty());
+
+  // Compute postdominators of A and B
+  auto postDomsA = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults), *targetSCCA);
+  auto postDomsB = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults), *targetSCCB);
+
 
   for (auto& ca : commonAncestors) {
     if (ca->isLCA) {
