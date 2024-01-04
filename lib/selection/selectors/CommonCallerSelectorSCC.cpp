@@ -200,18 +200,31 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
 
     // Check if current node is candidate
     if (!nodeData->isCandidate) {
-      nodeData->isCandidate = nodeData->lcaDescendants.size() > 1;
-      if (!nodeData->isCandidate) {
-        for (auto &child : sccResults.findAllCallees(nodeData->node)) {
-          const auto &childData = sccDataMap[child];
-          // Check if child can reach one, but not the other target node
-          if (childData.canReachExactlyOne()) {
-            nodeData->isCandidate = true;
-            break;
-          }
-        }
+      auto& nodePostDomsA = postDomsA[nodeData->node];
+      auto& nodePostDomsB = postDomsB[nodeData->node];
+      std::unordered_set<const SCCNode*> postDomIntersection;
+      std::set_intersection(nodePostDomsA.postDoms.begin(), nodePostDomsA.postDoms.end(), nodePostDomsB.postDoms.begin(), nodePostDomsB.postDoms.end(), std::inserter(postDomIntersection, std::end(postDomIntersection)));
+      if (postDomIntersection.empty()) {
+        nodeData->isCandidate = true;
       }
     }
+
+    // REMOVE: OLD
+
+    // Check if current node is candidate
+//    if (!nodeData->isCandidate) {
+//      nodeData->isCandidate = nodeData->lcaDescendants.size() > 1;
+//      if (!nodeData->isCandidate) {
+//        for (auto &child : sccResults.findAllCallees(nodeData->node)) {
+//          const auto &childData = sccDataMap[child];
+//          // Check if child can reach one, but not the other target node
+//          if (childData.canReachExactlyOne()) {
+//            nodeData->isCandidate = true;
+//            break;
+//          }
+//        }
+//      }
+//    }
     if (nodeData->isCandidate) {
       addToSet(candidates, nodeData);
       bool childReachesOnlyA = false;
