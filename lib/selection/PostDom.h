@@ -15,7 +15,7 @@ namespace capi {
 
 template<typename NodeT>
 struct PostDomData {
-  using NodeSet = std::unordered_set<const PostDomData<NodeT>*>;
+  using NodeSet = std::unordered_set<const NodeT*>;
   const NodeT* node{nullptr};
   NodeSet postDoms{};
   bool initialized{false};
@@ -78,7 +78,7 @@ PostDomAnalysisResult<NodeT> computePostDoms(const GraphT& graph, const NodeT& e
     auto callees = graph.getCallees(nodeData.node);
 
     typename PostDomDataT::NodeSet postDomNew = intersection(callees, postDomMap);
-    postDomNew.insert(&nodeData);
+    postDomNew.insert(nodeData.node);
 
     if (!nodeData.initialized || nodeData.postDoms != postDomNew) {
       nodeData.postDoms = std::move(postDomNew);
