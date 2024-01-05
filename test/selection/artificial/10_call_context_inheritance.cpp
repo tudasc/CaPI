@@ -8,7 +8,6 @@
 //
 // clang-format on
 
-
 void c() {}
 
 struct A {
@@ -33,5 +32,3 @@ void a() {
 // CHECK: a
 // CHECK: b
 // CHECK: c
-
-

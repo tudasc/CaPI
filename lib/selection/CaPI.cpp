@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
           outfile = argv[i];
         } else if (option == "v") {
           int lvl = LOG_STATUS;
-          if (i + 1 >= argc) {
+          if (i + 1 < argc) {
             lvl = std::stoi(argv[++i]);
             if (lvl < LOG_NONE || lvl > LOG_EXTRA) {
               std::cerr << "Verbosity must be an integer between 0 and 3\n";

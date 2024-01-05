@@ -299,6 +299,19 @@ public:
 
 std::unique_ptr<CallGraph> createCG(FInfoMap &fInfoMap);
 
+template<typename ContainerT>
+inline std::string dumpNodeSet(std::string_view name, const ContainerT& nodes) {
+  std::stringstream ss;
+  ss << name << ": {";
+
+  for (const auto* item: nodes) {
+    ss << item->getName() << ", ";
+  }
+  ss << "}";
+  return ss.str();
+}
+
+
 }
 
 #endif // CAPI_CALLGRAPH_H

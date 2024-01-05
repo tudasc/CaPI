@@ -179,7 +179,7 @@ RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelect
 
 // TODO: Replaced by common_caller selector, remove
 // ContextSelector
-RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
+//RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
 
 RegisterSelector caSelectorAll("common_caller",
                   createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>);
