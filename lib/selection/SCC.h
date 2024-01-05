@@ -15,6 +15,12 @@ struct SCCNode {
   size_t size() const {
     return nodes.size();
   }
+
+  std::string getName() const {
+    if (nodes.empty())
+      return "EMPTY";
+    return nodes.front()->getName();
+  }
 };
 
 struct SCCAnalysisResults {
