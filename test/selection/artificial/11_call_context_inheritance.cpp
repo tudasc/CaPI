@@ -43,7 +43,8 @@ void e() {
   d();
 }
 
-// CHECK-NOT: fuckery
+// CHECK: A::fuckery
+// CHECK-NOT: B::fuckery
 // CHECK: a
 // CHECK: b
 // CHECK: c

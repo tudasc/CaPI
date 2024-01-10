@@ -19,7 +19,7 @@ struct SCCNode {
   std::string getName() const {
     if (nodes.empty())
       return "EMPTY";
-    return nodes.front()->getName();
+    return nodes.front()->getName() + "(" + std::to_string(size()) + ")";
   }
 };
 

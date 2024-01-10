@@ -31,12 +31,12 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK-NOT: a
+// CHECK: a
 // CHECK: b
-// CHECK-NOT: c
+// CHECK: c
 // CHECK: d
 // CHECK: e
-// CHECK-NOT: main
+// CHECK: main
 // CHECK-NOT: MPI_1
 // CHECK-NOT: MPI_2
 
