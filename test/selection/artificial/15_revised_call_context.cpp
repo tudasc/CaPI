@@ -38,8 +38,8 @@ void e() {x(); f();}
 // MAX-DIST1: b
 // MAX-DIST1: c
 // MAX-DIST1: d
-// MAX-DIST1: e
-// MAX-DIST1: f
+// MAX-DIST1-NOT: e
+// MAX-DIST1-NOT: f
 // MAX-DIST1: x
 // MAX-DIST1: y
 

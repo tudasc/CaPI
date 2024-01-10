@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
   if (shouldWriteDOT) {
     std::ofstream os(dotFile);
     if (os.is_open()) {
-      writeDOT(*cg, filter, os);
+      writeDOT(*cg, filter, {}, os);
     } else {
       logError() << "Could not write DOT file to '" << dotFile << "'.\n";
     }

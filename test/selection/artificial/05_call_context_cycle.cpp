@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK-NOT: a1
-// CHECK-NOT: a2
-// CHECK-NOT: a3
+// CHECK: a1
+// CHECK: a2
+// CHECK: a3
 // CHECK: b1
 // CHECK: b2
 // CHECK: b3
