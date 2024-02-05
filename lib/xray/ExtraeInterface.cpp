@@ -98,14 +98,19 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
     threadInitialized = true;
   }
 
-  // TODO: Currently no support for end trigger
-  // Long term, use different event handler function when patching to reduce lookup overhead
-  if (!globalActive && type == XRayEntryType::ENTRY) {
-    if (globalCaPIData->beginTriggerSet.find(id) == globalCaPIData->beginTriggerSet.end()) {
-      return;
+  // TODO: Long term, use different event handler function when patching to reduce lookup overhead
+  if (globalActive) {
+    if (type == XRayEntryType::EXIT && globalCaPIData->endTriggerSet.find(id) == globalCaPIData->endTriggerSet.end()) {
+      globalActive = false;
+      // no immediate return here, since we first want to record the exit event
     }
-    globalActive = true;
-  }
+  } else {
+    if (type == XRayEntryType::ENTRY && globalCaPIData->beginTriggerSet.find(id) == globalCaPIData->beginTriggerSet.end()) {
+      globalActive = true;
+    } else {
+      return;
+    }   
+  }  
 
   #ifdef WITH_MPI
   if (!recordOutsideMPI) {
