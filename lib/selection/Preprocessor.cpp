@@ -147,7 +147,8 @@ namespace  {
   std::map<std::string, std::function<HandlerPtr()>> handlerFactoryMap {
     {"import", []() -> HandlerPtr{ return std::make_unique<ImportHandler>();}},
     {"instrument", []() -> HandlerPtr{return std::make_unique<InstrumentHintHandler>(InstrumentationType::ALWAYS_INSTRUMENT);}},
-    {"begin_after", []() -> HandlerPtr{return std::make_unique<InstrumentHintHandler>(InstrumentationType::BEGIN_TRIGGER);}}};
+    {"begin_at", []() -> HandlerPtr{return std::make_unique<InstrumentHintHandler>(InstrumentationType::BEGIN_TRIGGER);}},
+    {"end_at", []() -> HandlerPtr{return std::make_unique<InstrumentHintHandler>(InstrumentationType::END_TRIGGER);}}};
 
   HandlerPtr createHandler(std::string type) {
     auto it = handlerFactoryMap.find(type);
