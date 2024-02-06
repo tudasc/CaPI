@@ -137,8 +137,8 @@ extern void postXRayInit(const XRayFunctionMap &);
 extern void preXRayFinalize();
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
-  logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << "\n";
-  logInfo() << "Git revision: " << CAPI_GIT_SHA1 << "\n";
+  logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
+  logInfo() << "Git revision: " << CAPI_GIT_SHA1 << std::endl;
 
   Timer timer("[Info] Initialization took ", std::cout);
 
@@ -223,7 +223,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       objName = nextHighestIt->second.memMap.path;
     }
 
-    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")\n";
+    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")" << std::endl;
 
     auto funcInfoMap = loadXRayIDs(objName);
 
