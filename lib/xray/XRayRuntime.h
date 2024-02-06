@@ -45,6 +45,29 @@ struct GlobalCaPIData {
 using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
 
 
+struct XRayRecursionGuard {
+  bool& xrayScope;
+  bool wasInScope;
+
+  XRayRecursionGuard(bool& xrayScope) : xrayScope(xrayScope) {
+    wasInScope = xrayScope;
+    xrayScope = true;
+  }
+
+  ~XRayRecursionGuard() {
+    xrayScope = false;
+  }
+
+  bool check() const {
+    return !wasInScope;
+  }
+
+  operator bool() const {
+    return check();
+  }
+};
+
+
 
 void initXRay();
 

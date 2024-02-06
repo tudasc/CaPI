@@ -41,6 +41,8 @@ thread_local std::vector<int> callStack{};
 thread_local bool globalActive{false};
 thread_local bool threadInitialized{false};
 thread_local bool scopeActive{false};
+thread_local bool inXRayScope{false};
+
 
 inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
 
@@ -84,6 +86,11 @@ inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
 namespace capi {
 
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
+  XRayRecursionGuard guard(inXRayScope);
+  if (!guard) {
+    logError() << "Recursive XRay event handling detected (id=" << id << ")!\n";
+    return;
+  }
 
   if (!initialized) {
     static bool failedBefore{false};
@@ -139,6 +146,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 }
 
 void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NEVER_INSTRUMENT {
+  constexpr int maxEventDescriptionLen = 2048;
   int nvalues = xrayMap.size();
   std::vector<long long> idList;
   idList.reserve(nvalues);
@@ -146,8 +154,16 @@ void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NE
   descriptions.reserve(nvalues);
   for (auto&& [id, info] : xrayMap) {
     idList.push_back(id);
-    // Const-casting is ugly but necessary, if we want to avoid copying all function names
-    descriptions.push_back(const_cast<char*>(demangle ? info.demangled.c_str() : info.name.c_str()));
+    // Const-casting is ugly but necessary, if we want to avoid copying all function names.
+    auto desc = const_cast<char*>(demangle ? info.demangled.c_str() : info.name.c_str());
+    if (strlen(desc) < maxEventDescriptionLen) {
+      descriptions.push_back(desc);
+    } else {
+      auto truncated = std::string(desc).substr(0, maxEventDescriptionLen-1);
+      logError() << "Function name is too long for Extrae! Name will be truncated:\n" << desc << std::endl;
+      descriptions.push_back(const_cast<char*>(truncated.c_str()));
+    }
+
   }
 
   Extrae_define_event_type (&ExtraeXRayEvt, const_cast<char*>("XRay Event"), &nvalues, &idList[0], &descriptions[0]);
