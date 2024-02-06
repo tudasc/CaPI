@@ -88,7 +88,8 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   if (!initialized) {
     static bool failedBefore{false};
     if (!failedBefore) {
-      logError() << "Extrae interface has not been initialized.\n";
+      auto& info = capi::globalCaPIData->xrayFuncMap[id];
+      logError() << "Handling XRay event for function " << info.name << " (id=" << id << "): Extrae interface has not been initialized.\n";
       failedBefore = true;
     }
     return;
@@ -100,12 +101,12 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 
   // TODO: Long term, use different event handler function when patching to reduce lookup overhead
   if (globalActive) {
-    if (type == XRayEntryType::EXIT && globalCaPIData->endTriggerSet.find(id) == globalCaPIData->endTriggerSet.end()) {
+    if (type == XRayEntryType::EXIT && globalCaPIData->endTriggerSet.find(id) != globalCaPIData->endTriggerSet.end()) {
       globalActive = false;
       // no immediate return here, since we first want to record the exit event
     }
   } else {
-    if (type == XRayEntryType::ENTRY && globalCaPIData->beginTriggerSet.find(id) == globalCaPIData->beginTriggerSet.end()) {
+    if (type == XRayEntryType::ENTRY && globalCaPIData->beginTriggerSet.find(id) != globalCaPIData->beginTriggerSet.end()) {
       globalActive = true;
     } else {
       return;
