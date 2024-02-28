@@ -87,7 +87,7 @@ namespace capi {
 
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   XRayRecursionGuard guard(inXRayScope);
-  if (!guard) 
+  if (!guard) {
    logError() << "Recursive XRay event handling detected (id=" << id << ")!\n";
    return;
   }
