@@ -49,20 +49,20 @@ struct XRayRecursionGuard {
   bool& xrayScope;
   bool wasInScope;
 
-  XRayRecursionGuard(bool& xrayScope) : xrayScope(xrayScope) {
+  XRayRecursionGuard(bool& xrayScope) XRAY_NEVER_INSTRUMENT : xrayScope(xrayScope) {
     wasInScope = xrayScope;
     xrayScope = true;
   }
 
-  ~XRayRecursionGuard() {
+  ~XRayRecursionGuard() XRAY_NEVER_INSTRUMENT {
     xrayScope = false;
   }
 
-  bool check() const {
+  bool check() const XRAY_NEVER_INSTRUMENT {
     return !wasInScope;
   }
 
-  operator bool() const {
+  operator bool() const XRAY_NEVER_INSTRUMENT {
     return check();
   }
 };
