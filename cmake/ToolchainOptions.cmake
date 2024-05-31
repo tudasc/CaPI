@@ -39,6 +39,14 @@ if (ENABLE_TESTING)
 endif()
 
 option(ENABLE_XRAY "Enable XRay dynamic instrumentation interface" ON)
+
+if (ENABLE_XRAY)
+  set(XRAY_INCLUDE_DIR "${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include" CACHE PATH "Path to internal clang headers, needed for XRay runtime")
+  if (NOT EXISTS "${XRAY_INCLUDE_DIR}/xray/xray_interface.h")
+    message(FATAL_ERROR "The XRay headers could not be found in ${XRAY_INCLUDE_DIR}/xray/xray_interface.h. Please specify XRAY_INCLUDE_DIR explicitly, pointing to the directory that contains \"xray/xray_interface.h\".")
+  endif()
+endif()
+
 option(ENABLE_SCOREP "Enable Score-P support" ON)
 
 if (ENABLE_SCOREP)
