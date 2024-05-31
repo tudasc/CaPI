@@ -1,4 +1,4 @@
-find_package(LLVM 13 REQUIRED CONFIG)
+find_package(LLVM  REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 #find_package(Clang REQUIRED CONFIG)
@@ -17,6 +17,8 @@ include(clang-format)
 include(llvm-util)
 
 include(talp)
+
+option(ENABLE_INST_PASSES "Enable instrumentation passes (deprecated, do not work with up-to-date LLVM)" OFF)
 
 option(ENABLE_TESTING "Enable testing (requires lit)" ON)
 
