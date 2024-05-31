@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <fstream>
-#include <omp.h>
 
 #include "support/Logging.h"
 
