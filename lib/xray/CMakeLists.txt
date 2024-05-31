@@ -5,16 +5,7 @@ set(CAPI_XRAY_SOURCES
         ../symbol_retriever/SymbolRetriever.cpp
         ../selection/FunctionFilter.cpp)
 
-# TODO: Is there a better way to determine this include path?
-set(XRAY_INCLUDE_DIR ${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include)
-#message("XRay include dir:  ${XRAY_INCLUDE_DIR}")
-
-#message("LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS}")
-
-#llvm_map_components_to_libnames(llvm_libs_test xray support object)
-#message("LLVM Libs for XRay: ${llvm_libs_test}")
-
-
+message("XRay include dir:  ${XRAY_INCLUDE_DIR}")
 
 add_library(capixray_gnu STATIC ${CAPI_XRAY_SOURCES} GNUInterface.cpp)
 add_json(capixray_gnu)
