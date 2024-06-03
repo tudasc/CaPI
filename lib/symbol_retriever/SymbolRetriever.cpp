@@ -65,7 +65,7 @@ std::vector<MemMapEntry> readMemoryMap() {
     if (strcmp(perms.c_str(), "r-xp") != 0) {
       continue;
     }
-    if (path.find(".so") == std::string::npos) {
+    if (path.find("[") != std::string::npos) {
       continue;
     }
     uintptr_t addrBegin = std::stoul(addrRange.substr(0, addrRange.find('-')), nullptr, 16);
@@ -188,12 +188,7 @@ SymTableList loadAllSymTables(std::string execFile) {
 MappedSymTableMap loadMappedSymTables(std::string execFile) {
   MappedSymTableMap addrToSymTable;
 
-  // Load symbols from main executable
-  auto execSyms = loadSymbolTable(execFile);
-  MappedSymTable execTable{std::move(execSyms), {execFile, 0, 0}};
-  addrToSymTable[0] = execTable;
-
-  // Load symbols from shared libs
+  // Load symbols from executable and shared libs
   auto memMap = readMemoryMap();
   for (auto &entry: memMap) {
     auto &filename = entry.path;
