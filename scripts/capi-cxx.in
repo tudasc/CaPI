@@ -33,7 +33,7 @@ for arg in "$@" ; do
 done
 
 #scorep_init.c:
-@SCOREP_CONFIG@ --mpp=mpi --nokokkos --noonline-access --adapter-init --compiler > scorep_init.c
+@SCOREP_CONFIG@ --mpp=mpi  --adapter-init --compiler > scorep_init.c
 #scorep_init.o:
 clang++ -c -x c scorep_init.c
 
@@ -44,7 +44,7 @@ then
         clang++ -Wl,-whole-archive $CAPI_LIB_GNU -Wl,-no-whole-archive -fxray-instrument $LLVM_LIBS $@
     elif [[ "$CAPI_INTERFACE" == scorep ]]; then
         echo "scorep"
-        clang++ scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@ --nokokkos --noonline-access --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi --nokokkos --noonline-access --compiler` -Wl,-end-group -fxray-instrument $LLVM_LIBS $@
+        clang++ scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@  --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi  --compiler` -Wl,-end-group -fxray-instrument $LLVM_LIBS $@
     elif [[ "$CAPI_INTERFACE" == extrae ]]; then
         echo "extrae"
         clang++ -Wl,-whole-archive $CAPI_LIB_EXTRAE -Wl,-no-whole-archive -fxray-instrument $LLVM_LIBS $@
