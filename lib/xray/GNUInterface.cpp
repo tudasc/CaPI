@@ -18,32 +18,28 @@ void __cyg_profile_func_exit(void* fn, void* callsite) XRAY_NEVER_INSTRUMENT;
 
 };
 
-namespace {
-  // It's faster to cache here than to go over to the XRay runtime every time.
-  std::unordered_map<int, uintptr_t> id2Addr;
-}
 
 namespace capi {
 
-void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
+extern capi::GlobalCaPIData* globalCaPIData;
 
-  auto& addrEntry = id2Addr[id];
-  if (!addrEntry) {
-    uintptr_t addr = __xray_function_address(id);
-    if (!addr) {
-      logError() << "Event from unknown address\n";
-      return;
-    }
-    addrEntry = addr;
+void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
+  // We assume here that XRay is successfully initialized, otherwise this function should not be called
+  auto& xrayMap = globalCaPIData->xrayFuncMap;
+  auto it = xrayMap.find(id);
+  if (it == xrayMap.end()) {
+    logError() << "Event from unknown address\n";
+    return;
   }
+  uintptr_t addr = it->second.addr;
 
   switch(type) {
   case XRayEntryType::ENTRY:
-    __cyg_profile_func_enter(reinterpret_cast<void*>(addrEntry), nullptr);
+    __cyg_profile_func_enter(reinterpret_cast<void*>(addr), nullptr);
     break;
   case XRayEntryType::TAIL:
   case XRayEntryType::EXIT:
-    __cyg_profile_func_exit(reinterpret_cast<void*>(addrEntry), nullptr);
+    __cyg_profile_func_exit(reinterpret_cast<void*>(addr), nullptr);
     break;
   default:
     logError() << "Unhandled XRay event type.\n";

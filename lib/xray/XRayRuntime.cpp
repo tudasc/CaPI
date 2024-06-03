@@ -89,10 +89,6 @@ public:
 
 
 std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
-  // It would be cleaner to use the XRay API directly.
-  // However, this would require that the target application links against the static LLVM libraries itself, which makes things messy...
-  //auto cmdStr = "llvm-xray extract --symbolize --no-demangle " + objectFile;
-
   std::unordered_map<int, XRayFunctionInfo> xrayIdMap;
 
   llvm::Expected<llvm::xray::InstrumentationMap> mapOrErr = llvm::xray::loadInstrumentationMap(objectFile);
