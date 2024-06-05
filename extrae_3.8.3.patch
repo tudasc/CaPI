@@ -1,0 +1,33 @@
+diff --git a/src/merger/common/bfd_manager.c b/src/merger/common/bfd_manager.c
+index 68b16356..77916283 100644
+--- a/src/merger/common/bfd_manager.c
++++ b/src/merger/common/bfd_manager.c
+@@ -231,7 +231,7 @@ asymbol **BFDmanager_getDefaultSymbols (void)
+  *
+  * @return No return value.
+  */
+-static void BFDmanager_findAddressInSection (bfd * abfd, asection * section, PTR data)
++static void BFDmanager_findAddressInSection (bfd * abfd, asection * section, void* data)
+ {
+ #if HAVE_BFD_GET_SECTION_SIZE || HAVE_BFD_SECTION_SIZE || HAVE_BFD_GET_SECTION_SIZE_BEFORE_RELOC
+ 	bfd_size_type size;
+diff --git a/src/merger/paraver/labels.c b/src/merger/paraver/labels.c
+index 81d0349c..28621957 100644
+--- a/src/merger/paraver/labels.c
++++ b/src/merger/paraver/labels.c
+@@ -897,7 +897,14 @@ void Labels_loadSYMfile (int taskid, int allobjects, unsigned ptask,
+                                 exit(-1);
+                             }
+                             evt_value->value = eventvalue;
+-                            strcpy(evt_value->label, value_description);
++                            unsigned labellen = strlen(value_description);
++                            fprintf(stdout, "Event: %s\nSize: %d\n", value_description, labellen);
++                            if (labellen > VALUE_LBL) {
++                                fprintf(stderr, "Label description is too long!\n");
++                                strncpy(evt_value->label, value_description, VALUE_LBL);
++                            } else {
++                                strcpy(evt_value->label, value_description);
++                            }
+                             Extrae_Vector_Append (&last_event_type_used->event_values, evt_value);
+                             other_count++;
+                         }
