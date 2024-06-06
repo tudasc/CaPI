@@ -28,6 +28,8 @@ stages:
   - build-deps
   - build
   - test
+  - integration-test
+  - integration-test-profile
 
 workflow:
   rules:
@@ -95,7 +97,7 @@ capi-test-selection:
 
 capi-build-example:
   <<: *job-setup
-  stage: test
+  stage: integration-test
   script:
     - |
       if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
@@ -112,9 +114,9 @@ capi-build-example:
     - make veryclean
     - make all
 
-capi-test-example:
+capi-test-example-selection:
   <<: *job-setup
-  stage: test
+  stage: integration-test
   script:
     - |
       if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
@@ -126,3 +128,22 @@ capi-test-example:
     - module load dlb/3.3a
     - cd $CAPI_BUILD/test/integration
     - ./runTestCases -tc=input
+
+capi-test-example-run:
+  <<: *job-setup
+  stage: integration-test-profile
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
+    - module load scorepnoplugin/7.1
+    - module load dlb/3.3a
+    - cd $CAPI_BUILD/examples/lulesh
+    - cp $CAPI_BUILD/test/integration/input/lulesh_compute_lulesh_full.gtjson lulesh_test_filter.json
+    - CAPI_FILERING_FILE=lulesh_test_filter.json SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
+    - num_usr=$(scorep-score -r scorep-test-profile/profile.cubex | grep USR | wc -l)
+    - [[ $num_usr != 10 ]] && exit 1
+
