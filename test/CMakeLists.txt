@@ -1,6 +1,8 @@
 add_library(test-rt STATIC test-rt.cpp)
 
-add_subdirectory(passes)
+if (ENABLE_INST_PASSES)
+    add_subdirectory(passes)
+endif()
 add_subdirectory(selection)
 add_subdirectory(integration)
 

@@ -92,8 +92,8 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
   std::unordered_map<int, XRayFunctionInfo> xrayIdMap;
 
   llvm::Expected<llvm::xray::InstrumentationMap> mapOrErr = llvm::xray::loadInstrumentationMap(objectFile);
-  if (!mapOrErr) {
-    logError() << "Unable to load XRay instrumentation map\n";
+  if (auto E = mapOrErr.takeError()) {
+    logError() << "Unable to load XRay instrumentation map: " << toString(std::move(E)) << "\n";
     return xrayIdMap;
   }
   auto& instrMap = mapOrErr.get();
@@ -117,14 +117,7 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
       continue;
 
     auto name = conversionHelper.getSymbol(*fid);
-    auto demangledName = name;
-
-    int status = 0;
-    char* demangleResult = llvm::itaniumDemangle(name.c_str(), nullptr, nullptr, &status);
-    if (status == 0) {
-      demangledName = demangleResult;
-      free(demangleResult);
-    }
+    auto demangledName = llvm::demangle(name);
 
     xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
 

@@ -1,9 +1,11 @@
 
-set(PASS_SOURCES
+
+if (ENABLE_INST_PASSES)
+    set(PASS_SOURCES
         passes/ReadMetaCG.cpp
         passes/MetaCGReader.cpp)
 
-make_llvm_module(readmetacg
+    make_llvm_module(readmetacg
         "${PASS_SOURCES}"
         LINK_LIBS
             nlohmann_json::nlohmann_json
@@ -14,14 +16,14 @@ make_llvm_module(readmetacg
         )
 
 
-install(
+    install(
         TARGETS readmetacg
         EXPORT ${TARGETS_EXPORT_NAME}
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
-)
-
-add_subdirectory(passes)
+    )
+    add_subdirectory(passes)
+endif()
 add_subdirectory(selection)
 add_subdirectory(calltree_logger)
 add_subdirectory(symbol_retriever)
