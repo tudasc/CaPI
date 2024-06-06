@@ -143,7 +143,11 @@ capi-test-example-run:
     - module load dlb/3.3a
     - cd $CAPI_BUILD/examples/lulesh
     - cp ../../test/integration/input/lulesh/lulesh_compute_lulesh_full.gtjson lulesh_test_filter.json
-    - CAPI_FILERING_FILE=lulesh_test_filter.json SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
+    - CAPI_FILTERING_FILE=lulesh_test_filter.json SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
     - num_usr=$(scorep-score -r scorep-test-profile/profile.cubex | grep USR | wc -l)
-    - if [[ $num_usr != 10 ]]; then exit 1; fi
+    - | 
+      if [[ $num_usr != 10 ]]; then 
+        echo "Expected 10 USR regions but got $num_usr"
+        exit 1
+      fi
 
