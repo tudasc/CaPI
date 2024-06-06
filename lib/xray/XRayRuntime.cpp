@@ -117,13 +117,7 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
       continue;
 
     auto name = conversionHelper.getSymbol(*fid);
-    auto demangledName = name;
-
-    char* demangleResult = llvm::itaniumDemangle(name);
-    if (demangleResult) {
-      demangledName = demangleResult;
-      free(demangleResult);
-    }
+    auto demangledName = llvm::demangle(name);
 
     xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
 
