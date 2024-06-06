@@ -145,5 +145,5 @@ capi-test-example-run:
     - cp $CAPI_BUILD/test/integration/input/lulesh_compute_lulesh_full.gtjson lulesh_test_filter.json
     - CAPI_FILERING_FILE=lulesh_test_filter.json SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
     - num_usr=$(scorep-score -r scorep-test-profile/profile.cubex | grep USR | wc -l)
-    - [[ $num_usr != 10 ]] && exit 1
+    - if [[ $num_usr != 10 ]]; then exit 1; fi
 
