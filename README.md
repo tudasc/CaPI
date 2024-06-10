@@ -22,7 +22,7 @@ This project is currently in a pre-release state, frequent changes to the code a
 
 - CMake >=3.15
 - LLVM >=10
-- ScoreP >=7 (optional)
+- ScoreP 7 (optional)
 - DLB 3.3 (optional, other versions may work)
 - Extrae 3.8.3 (optional, other versions may work)
 - LLVM-Lit (testing only)
@@ -44,6 +44,20 @@ CMake Options
 - `ENABLE_XRAY=ON/OFF`: Enable/Disable support for runtime-adaptable instrumentation with LLVM XRay. Default is `ON`.
 - `ENABLE_TESTING=ON/OFF`: Enable/Disable testing. Requires MetaCG and LLVM-Lit.
   - Set `metacg_DIR` to MetaCG installation directory.
+
+## Container
+The easiest way to try out CaPI is to install the [apptainer](https://apptainer.org/) provided in the `container` directory.
+The container provides installations of CaPI and all dependencies. 
+To build it in sandbox mode, run the following command: 
+```
+apptainer build --sandbox --fakeroot capi container/capi.def
+```
+Afterwards, you may open a shell into the sandbox as follow:
+```
+apptainer shell --writable --fakeroot --cleanenv capi
+```
+Refer to the apptainer documentation for further options.
+
 ## Examples
 To verify your build, you may test out the instrumentation of proxy applications LULESH and AMG in the `example` folder (located in your current build directory).
 For details, refer to `CAPI_README` in the `lulesh` folder.
@@ -207,7 +221,7 @@ You will then need to link the XRay-compatible CaPI runtime library into your ex
 `-Wl,--whole-archive <capi_build_dir>/lib/xray/libcapixray_<capi_interface>.a -Wl,--no-whole-archive`, along with the required LLVM dependencies given by `llvm-config --libfiles xray symbolize --link-static --system-libs`.
 
 **Important note**: The upstream version of LLVM does currently not support XRay instrumentation of shared libraries.
-If you need this feature, you can use [this fork of LLVM 13](https://github.com/sebastiankreutzer/llvm-project-xray-dso).
+If you need this feature, you can use [this fork of LLVM](https://github.com/sebastiankreutzer/llvm-project-xray-dso) (use branch `xray_dso_main` for the latest version).
 The feature is enabled by passing the additional flag `-fxray-enable-shared` when building your application.
 We suggest building LLVM with the following CMake flags: `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/path/to/install/llvm/13.0.1-xray-dso -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;openmp" -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INSTALL_UTILS=ON ../llvm/`
 Note that on some cluster systems, the CGG toolchain needs to be set explicitly via the `GCC_INSTALL_PREFIX` CMake option.

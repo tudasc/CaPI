@@ -1,0 +1,84 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%post -c /bin/bash
+    base_dir=/opt
+    cd $base_dir
+
+    apt-get update -y && apt-get upgrade -y && apt-get install -y gcc g++ gcc-13-plugin-dev gdb cmake python3 apt-utils wget gnupg git autoconf automake libtool zlib1g-dev zlib1g vim unzip openmpi-bin openmpi-common libopenmpi-dev papi-tools bison flex bear binutils-dev zlib1g-dev ninja-build libunwind-dev libpapi-dev libiberty-dev
+    
+    # Need python <=3.11 for Score-P compatibility
+    apt install -y software-properties-common
+    add-apt-repository ppa:deadsnakes/ppa
+    apt install -y python3.11-full
+    /usr/bin/python3.11 -m venv ./virtual_env/python3.11
+    source ./virtual_env/python3.11/bin/activate
+    pip3.11 install lit
+
+    # LLVM 19 extended with XRay instrumentation of shared libraries
+    cd $base_dir
+    git clone https://github.com/sebastiankreutzer/llvm-project-xray-dso.git llvm-project-xray-dso --single-branch --branch xray_dso_main --depth 1
+    cd llvm-project-xray-dso
+    mkdir build && cd build
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DCOMPILER_RT_BUILD_LIBFUZZER=OFF -DLLVM_INSTALL_UTILS=ON ../llvm
+    ninja
+    ninja install
+
+    # Score-P 7.1 (8 is not supported as of now)
+    cd $base_dir
+    mkdir scorep7 && cd scorep7
+    wget https://perftools.pages.jsc.fz-juelich.de/cicd/scorep/tags/scorep-7.1/scorep-7.1.tar.gz
+    tar xzvf scorep-7.1.tar.gz
+    mkdir scorep-7.1/build && cd scorep-7.1/build
+    ../configure --enable-static --enable-shared --with-mpi=openmpi --with-papi --without-shmem --without-otf2 --without-opari2 --without-cubew --without-cubelib --disable-gcc-plugin --prefix=/usr/local
+    make -j
+    make install
+
+    # DLB 3.3.1
+    cd $base_dir
+    wget https://github.com/bsc-pm/dlb/archive/refs/tags/v3.3.1.tar.gz -O dlb-3.3.1.tar.gz
+    tar xzvf dlb-3.3.1.tar.gz
+    cd dlb-3.3.1
+    ./bootstrap
+    ./configure --with-mpi
+    make -j
+    make install
+
+    # Clone CaPI here, because we need a patch for Extrae 3.8.3
+    cd $base_dir
+    git clone https://github.com/tudasc/CaPI.git --branch devel
+
+    # Extrae 3.8.3
+    cd $base_dir
+    wget https://github.com/bsc-performance-tools/extrae/archive/refs/tags/3.8.3.tar.gz -O Extrae-3.8.3.tar.gz
+    tar xzvf Extrae-3.8.3.tar.gz
+    cd extrae-3.8.3
+    patch -p1 < $base_dir/CaPI/extrae_3.8.3.patch
+    ./bootstrap
+    ./configure --enable-openmp --with-mpi=/usr --with-mpi-headers=/lib/x86_64-linux-gnu/openmpi/include/ --with-mpi-libs=/lib/x86_64-linux-gnu/  --with-unwind=/lib/x86_64-linux-gnu/ --with-unwind-headers=/usr/include --with-unwind-libs=/lib/x86_64-linux-gnu/ --without-dyninst --with-papi=/lib/x86_64-linux-gnu/ --with-papi-headers=/usr/include/ --with-papi-libs=/lib/x86_64-linux-gnu/ --with-bfd=/usr/lib/x86_64-linux-gnu/ --with-bfd-libs=/usr/lib/x86_64-linux-gnu/ --with-bfd-headers=/usr/include/ 
+    make -j
+    make install
+
+
+    # MetaCG
+    cd $base_dir
+    # Need Clang 14 as MetaCG is not compatible with Clang 19
+    apt install -y clang-14 libclang-14-dev 
+    git clone https://github.com/sebastiankreutzer/MetaCG.git --single-branch --depth 1 --branch skdev_updated
+    cd MetaCG
+    cmake -G Ninja -S . -B build -DCUBE_LIB=$(dirname $(which cube_info))/../lib -DCUBE_INCLUDE=$(dirname $(which cube_info))/../include/cubelib -DMETACG_BUILD_CGCOLLECTOR=ON  -DMETACG_BUILD_PGIS=OFF -DSPDLOG_BUILD_SHARED=ON -DCMAKE_BUILD_TYPE=Release -DClang_DIR=/usr/lib/cmake/clang-14/ -DLLVM_DIR=/usr/lib/llvm-14/cmake/
+    cmake --build build --parallel
+    cmake --install build
+
+    # Build CaPI
+    cd $base_dir/CaPI
+    cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH="/usr/local/lib/cmake/" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DLLVM_EXTERNAL_LIT=$(which lit) -DXRAY_INCLUDE_DIR=/usr/local/lib/clang/19/include
+    cmake --build build --parallel
+    cmake --install build
+
+
+%environment
+    export CLANG_BASE_PATH=/usr/lib/clang/14 
+    export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+
