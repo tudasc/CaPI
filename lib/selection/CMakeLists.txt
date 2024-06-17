@@ -12,7 +12,6 @@ set(SOURCES CallGraph.cpp
         SelectorGraph.cpp
         selectors/SelectorInstantiation.cpp
         selectors/BasicSelectors.cpp
-        selectors/ContextSelector2.cpp
         selectors/CommonCallerSelectorSCC.cpp)
 
 add_executable(capi ${SOURCES})
