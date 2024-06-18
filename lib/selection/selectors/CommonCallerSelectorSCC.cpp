@@ -378,7 +378,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       numDistinct++;
       consideredInHeuristic = true;
     }
-    if (consideredInHeuristic /*&& combinedCandidateDist <= maxLCADist*/) {
+    if (consideredInHeuristic && combinedCandidateDist <= maxLCADist) {
       // TODO: Output trigger information as part of selection result. Also add option for user to control if this should be set at all.
 
       for (auto& member : ca->node->nodes) {

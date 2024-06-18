@@ -112,7 +112,7 @@ SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
 
 template<CommonCallerSelectorSCC::CAHeuristicType T>
 SelectorPtr createCommmonCallerSelectorSCC(const std::vector<Param>& params) {
-  int maxOrder = 0;
+  int maxOrder = INT32_MAX;
   if (!params.empty()) {
     CHECK_NUM_ARGS(CommonCallerSelectorSCC, params, 1)
     CHECK_KIND(params[0], Param::INT)
