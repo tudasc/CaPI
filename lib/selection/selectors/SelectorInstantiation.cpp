@@ -5,7 +5,6 @@
 #include "BasicSelectors.h"
 #include "CallPathSelector.h"
 #include "CommonCallerSelectorSCC.h"
-#include "ContextSelector2.h"
 #include "SelectorRegistry.h"
 #include "SetOperations.h"
 
@@ -111,21 +110,9 @@ SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
   return std::make_unique<MinCallDepthSelector>(*cmpOp, intVal);
 }
 
-// TODO: Replaced by CommonCallerSelectorSCC, remove
-template<CAHeuristicType T>
-SelectorPtr createCallContextSelector2(const std::vector<Param>& params) {
-  int maxOrder = 0;
-  if (!params.empty()) {
-    CHECK_NUM_ARGS(ContextSelector2, params, 1)
-    CHECK_KIND(params[0], Param::INT)
-    maxOrder = std::get<int>(params[0].val);
-  }
-  return std::make_unique<ContextSelector2>(maxOrder, T);
-}
-
 template<CommonCallerSelectorSCC::CAHeuristicType T>
 SelectorPtr createCommmonCallerSelectorSCC(const std::vector<Param>& params) {
-  int maxOrder = 0;
+  int maxOrder = INT32_MAX;
   if (!params.empty()) {
     CHECK_NUM_ARGS(CommonCallerSelectorSCC, params, 1)
     CHECK_KIND(params[0], Param::INT)
@@ -176,10 +163,6 @@ RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>);
 
 // MinCallDepthSelector
 RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelector);
-
-// TODO: Replaced by common_caller selector, remove
-// ContextSelector
-RegisterSelector callContextSelector2("callContext2", createCallContextSelector2<CAHeuristicType::ALL>);
 
 RegisterSelector caSelectorAll("common_caller",
                   createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>);

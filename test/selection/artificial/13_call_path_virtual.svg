@@ -1,0 +1,95 @@
+<svg width="936" height="835" viewBox="0 0 702 626.25" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="translate(65.97500610351562,403.125) scale(1)">
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-184 574.05,-184 574.05,4 -4,4"/>
+<!-- bar -->
+<g id="node1" class="node">
+<title>bar</title>
+<ellipse fill="none" stroke="black" cx="36.25" cy="-90" rx="27" ry="18"/>
+<text text-anchor="middle" x="36.25" y="-85.8" font-family="Times,serif" font-size="14.00">bar</text>
+</g>
+<!-- A::foo -->
+<g id="node2" class="node">
+<title>A::foo</title>
+<ellipse fill="none" stroke="black" cx="296.25" cy="-18" rx="36.5" ry="18"/>
+<text text-anchor="middle" x="296.25" y="-13.8" font-family="Times,serif" font-size="14.00">A::foo</text>
+</g>
+<!-- B::foo -->
+<g id="node3" class="node">
+<title>B::foo</title>
+<ellipse fill="none" stroke="black" cx="121.25" cy="-90" rx="35.93" ry="18"/>
+<text text-anchor="middle" x="121.25" y="-85.8" font-family="Times,serif" font-size="14.00">B::foo</text>
+</g>
+<!-- B::foo&#45;&gt;A::foo -->
+<g id="edge3" class="edge">
+<title>B::foo-&gt;A::foo</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M148.59,-78.06C178.43,-66.13 226.35,-46.96 259.47,-33.71"/>
+<polygon fill="black" stroke="black" points="260.82,-36.94 268.81,-29.98 258.22,-30.44 260.82,-36.94"/>
+</g>
+<!-- C::foo -->
+<g id="node4" class="node">
+<title>C::foo</title>
+<ellipse fill="none" stroke="black" cx="126.25" cy="-162" rx="35.93" ry="18"/>
+<text text-anchor="middle" x="126.25" y="-157.8" font-family="Times,serif" font-size="14.00">C::foo</text>
+</g>
+<!-- C::foo&#45;&gt;B::foo -->
+<g id="edge2" class="edge">
+<title>C::foo-&gt;B::foo</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M125.01,-143.7C124.46,-135.98 123.8,-126.71 123.19,-118.11"/>
+<polygon fill="black" stroke="black" points="126.67,-117.83 122.47,-108.1 119.69,-118.33 126.67,-117.83"/>
+</g>
+<!-- D::foo -->
+<g id="node5" class="node">
+<title>D::foo</title>
+<ellipse fill="none" stroke="black" cx="36.25" cy="-162" rx="36.5" ry="18"/>
+<text text-anchor="middle" x="36.25" y="-157.8" font-family="Times,serif" font-size="14.00">D::foo</text>
+</g>
+<!-- D::foo&#45;&gt;bar -->
+<g id="edge4" class="edge">
+<title>D::foo-&gt;bar</title>
+<path fill="none" stroke="black" d="M36.25,-143.7C36.25,-135.98 36.25,-126.71 36.25,-118.11"/>
+<polygon fill="black" stroke="black" points="39.75,-118.1 36.25,-108.1 32.75,-118.1 39.75,-118.1"/>
+</g>
+<!-- D::foo&#45;&gt;B::foo -->
+<g id="edge1" class="edge">
+<title>D::foo-&gt;B::foo</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M54.28,-146.15C66.22,-136.32 82.08,-123.26 95.37,-112.32"/>
+<polygon fill="black" stroke="black" points="97.75,-114.88 103.25,-105.82 93.3,-109.48 97.75,-114.88"/>
+</g>
+<!-- testDirect -->
+<g id="node6" class="node">
+<title>testDirect</title>
+<ellipse fill="none" stroke="black" cx="223.25" cy="-90" rx="48.65" ry="18"/>
+<text text-anchor="middle" x="223.25" y="-85.8" font-family="Times,serif" font-size="14.00">testDirect</text>
+</g>
+<!-- testDirect&#45;&gt;A::foo -->
+<g id="edge6" class="edge">
+<title>testDirect-&gt;A::foo</title>
+<path fill="none" stroke="black" d="M240.18,-72.76C249.87,-63.47 262.18,-51.67 272.79,-41.49"/>
+<polygon fill="black" stroke="black" points="275.37,-43.87 280.16,-34.43 270.52,-38.82 275.37,-43.87"/>
+</g>
+<!-- testDirectExplicit -->
+<g id="node7" class="node">
+<title>testDirectExplicit</title>
+<ellipse fill="none" stroke="black" cx="369.25" cy="-90" rx="79.3" ry="18"/>
+<text text-anchor="middle" x="369.25" y="-85.8" font-family="Times,serif" font-size="14.00">testDirectExplicit</text>
+</g>
+<!-- testDirectExplicit&#45;&gt;A::foo -->
+<g id="edge5" class="edge">
+<title>testDirectExplicit-&gt;A::foo</title>
+<path fill="none" stroke="black" d="M351.95,-72.41C342.31,-63.17 330.18,-51.54 319.7,-41.49"/>
+<polygon fill="black" stroke="black" points="322.07,-38.91 312.42,-34.51 317.22,-43.96 322.07,-38.91"/>
+</g>
+<!-- testVirtual -->
+<g id="node8" class="node">
+<title>testVirtual</title>
+<ellipse fill="none" stroke="black" cx="518.25" cy="-90" rx="51.6" ry="18"/>
+<text text-anchor="middle" x="518.25" y="-85.8" font-family="Times,serif" font-size="14.00">testVirtual</text>
+</g>
+<!-- testVirtual&#45;&gt;A::foo -->
+<g id="edge7" class="edge">
+<title>testVirtual-&gt;A::foo</title>
+<path fill="none" stroke="black" d="M481.34,-77.36C441.13,-64.68 377.06,-44.48 335.83,-31.48"/>
+<polygon fill="black" stroke="black" points="336.71,-28.09 326.12,-28.42 334.61,-34.76 336.71,-28.09"/>
+</g>
+</g>
+</svg>

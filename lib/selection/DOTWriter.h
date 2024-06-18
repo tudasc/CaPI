@@ -11,7 +11,26 @@
 
 namespace capi {
 
-bool writeDOT(const CallGraph &cg, const FunctionFilter& selection, std::ostream &out);
+struct NodeDecoration {
+  enum Color {
+    RED,
+    BLUE,
+    GREEN,
+    YELLOW,
+    BLACK,
+    WHITE,
+    UNSPECIFIED
+  };
+  static const std::string ColorStrings[];
+
+  Color textColor{UNSPECIFIED};
+  Color shapeColor{UNSPECIFIED};
+  Color bgColor{UNSPECIFIED};
+};
+
+using DecorationMap = std::unordered_map<std::string, NodeDecoration>;
+
+bool writeDOT(const CallGraph &cg, const FunctionFilter& selection, const DecorationMap& decoration, std::ostream &out);
 
 }
 

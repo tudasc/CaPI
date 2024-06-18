@@ -41,6 +41,8 @@ thread_local std::vector<int> callStack{};
 thread_local bool globalActive{false};
 thread_local bool threadInitialized{false};
 thread_local bool scopeActive{false};
+thread_local bool inXRayScope{false};
+
 
 inline void handle_extrae_region_enter(int id) XRAY_NEVER_INSTRUMENT {
 
@@ -84,11 +86,17 @@ inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
 namespace capi {
 
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
+  XRayRecursionGuard guard(inXRayScope);
+  if (!guard) {
+   logError() << "Recursive XRay event handling detected (id=" << id << ")!\n";
+   return;
+  }
 
   if (!initialized) {
     static bool failedBefore{false};
     if (!failedBefore) {
-      logError() << "Extrae interface has not been initialized.\n";
+      auto& info = capi::globalCaPIData->xrayFuncMap[id];
+      logError() << "Handling XRay event for function " << info.name << " (id=" << id << "): Extrae interface has not been initialized.\n";
       failedBefore = true;
     }
     return;
@@ -98,14 +106,19 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
     threadInitialized = true;
   }
 
-  // TODO: Currently no support for end trigger
-  // Long term, use different event handler function when patching to reduce lookup overhead
-  if (!globalActive && type == XRayEntryType::ENTRY) {
-    if (globalCaPIData->beginTriggerSet.find(id) == globalCaPIData->beginTriggerSet.end()) {
-      return;
+  // TODO: Long term, use different event handler function when patching to reduce lookup overhead
+  if (globalActive) {
+    if (type == XRayEntryType::EXIT && globalCaPIData->endTriggerSet.find(id) != globalCaPIData->endTriggerSet.end()) {
+      globalActive = false;
+      // no immediate return here, since we first want to record the exit event
     }
-    globalActive = true;
-  }
+  } else {
+    if (type == XRayEntryType::ENTRY && globalCaPIData->beginTriggerSet.find(id) != globalCaPIData->beginTriggerSet.end()) {
+      globalActive = true;
+    } else {
+      return;
+    }   
+  }  
 
   #ifdef WITH_MPI
   if (!recordOutsideMPI) {
@@ -133,6 +146,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 }
 
 void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NEVER_INSTRUMENT {
+  constexpr int maxEventDescriptionLen = 2048;
   int nvalues = xrayMap.size();
   std::vector<long long> idList;
   idList.reserve(nvalues);
@@ -140,8 +154,16 @@ void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NE
   descriptions.reserve(nvalues);
   for (auto&& [id, info] : xrayMap) {
     idList.push_back(id);
-    // Const-casting is ugly but necessary, if we want to avoid copying all function names
-    descriptions.push_back(const_cast<char*>(demangle ? info.demangled.c_str() : info.name.c_str()));
+    // Const-casting is ugly but necessary, if we want to avoid copying all function names.
+    auto desc = const_cast<char*>(demangle ? info.demangled.c_str() : info.name.c_str());
+    if (strlen(desc) < maxEventDescriptionLen) {
+      descriptions.push_back(desc);
+    } else {
+      auto truncated = std::string(desc).substr(0, maxEventDescriptionLen-1);
+      logError() << "Function name is too long for Extrae! Name will be truncated:\n" << desc << std::endl;
+      descriptions.push_back(const_cast<char*>(truncated.c_str()));
+    }
+
   }
 
   Extrae_define_event_type (&ExtraeXRayEvt, const_cast<char*>("XRay Event"), &nvalues, &idList[0], &descriptions[0]);

@@ -10,6 +10,9 @@
 // RUN: infile="%s"; %capi -i 'common_caller(by_name("@_Z2c1v", %%%%), by_name("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
+// RUN: infile="%s"; %capi -i 'common_caller_distinct(by_name("@_Z2c1v", %%%%), by_name("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: cat %s.filt | c++filt | sort | %filecheck -check-prefix=DISTINCT %s
+//
 // clang-format on
 
 extern void MPI_1();
@@ -41,6 +44,20 @@ int main(int argc, char** argv) {
 // CHECK: b5
 // CHECK: c1
 // CHECK: c2
-// CHECK-NOT: main
+// CHECK: main
 // CHECK-NOT: MPI_1
 // CHECK-NOT: MPI_2
+//
+// DISTINCT: a1
+// DISTINCT: a2
+// DISTINCT: a3
+// DISTINCT: b1
+// DISTINCT: b2
+// DISTINCT: b3
+// DISTINCT: b4
+// DISTINCT: b5
+// DISTINCT: c1
+// DISTINCT: c2
+// DISTINCT-NOT: main
+// DISTINCT-NOT: MPI_1
+// DISTINCT-NOT: MPI_2

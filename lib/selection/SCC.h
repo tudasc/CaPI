@@ -15,6 +15,12 @@ struct SCCNode {
   size_t size() const {
     return nodes.size();
   }
+
+  std::string getName() const {
+    if (nodes.empty())
+      return "EMPTY";
+    return nodes.front()->getName() + "(" + std::to_string(size()) + ")";
+  }
 };
 
 struct SCCAnalysisResults {
@@ -83,6 +89,21 @@ struct SCCAnalysisResults {
     return callees;
   }
 
+};
+
+// For graph trait
+struct SCCGraph {
+  const SCCAnalysisResults& sccResults;
+
+  explicit SCCGraph(const SCCAnalysisResults& sccAnalysisResults) : sccResults(sccAnalysisResults) {}
+
+  std::vector<const SCCNode*> getCallers(const SCCNode* node) const {
+    return sccResults.findAllCallers(node);
+  }
+
+  std::vector<const SCCNode*> getCallees(const SCCNode* node) const {
+    return sccResults.findAllCallees(node);
+  }
 };
 
 SCCAnalysisResults computeSCCs(const capi::CallGraph&, bool followVirtualCalls);

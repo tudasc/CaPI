@@ -137,10 +137,10 @@ extern void postXRayInit(const XRayFunctionMap &);
 extern void preXRayFinalize();
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
-  logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << "\n";
-  logInfo() << "Git revision: " << CAPI_GIT_SHA1 << "\n";
+  logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
+  logInfo() << "Git revision: " << CAPI_GIT_SHA1 << std::endl;
 
-  Timer timer("[Info] Initialization took ", std::cout);
+  Timer timer("[Info] Full initialization took ", std::cout);
 
   bool shouldInit{false};
   bool logCalls{false};
@@ -160,6 +160,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   FunctionFilter filter;
   auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
   if (filterEnv) {
+    Timer timer("[Info] Loading filter file took ", std::cout);
     bool success{false};
     if (0 == strncmp( filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
       success = readJSONFilterFile(filter, filterEnv);
@@ -189,7 +190,12 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
-  auto symTables = loadMappedSymTables(execPath);
+
+  MappedSymTableMap symTables;
+  {
+    Timer timer("[Info] Reading symtables took ", std::cout);
+    symTables = loadMappedSymTables(execPath);
+  }
 
   size_t numFound = 0;
   size_t numPatched = 0;
@@ -204,6 +210,9 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   __xray_init();
   __xray_set_handler(handleXRayEvent);
+
+  Timer idLoadTimer("[Info] Loading IDs took ", std::cout, false);
+  Timer patchTimer("[Info] Patching took ", std::cout, false);
 
   for (int objId = 0; objId < numObjects; ++objId) {
     size_t maxFID = __xray_max_function_id_in_object(objId);
@@ -223,12 +232,15 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       objName = nextHighestIt->second.memMap.path;
     }
 
-    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")\n";
+    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")" << std::endl;
 
+    idLoadTimer.resume();
     auto funcInfoMap = loadXRayIDs(objName);
+    idLoadTimer.pause();
 
     numFound += funcInfoMap.size();
 
+    patchTimer.resume();
     for (int fid = 1; fid <= maxFID; ++fid) {
 
       auto fIt = funcInfoMap.find(fid);
@@ -264,6 +276,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
       }
 
     }
+    patchTimer.pause();
   }
 
   globalCaPIData->xrayFuncMap = xrayMap;
