@@ -1,4 +1,4 @@
-# CaPI: Compiler-assisted Performance Instrumentation <img src="capi_logo.png" alt="capi_logo" style="width:150px;"/>
+# CaPI: Compiler-assisted Performance Instrumentation <img src="capi_logo.png" alt="capi_logo" width="120px"/>
 
 CaPI is a selective code instrumentation tool, designed for streamlining the performance analysis workflow of large-scale parallel applications.
 
