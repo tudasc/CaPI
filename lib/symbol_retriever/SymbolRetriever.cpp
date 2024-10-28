@@ -32,7 +32,7 @@ private:
 
 std::string getExecPath() {
   RemoveEnvInScope removePreload("LD_PRELOAD");
-  char filename[128] = {0};
+  char filename[512] = {0};
   auto n = readlink("/proc/self/exe", filename, sizeof(filename) - 1);
   if (n > 0) {
     return filename;
@@ -45,7 +45,7 @@ std::vector<MemMapEntry> readMemoryMap() {
 
   std::vector<MemMapEntry> entries;
 
-  char buffer[256];
+  char buffer[1024];
   FILE *memory_map = fopen("/proc/self/maps", "r");
   if (!memory_map) {
     std::cout << "Could not load memory map.\n";
@@ -148,7 +148,7 @@ SymbolTable loadSymbolTable(const std::string& object_file) {
 
 }
 
-std::string getELFType(std::string object_file) {
+std::string getELFType(const std::string& object_file) {
   // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call, if linked dynamically
   RemoveEnvInScope removePreload("LD_PRELOAD");
 
@@ -177,7 +177,7 @@ std::string getELFType(std::string object_file) {
 }
 
 
-SymbolSetList loadSymbolSets(std::string execFile) {
+SymbolSetList loadSymbolSets(const std::string& execFile) {
   SymbolSetList symSets;
 
   // Load symbols from main executable
@@ -197,7 +197,7 @@ SymbolSetList loadSymbolSets(std::string execFile) {
 }
 
 
-SymTableList loadAllSymTables(std::string execFile) {
+SymTableList loadAllSymTables(const std::string& execFile) {
 
   std::vector<std::pair<std::string, SymbolTable>> symTables;
 
@@ -214,7 +214,7 @@ SymTableList loadAllSymTables(std::string execFile) {
 }
 
 
-MappedSymTableMap loadMappedSymTables(std::string execFile, bool printDebug) {
+MappedSymTableMap loadMappedSymTables(const std::string& execFile, bool printDebug) {
   MappedSymTableMap addrToSymTable;
 
   // Load symbols from executable and shared libs
@@ -264,5 +264,4 @@ std::string findSymbol(uint64_t addrInProc, MappedSymTableMap& mappedSymTables) 
   }
   return "";
 }
-
 

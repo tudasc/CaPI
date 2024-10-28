@@ -37,7 +37,7 @@ using MappedSymTableMap = std::map<uintptr_t, MappedSymTable>;
  * Loads symbols from the running process and maps their addresses into virtual memory.
  * @return
  */
-MappedSymTableMap loadMappedSymTables(std::string execFile, bool printDebug=false);
+MappedSymTableMap loadMappedSymTables(const std::string& execFile, bool printDebug=false);
 
 SymbolTable loadSymbolTable(const std::string& object_file);
 /**
@@ -45,13 +45,13 @@ SymbolTable loadSymbolTable(const std::string& object_file);
  * @param execFile
  * @return
  */
-SymTableList loadAllSymTables(std::string execFile);
+SymTableList loadAllSymTables(const std::string& execFile);
 
 /**
  * Loads symbols from the executable and all shared library dependencies.
  * Does not save addresses, only symbol names.
  */
-SymbolSetList loadSymbolSets(std::string execFile);
+SymbolSetList loadSymbolSets(const std::string& execFile);
 
 
 std::string findSymbol(uint64_t addrInProc, MappedSymTableMap&);
@@ -63,8 +63,6 @@ inline bool findSymbol(const SymbolSetList& symSets, const std::string& sym) {
   }
   return false;
 }
-
-
 
 std::string getExecPath();
 
