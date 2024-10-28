@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-namespace capi {
-
 using SymbolTable = std::unordered_map<std::uintptr_t, std::string>;
 using SymbolSet = std::unordered_set<std::string>;
 
@@ -39,8 +37,9 @@ using MappedSymTableMap = std::map<uintptr_t, MappedSymTable>;
  * Loads symbols from the running process and maps their addresses into virtual memory.
  * @return
  */
-MappedSymTableMap loadMappedSymTables(std::string execFile);
+MappedSymTableMap loadMappedSymTables(std::string execFile, bool printDebug=false);
 
+SymbolTable loadSymbolTable(const std::string& object_file);
 /**
  * Loads symbols from the executable and all shared library dependencies.
  * @param execFile
@@ -55,6 +54,8 @@ SymTableList loadAllSymTables(std::string execFile);
 SymbolSetList loadSymbolSets(std::string execFile);
 
 
+std::string findSymbol(uint64_t addrInProc, MappedSymTableMap&);
+
 inline bool findSymbol(const SymbolSetList& symSets, const std::string& sym) {
   for (auto&& [binary, symSet] : symSets) {
     if (symSet.find(sym) != symSet.end())
@@ -64,10 +65,15 @@ inline bool findSymbol(const SymbolSetList& symSets, const std::string& sym) {
 }
 
 
+
 std::string getExecPath();
 
 inline uint64_t mapAddrToProc(uint64_t addrInLib, const MappedSymTable& table) {
   return table.memMap.addrBegin + addrInLib - table.memMap.offset;
+}
+
+inline uint64_t mapAddrToObj(uint64_t addrInProc, const MappedSymTable& table) {
+  return addrInProc - table.memMap.addrBegin + table.memMap.offset;
 }
 
 inline std::unordered_set<std::string> getSymbolSet(const SymbolTable& table) {
@@ -78,6 +84,5 @@ inline std::unordered_set<std::string> getSymbolSet(const SymbolTable& table) {
   return symSet;
 }
 
-}
 
 #endif // CAPI_SYMBOLRETRIEVER_H

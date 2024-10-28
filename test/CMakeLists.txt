@@ -5,6 +5,7 @@ if (ENABLE_INST_PASSES)
 endif()
 add_subdirectory(selection)
 add_subdirectory(integration)
+add_subdirectory(symbol_retriever)
 
 file(GLOB INTEGRATION_EXECUTABLES integration/simpleTester.cpp integration/runTestCases integration/simpleTester integration/testfunctions)
 file(GLOB INTEGRATION_INPUT integration/input)
