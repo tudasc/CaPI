@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
+  load_symbols();
   // CHECK: malloc
   // CHECK-NOT: not found
   check_symbol((void*)malloc);

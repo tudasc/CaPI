@@ -22,16 +22,13 @@ void check_symbol(void* addr) {
   }
 }
 
-
-__attribute__((constructor))
-void symbolRetrieverInit() {
-
+void load_symbols() {
   globalTestData = new TestData;
 
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
   globalTestData->symTables = loadMappedSymTables(execPath, true);
-
 }
+
 

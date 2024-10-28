@@ -14,6 +14,7 @@
 extern "C" void* foo();
 
 int main(int argc, char** argv) {
+  load_symbols();
   // CHECK: main
   // CHECK-NOT: not found
   check_symbol((void*)main);
