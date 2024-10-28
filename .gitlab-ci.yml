@@ -82,6 +82,19 @@ capi-build:
     - cmake --build $CAPI_BUILD --parallel
     - module purge
 
+capi-test-symbol-retriever:
+  <<: *job-setup
+  stage: test
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/13.0.1-xray-dso
+    - cd $CAPI_BUILD
+    - ninja capi-symbol-retriever-test
+
 capi-test-selection:
   <<: *job-setup
   stage: test

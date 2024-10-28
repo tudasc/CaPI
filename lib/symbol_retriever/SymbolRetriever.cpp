@@ -3,14 +3,13 @@
 //
 
 #include "SymbolRetriever.h"
-#include "support/Logging.h"
 
+#include <iostream>
 #include <cstring>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
 
-namespace capi {
 
 struct RemoveEnvInScope {
 
@@ -49,7 +48,7 @@ std::vector<MemMapEntry> readMemoryMap() {
   char buffer[256];
   FILE *memory_map = fopen("/proc/self/maps", "r");
   if (!memory_map) {
-    logInfo() << "Could not load memory map.\n";
+    std::cout << "Could not load memory map.\n";
   }
 
   std::string addrRange;
@@ -86,7 +85,7 @@ std::vector<std::string> readSharedObjectDependencies(const std::string exec_fil
   char buffer[256];
   FILE *output = popen(command.c_str(), "r");
   if (!output) {
-    logInfo() << "Could not execute ldd.\n";
+    std::cout << "Could not execute ldd.\n";
     return {};
   }
 
@@ -119,7 +118,7 @@ SymbolTable loadSymbolTable(const std::string& object_file) {
   char buffer[256] = {0};
   FILE *output = popen(command.c_str(), "r");
   if (!output) {
-    logError() << "Unable to execute nm to resolve symbol names.\n";
+    std::cout << "Unable to execute nm to resolve symbol names.\n";
     return {};
   }
 
@@ -142,12 +141,43 @@ SymbolTable loadSymbolTable(const std::string& object_file) {
   pclose(output);
 
   if (table.empty()) {
-    logError() << "Unable to resolve symbol names for binary " << object_file << "\n";
+    std::cout << "Unable to resolve symbol names for binary " << object_file << "\n";
   }
 
   return table;
 
 }
+
+std::string getELFType(std::string object_file) {
+  // Need to disable LD_PRELOAD, otherwise this library will be loaded in popen call, if linked dynamically
+  RemoveEnvInScope removePreload("LD_PRELOAD");
+
+  std::string command = "llvm-readelf -h ";
+  command += object_file;
+  command += " | grep Type";
+
+  std::cout << "Command: " << command << " (" << command.size() << ")\n";
+
+  char buffer[256] = {0};
+  FILE *output = popen(command.c_str(), "r");
+  if (!output) {
+    std::cout << "Unable to execute llvm-readelf.\n";
+    return {};
+  }
+
+
+  std::string desc;
+  std::string type;
+
+  if (fgets(buffer, sizeof(buffer), output)) {
+    std::istringstream line(buffer);
+    line >> desc >> type;
+  } else {
+    std::cout << "Output buffer is empty\n";
+  }
+  return type;
+}
+
 
 SymbolSetList loadSymbolSets(std::string execFile) {
   SymbolSetList symSets;
@@ -185,28 +215,56 @@ SymTableList loadAllSymTables(std::string execFile) {
   return symTables;
 }
 
-MappedSymTableMap loadMappedSymTables(std::string execFile) {
+
+MappedSymTableMap loadMappedSymTables(std::string execFile, bool printDebug) {
   MappedSymTableMap addrToSymTable;
 
   // Load symbols from executable and shared libs
   auto memMap = readMemoryMap();
   for (auto &entry: memMap) {
+
+    // Executable starts at address 0x0
+    if (addrToSymTable.empty()) {
+        auto elfType = getELFType(execFile);
+        if (elfType == "EXEC") {
+          entry.addrBegin = 0;
+          entry.offset = 0;
+        }
+        if (printDebug) {
+          std::cout << "ELF type: " << elfType << "\n";
+        }
+    }
     auto &filename = entry.path;
     auto table = loadSymbolTable(filename);
     if (table.empty()) {
-      logError() << "Could not load symbols from " << filename << "\n";
+      std::cout << "Could not load symbols from " << filename << "\n";
       continue;
     }
 
-    //std::cout << "Loaded " << table.size() << " symbols from " << filename << "\n";
-    //std::cout << "Starting address: " << entry.addrBegin << "\n";
+    if (printDebug) {
+      std::cerr << "Loaded " << table.size() << " symbols from " << filename << "\n";
+      std::cerr << " > Starting address: 0x" << std::hex << entry.addrBegin << "\n";
+      std::cerr << " > Offset: 0x" << entry.offset << std::dec << "\n";
+    }
     MappedSymTable mappedTable{std::move(table), entry};
     addrToSymTable[entry.addrBegin] = mappedTable;
   }
   return addrToSymTable;
 }
 
-
-
-
+std::string findSymbol(uint64_t addrInProc, MappedSymTableMap& mappedSymTables) {
+  auto nextHighestIt = mappedSymTables.upper_bound(addrInProc);
+  if (nextHighestIt == mappedSymTables.begin()) {
+    return "";
+  }
+  nextHighestIt--;
+  const auto &symbolTable = nextHighestIt->second;
+  auto addrInObj = mapAddrToObj(addrInProc, symbolTable);
+  auto it = symbolTable.table.find(addrInObj);
+  if (it != symbolTable.table.end()) {
+    return it->second;
+  }
+  return "";
 }
+
+
