@@ -76,7 +76,7 @@ std::vector<MemMapEntry> readMemoryMap() {
   return entries;
 }
 
-std::vector<std::string> readSharedObjectDependencies(const std::string exec_file) {
+std::vector<std::string> readSharedObjectDependencies(const std::string& exec_file) {
   RemoveEnvInScope removePreload("LD_PRELOAD");
   std::vector<std::string> dsoFiles;
 
