@@ -3,8 +3,13 @@
 //
 
 // RUN: split-file %s %t
-// RUN: %clang_cxx -fPIC -shared %t/test_dso.cpp -o %t/test_dso.so
+//
+// RUN: %clang_cxx -fPIC -fuse-ld=lld -flto=thin -shared %t/test_dso.cpp -o %t/test_dso.so
 // RUN: %clang_cxx -fPIC %test_flags %t/main.cpp %t/test_dso.so -Wl,-rpath %t  -o %t/main.o
+// RUN: %t/main.o | FileCheck %t/main.cpp
+//
+// RUN: %clang_cxx -fPIC -fuse-ld=lld -flto=thin -shared %t/test_dso.cpp -o %t/test_dso.so
+// RUN: %clang_cxx -fPIC -fuse-ld=lld -flto=thin %test_flags %t/main.cpp %t/test_dso.so -Wl,-rpath %t  -o %t/main.o
 // RUN: %t/main.o | FileCheck %t/main.cpp
 
 //--- main.cpp

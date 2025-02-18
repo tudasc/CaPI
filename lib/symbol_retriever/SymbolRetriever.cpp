@@ -251,21 +251,15 @@ SymTableList loadAllSymTables(const std::string& execFile) {
 MappedSymTableMap loadMappedSymTables(const std::string& execFile, bool printDebug) {
   MappedSymTableMap addrToSymTable;
 
+  if (printDebug) {
+    auto elfType = getELFType(execFile);
+    std::cout << "ELF type: " << elfType << "\n";
+  }
+
   // Load symbols from executable and shared libs
   auto memMap = readMemoryMap();
   for (auto &entry: memMap) {
 
-    // Executable starts at address 0x0
-    if (addrToSymTable.empty()) {
-        auto elfType = getELFType(execFile);
-        if (elfType == "EXEC") {
-          entry.addrBegin = 0;
-          entry.offset = 0;
-        }
-        if (printDebug) {
-          std::cout << "ELF type: " << elfType << "\n";
-        }
-    }
     auto &filename = entry.path;
     auto table = loadSymbolTable(filename);
     if (table.empty()) {

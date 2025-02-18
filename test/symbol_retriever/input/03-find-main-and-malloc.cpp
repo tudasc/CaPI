@@ -4,6 +4,9 @@
 
 // RUN: %clang_cxx -fPIC %test_flags %s -o %s.o
 // RUN: %s.o 2>&1 | FileCheck %s
+//
+// RUN: %clang_cxx -fPIC -fuse-ld=lld -flto=thin %test_flags %s -o %s.o
+// RUN: %s.o | FileCheck %s
 
 #include "SymbolRetrieverTestRT.h"
 #include <stdlib.h>
