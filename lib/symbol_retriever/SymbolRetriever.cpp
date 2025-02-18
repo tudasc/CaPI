@@ -9,6 +9,8 @@
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
+#include <fcntl.h>
+#include <elf.h>
 
 
 struct RemoveEnvInScope {
@@ -28,6 +30,35 @@ private:
   const char* varName;
   const char* oldVal;
 };
+
+uintptr_t get_text_section_offset_from_library(const std::string &lib_path) {
+    int fd = open(lib_path.c_str(), O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        return 0;
+    }
+
+    Elf64_Ehdr ehdr;
+    read(fd, &ehdr, sizeof(ehdr));
+
+    lseek(fd, ehdr.e_phoff, SEEK_SET);
+
+    Elf64_Phdr phdr;
+    uintptr_t text_offset = 0;
+    for (int i = 0; i < ehdr.e_phnum; i++) {
+        read(fd, &phdr, sizeof(phdr));
+
+        if (phdr.p_type == PT_LOAD && (phdr.p_flags & PF_X)) {
+            // Found the executable segment in the shared library
+            text_offset = phdr.p_vaddr - phdr.p_offset;
+            break;
+        }
+    }
+
+    close(fd);
+    return text_offset;
+}
+
 
 
 std::string getExecPath() {
@@ -68,8 +99,11 @@ std::vector<MemMapEntry> readMemoryMap() {
       continue;
     }
     uintptr_t addrBegin = std::stoul(addrRange.substr(0, addrRange.find('-')), nullptr, 16);
+    // The offset reported by the memory map does not consider alignment. 
+    uint64_t textOffset = get_text_section_offset_from_library(path);
+    std::cout << path <<  " offset: " << std::hex << offset << ", txt_offset: " << textOffset << "\n";
     //std::cout << std::hex << addrBegin << '\n';
-    entries.push_back({path, addrBegin, offset});
+    entries.push_back({path, addrBegin, offset + textOffset});
   }
 
   fclose(memory_map);
