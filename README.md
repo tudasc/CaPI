@@ -21,7 +21,7 @@ This project is currently in a pre-release state, frequent changes to the code a
 ## Requirements
 
 - CMake >=3.15
-- LLVM >=10
+- LLVM >=10 (>=20 for XRay shared library instrumentation)
 - ScoreP 7 (optional)
 - DLB 3.3 (optional, other versions may work)
 - Extrae 3.8.3 (optional, other versions may work)
@@ -137,7 +137,7 @@ This allows to build and re-use selectors that are useful across multiple applic
 For example, the `mpi_callpath` selector from the previous example could be moved to a separate file:
 ```
 !include "mpi.capi"
-subtract(%mpi_callpath, inlineSpecified(%%))
+subtract(%mpi_callpath, inline_specified(%%))
 ```
 
 List of available selectors:
@@ -191,11 +191,11 @@ This enables directly instrumenting with the Score-P instrumenter.
 To do this, simply build with `scorep-g++` and set `SCOREP_WRAPPER_INSTRUMENTER_FLAGS="--instrument-filter=<filter-file>"`.
 To enable measuring functions in shared libraries, use the [Score-P Symbol Injector](https://github.com/sebastiankreutzer/scorep-symbol-injector) library.
 
-
 ### Dynamic Instrumentation with LLVM XRay
 CaPI now provides a runtime library compatible with [LLVM XRay](https://llvm.org/docs/XRay.html).
 Instead of using a statically instrumented build for each IC, this enables dynamic instrumentation during program initialization.
 With XRay, only one build is required and ICs can be changed without recompilation.
+**Note**: This requires LLVM version 20 or newer.
 
 You can toggle this feature by setting `ENABLE_XRAY=ON` on.
 This will generate compiler wrappers in the `scripts` subdirectory of your current build:
@@ -219,12 +219,6 @@ When building the target application, you will need to use the Clang compiler an
 XRay uses a pre-filtering mechanism to exclude very small functions. If you want to be able to potentially instrument all functions, you need to pass `-fxray-instruction-threshold=1` as well.
 You will then need to link the XRay-compatible CaPI runtime library into your executable by adding the following:
 `-Wl,--whole-archive <capi_build_dir>/lib/xray/libcapixray_<capi_interface>.a -Wl,--no-whole-archive`, along with the required LLVM dependencies given by `llvm-config --libfiles xray symbolize --link-static --system-libs`.
-
-**Important note**: The upstream version of LLVM does currently not support XRay instrumentation of shared libraries.
-If you need this feature, you can use [this fork of LLVM](https://github.com/sebastiankreutzer/llvm-project-xray-dso) (use branch `xray_dso_main` for the latest version).
-The feature is enabled by passing the additional flag `-fxray-enable-shared` when building your application.
-We suggest building LLVM with the following CMake flags: `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/path/to/install/llvm/13.0.1-xray-dso -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;openmp" -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INSTALL_UTILS=ON ../llvm/`
-Note that on some cluster systems, the CGG toolchain needs to be set explicitly via the `GCC_INSTALL_PREFIX` CMake option.
 
 <!---
 ## Ongoing development
