@@ -3,29 +3,36 @@
 //
 
 #include "BasicSelectors.h"
+
 #include <unordered_set>
 
+#include "../metadata/CaPIMD.h"
+#include "metadata/BuiltinMD.h"
+
 namespace capi {
-bool IncludeListSelector::accept(const CGNode* fNode) {
-  return std::find(names.begin(), names.end(), fNode->getName()) != names.end();
+bool IncludeListSelector::accept(const metacg::CgNode* fNode) {
+  return std::find(names.begin(), names.end(), fNode->getFunctionName()) != names.end();
 }
 
-bool ExcludeListSelector::accept(const CGNode* fNode) {
-  return std::find(names.begin(), names.end(), fNode->getName()) == names.end();
+bool ExcludeListSelector::accept(const metacg::CgNode* fNode) {
+  return std::find(names.begin(), names.end(), fNode->getFunctionName()) == names.end();
 }
 
-bool NameSelector::accept(const CGNode* fNode) {
+bool NameSelector::accept(const metacg::CgNode* fNode) {
   std::smatch nameMatch;
   bool matches;
-  if (isMangled)
-    matches = std::regex_match(fNode->getName(), nameMatch, nameRegex);
-  else if ((matches = std::regex_match(fNode->getFunctionInfo().demangledName, nameMatch, nameRegex))) {
+  assert(fNode->has<CaPIMD>());
+  auto& info = fNode->get<CaPIMD>()->info;
+  if (isMangled) {
+    auto name = fNode->getFunctionName();
+    matches = std::regex_match(name, nameMatch, nameRegex);
+  } else if ((matches = std::regex_match(info.demangledName, nameMatch, nameRegex))) {
     if (!parameterRegexes.empty()) {
       if (isEmptyMatching)
-        matches = fNode->getFunctionInfo().parameters.empty();
-      else if ((matches = (fNode->getFunctionInfo().parameters.size() == parameterRegexes.size()))) {
-        for (int i = 0; i < fNode->getFunctionInfo().parameters.size(); i++) {
-          if (!(matches = std::regex_match(fNode->getFunctionInfo().parameters[i], nameMatch, parameterRegexes[i])))
+        matches = info.parameters.empty();
+      else if ((matches = (info.parameters.size() == parameterRegexes.size()))) {
+        for (int i = 0; i < info.parameters.size(); i++) {
+          if (!(matches = std::regex_match(info.parameters[i], nameMatch, parameterRegexes[i])))
             break;
         }
       }
@@ -38,27 +45,31 @@ bool NameSelector::accept(const CGNode* fNode) {
   return matches;
 }
 
-bool InlineSelector::accept(const CGNode* fNode) {
+bool InlineSelector::accept(const metacg::CgNode* fNode) {
   if (fNode) {
-    return fNode->getFunctionInfo().isInlined;
+    // FIXME: Inline MD
+    return true;//fNode->getFunctionInfo().isInlined;
   }
   return false;
 }
 
-bool FilePathSelector::accept(const CGNode* fNode) {
+bool FilePathSelector::accept(const metacg::CgNode* fNode) {
   if (fNode) {
 
     std::smatch pathMatch;
-    bool matches = std::regex_match(fNode->getFunctionInfo().fileName, pathMatch,
+    auto name = fNode->getFunctionName();
+    bool matches = std::regex_match(name, pathMatch,
                                     nameRegex);
     return matches;
   }
   return false;
 }
 
-bool SystemHeaderSelector::accept(const CGNode* fNode) {
+bool SystemHeaderSelector::accept(const metacg::CgNode* fNode) {
   if (fNode) {
-    return fNode->getFunctionInfo().definedInSystemInclude;
+    // FIXME: Inline MD
+    return true;
+//    return fNode->getFunctionInfo().definedInSystemInclude;
   }
   return false;
 }
@@ -74,70 +85,15 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
 
   for (auto& f : in) {
     if (f) {
-      if (f->getFunctionInfo().containsPointerCall) {
+//      if (f->getFunctionInfo().containsPointerCall) {
+      // FIXME: pointer call MD
+      if (true) {
         out.insert(f);
       }
     }
   }
 
   return out;
-}
-
-bool evalCmpOp(IntCmpOp op, int val1, int val2) {
-  switch(op) {
-  case IntCmpOp::Equals:
-    return val1 == val2;
-  case IntCmpOp::EqualsGreater:
-    return val1 >= val2;
-  case IntCmpOp::EqualsSmaller:
-    return val1 <= val2;
-  case IntCmpOp::Greater:
-    return val1 > val2;
-  case IntCmpOp::Smaller:
-    return val1 < val2;
-  case IntCmpOp::NotEquals:
-    return val1 != val2;
-  default:
-    assert("Unhandled cmp op");
-  }
-}
-
-bool MetricSelector::accept(const CGNode* fNode) {
-  if (!fNode) {
-    return false;
-  }
-  auto& meta =  fNode->getFunctionInfo().metaData;
-  if (meta.is_null()) {
-    logError() << "Metadata for function " << fNode->getName() << " not available.\n";
-    return false;
-  }
-
-  json j = meta;
-
-  for (auto& name : fieldName) {
-    if (j.is_null())
-      break;
-    j = j[name];
-  }
-//  while (!fields.empty()) {
-//    auto& name = fields.front();
-//    fields.erase(fields.begin());
-//    j = j[name];
-//    logError() << "Looking for " << name << ": " << j.dump() <<"\n";
-//  }
-
-  if (j.is_null()) {
-    logError() << "Unable to find metadata entry for function " << fNode->getName() << ": " << getFieldsAsString() << "\n";
-    return false;
-  }
-
-//  bool requiresNumber = Op != MetricCmpOp::StrEquals;
-
-//  int numVal = requiresNumber ? 0 : j.get<int>();
-
-  int fnVal = j.get<int>();
-
-  return evalCmpOp(cmpOp, fnVal, val);
 }
 
 FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
@@ -155,17 +111,17 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
 
   FunctionSet out;
 
-  std::unordered_set<const CGNode*> visited;
+  std::unordered_set<const metacg::CgNode*> visited;
 
   // Remove functions that fulfill all of the following conditions:
   // - They have exactly one caller
   // - Their caller is either selected or has itself only one caller
   // - They are not in the list of critical functions
 
-  std::function<void(const CGNode*, bool)> traverse = [&](const CGNode* node, bool mayRemove) {
+  std::function<void(const metacg::CgNode*, bool)> traverse = [&](const metacg::CgNode* node, bool mayRemove) {
     visited.insert(node);
     bool selected = setContains(in, node);
-    bool onlyChild = node->getCallers().size() == 1;
+    bool onlyChild = helper->cg.getCallers(node).size() == 1;
     if (selected) {
       if (mayRemove && onlyChild && !setContains(critical, node)) {
         selected = false;
@@ -174,7 +130,7 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
       }
     }
 
-    for (auto& callee : node->getCallees()) {
+    for (auto& callee : helper->cg.getCallees(node)) {
       if (visited.find(callee) == visited.end()) {
         // Callees are eligible for removal, if (1) their parent was selected or (2) their parent is an only child.
         traverse(callee, selected ||  onlyChild);
@@ -183,8 +139,7 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
 
   };
 
-  std::vector<CGNode*> selectionRoots;
-  for (auto root : cg->findRoots()) {
+  for (auto root : helper->findRoots()) {
     traverse(root, false);
   }
 
@@ -199,9 +154,9 @@ FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
 
   FunctionSet in = input.front();
 
-  std::function<int(const CGNode*, std::unordered_set<const CGNode*>)> determineMinDepth = [&](const CGNode* node, std::unordered_set<const CGNode*> visited) -> int {
-    auto allCallers = node->findAllCallers();
-    std::vector<const CGNode*> filteredCallers;
+  std::function<int(const metacg::CgNode*, std::unordered_set<const metacg::CgNode*>)> determineMinDepth = [&](const metacg::CgNode* node, std::unordered_set<const metacg::CgNode*> visited) -> int {
+    auto allCallers = helper->get(node).findAllCallers();
+    std::vector<const metacg::CgNode*> filteredCallers;
     for (const auto& caller : allCallers) {
       if (in.find(caller) != in.end()) {
         filteredCallers.push_back(caller);
@@ -213,7 +168,7 @@ FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
     visited.insert(node);
     std::vector<int> parentDepths;
     // Recursively determine minimum depth of all unvisited callers.
-    std::transform(filteredCallers.begin(), filteredCallers.end(), std::back_inserter(parentDepths), [&](const CGNode* parent) -> int {
+    std::transform(filteredCallers.begin(), filteredCallers.end(), std::back_inserter(parentDepths), [&](const metacg::CgNode* parent) -> int {
       if (visited.find(parent) == visited.end()) {
         return determineMinDepth(parent, visited);
       }
@@ -232,19 +187,19 @@ FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
   return out;
 }
 
-//bool MinCallDepthSelector::accept(const CGNode* fNode) {
+//bool MinCallDepthSelector::accept(const metacg::CgNode* fNode) {
 //  if (!fNode) {
 //    return false;
 //  }
 //
-//  std::function<int(const CGNode*, std::unordered_set<const CGNode*>)> determineMinDepth = [&](const CGNode* node, std::unordered_set<const CGNode*> visited) -> int {
+//  std::function<int(const metacg::CgNode*, std::unordered_set<const metacg::CgNode*>)> determineMinDepth = [&](const metacg::CgNode* node, std::unordered_set<const metacg::CgNode*> visited) -> int {
 //    if (node->getCallers().size() == 0) {
 //      return 0;
 //    }
 //    visited.insert(node);
 //    std::vector<int> childDepths;
 //    // Recursively determine minimum depth of all unvisited callers.
-//    std::transform(node->getCallers().begin(), node->getCallers().end(), std::back_inserter(childDepths), [&](CGNode* child) -> int {
+//    std::transform(node->getCallers().begin(), node->getCallers().end(), std::back_inserter(childDepths), [&](metacg::CgNode* child) -> int {
 //      if (visited.find(child) == visited.end()) {
 //        return determineMinDepth(child, visited);
 //      }

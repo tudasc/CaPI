@@ -12,13 +12,13 @@ namespace capi {
 enum class TraverseDir { TraverseUp, TraverseDown };
 
 template <TraverseDir dir> class CallPathSelector : public Selector {
-  CallGraph *cg{nullptr};
+  TraversalHelper *helper{nullptr};
 
 public:
   CallPathSelector() = default;
 
-  void init(CallGraph &cg) override {
-    this->cg = &cg;
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
   }
 
   FunctionSet apply(const FunctionSetList& input) override;
@@ -34,18 +34,18 @@ public:
 /**
  * Traverses the call chain downwards, calling the given visit function on each
  * node.
- * @tparam VisitFn Function that takes a CGNode& argument and returns the next
+ * @tparam VisitFn Function that takes a metacg::CgNode& argument and returns the next
  * nodes to traverse.
- * @tparam VisitFn Function that takes a CGNode& argument.
+ * @tparam VisitFn Function that takes a metacg::CgNode& argument.
  * @param node
  * @param visit
  * @returns The number of visited functions.
  */
 template <typename TraverseFn, typename VisitFn>
-int traverseCallGraph(const CGNode &node, TraverseFn &&selectNextNodes,
+int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
                       VisitFn &&visit) {
-  std::vector<const CGNode *> workingSet;
-  std::vector<const CGNode *> alreadyVisited;
+  std::vector<const metacg::CgNode *> workingSet;
+  std::vector<const metacg::CgNode *> alreadyVisited;
 
   workingSet.push_back(&node);
 
@@ -82,7 +82,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   FunctionSet in = input.front();
   FunctionSet out(in);
 
-  auto visitFn = [&out](const CGNode &node) {
+  auto visitFn = [&out](const metacg::CgNode &node) {
     if (out.find(&node) == out.end()) {
       out.insert(&node);
     }
@@ -91,15 +91,15 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   for (auto &fn : in) {
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
-              *fn, [](const CGNode & node) -> auto {
-                return node.findAllCallees();
+              *fn, [this](const metacg::CgNode & node) -> auto {
+                return helper->get(&node).findAllCallees();
               },
               visitFn);
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
-              *fn, [](const CGNode & node) -> auto {
-                return node.findAllCallers();
+              *fn, [this](const metacg::CgNode & node) -> auto {
+                return helper->get(&node).findAllCallers();
               },
               visitFn);
       //std::cout << "Functions on call path to " << fn << ": " << count << "\n";

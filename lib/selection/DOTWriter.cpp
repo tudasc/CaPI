@@ -4,6 +4,7 @@
 
 #include "DOTWriter.h"
 #include "Selector.h"
+#include "TraversalHelper.h"
 
 
 #include <ostream>
@@ -14,9 +15,9 @@ const std::string NodeDecoration::ColorStrings[] = {
     "red", "blue", "green", "yellow", "black", "white"
 };
 
-static inline std::string getNodeId(CGNode &node)
+static inline std::string getNodeId(const metacg::CgNode &node)
 {
-  return "n_" + std::to_string(reinterpret_cast<uintptr_t>(&node));
+  return std::to_string(node.getId());
 }
 
 static inline std::string getNodeAttrs(NodeDecoration deco) {
@@ -43,7 +44,7 @@ static inline std::string getNodeAttrs(NodeDecoration deco) {
   return attrs.str();
 }
 
-bool writeDOT(const CallGraph &cg, const FunctionFilter& filter, const DecorationMap& decoration, std::ostream &out) {
+bool writeDOT(TraversalHelper &helper, const FunctionFilter& filter, const DecorationMap& decoration, std::ostream &out) {
 
   auto getDeco = [&decoration](const std::string& name) -> NodeDecoration {
     if (auto entry = decoration.find(name); entry != decoration.end()) {
@@ -55,19 +56,18 @@ bool writeDOT(const CallGraph &cg, const FunctionFilter& filter, const Decoratio
   bool acceptAll = filter.size() == 0;
 
   out << "digraph {\n";
-  for (auto &node : cg.getNodes()) {
+  for (auto &[id, node] : helper.cg.getNodes()) {
 
-    if (acceptAll || filter.accepts(node->getName())) {
-      auto attrStr = getNodeAttrs(getDeco(node->getName()));
-      out << getNodeId(*node) << " [label=\"" << node->getName() << (attrStr.empty() ? "\"" : "\", ") << attrStr << "]\n";
+    if (acceptAll || filter.accepts(node->getFunctionName())) {
+      auto attrStr = getNodeAttrs(getDeco(node->getFunctionName()));
+      out << getNodeId(*node) << " [label=\"" << node->getFunctionName() << (attrStr.empty() ? "\"" : "\", ") << attrStr << "]\n";
     }
   }
 
-  for (auto &node : cg.getNodes()) {
-    if (acceptAll || filter.accepts(node->getName())) {
-      auto all = node->getCallees();
-      for (auto &callee : node->findAllCallees()) {
-        if (acceptAll || filter.accepts(callee->getName())) {
+  for (auto &[id, node] : helper.cg.getNodes()) {
+    if (acceptAll || filter.accepts(node->getFunctionName())) {
+      for (auto &callee : helper.get(node.get()).findAllCallees()) {
+        if (acceptAll || filter.accepts(callee->getFunctionName())) {
           out << getNodeId(*node) << " -> " << getNodeId(*callee) << "\n";
         }
       }

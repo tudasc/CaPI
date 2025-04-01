@@ -11,6 +11,7 @@
 
 #include "DOTWriter.h"
 #include "PostDom.h"
+#include "metadata/CaPIMD.h"
 #include "SCC.h"
 
 namespace capi {
@@ -58,7 +59,7 @@ struct CommonCallerSearchNodeDataSCC {
 
 
 std::ostream& operator<<(std::ostream& os, const CommonCallerSearchNodeDataSCC& nd) {
-   return os << (nd.node ? nd.node->nodes.front()->getName() : "null") << " (" << nd.distA << ", " << nd.distB << ", " << (nd.isLCA ? "true" : "false") << ")";
+   return os << (nd.node ? nd.node->nodes.front()->getFunctionName() : "null") << " (" << nd.distA << ", " << nd.distB << ", " << (nd.isLCA ? "true" : "false") << ")";
 }
 
 FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
@@ -75,7 +76,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       return false;
     if (inSet.size() > 1) {
       LOG_CRITICAL("Warning: Input for ContextSelector contains more than one element (" << inSet.size() << ")\n");
-      LOG_CRITICAL("Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getName() << "\n");
+      LOG_CRITICAL("Continuing with the first element and ignoring the rest: " << (*inSet.begin())->getFunctionName() << "\n");
     }
     return true;
   };
@@ -89,7 +90,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
 
   assert(targetNodeA && targetNodeB);
 
-  SCCAnalysisResults sccResults = computeSCCs(*cg, true);
+  SCCAnalysisResults sccResults = computeSCCs(*helper, true);
 
   const auto* targetSCCA = sccResults.getSCC(*targetNodeA);
   const auto* targetSCCB = sccResults.getSCC(*targetNodeB);
@@ -113,38 +114,38 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       workQueue.push_back(data);
     }
   };
-
-  auto makeReachableSubgraph = [&](CallGraph& subgraph, CommonCallerSearchNodeDataSCC* nodeData, DecorationMap& decoMap) {
-
-    std::deque<CommonCallerSearchNodeDataSCC*> toProcess;
-    toProcess.push_back(nodeData);
-
-    do {
-      auto current = toProcess.front();
-      toProcess.pop_front();
-
-      auto& subgraphNode = subgraph.getOrCreate(current->getName());
-
-      for (auto& child : sccResults.findAllCallees(current->node)) {
-        auto& childData = sccDataMap[child];
-        if (childData.reachesA() || childData.reachesB()) {
-          auto& childSubgraphNode = subgraph.getOrCreate(childData.getName());
-          subgraph.addCallee(subgraphNode, childSubgraphNode, false);
-          // Skip CAs to reduce graph
-          if (childData.isCA()) {
-            decoMap[childData.getName()].shapeColor = NodeDecoration::GREEN;
-          }  else {
-            decoMap[childData.getName()].shapeColor = childData.reachesA() ? NodeDecoration::RED : NodeDecoration::BLUE;
-            if (std::find(toProcess.begin(), toProcess.end(), &childData) == toProcess.end()) {
-              toProcess.push_back(&childData);
-            }
-          }
-
-        }
-      }
-
-    } while (!toProcess.empty());
-  };
+//  FIXME: Re-implement subgraph extraction
+//  auto makeReachableSubgraph = [&](CallGraph& subgraph, CommonCallerSearchNodeDataSCC* nodeData, DecorationMap& decoMap) {
+//
+//    std::deque<CommonCallerSearchNodeDataSCC*> toProcess;
+//    toProcess.push_back(nodeData);
+//
+//    do {
+//      auto current = toProcess.front();
+//      toProcess.pop_front();
+//
+//      auto& subgraphNode = subgraph.getOrCreate(current->getName());
+//
+//      for (auto& child : sccResults.findAllCallees(current->node)) {
+//        auto& childData = sccDataMap[child];
+//        if (childData.reachesA() || childData.reachesB()) {
+//          auto& childSubgraphNode = subgraph.getOrCreate(childData.getName());
+//          subgraph.addCallee(subgraphNode, childSubgraphNode, false);
+//          // Skip CAs to reduce graph
+//          if (childData.isCA()) {
+//            decoMap[childData.getName()].shapeColor = NodeDecoration::GREEN;
+//          }  else {
+//            decoMap[childData.getName()].shapeColor = childData.reachesA() ? NodeDecoration::RED : NodeDecoration::BLUE;
+//            if (std::find(toProcess.begin(), toProcess.end(), &childData) == toProcess.end()) {
+//              toProcess.push_back(&childData);
+//            }
+//          }
+//
+//        }
+//      }
+//
+//    } while (!toProcess.empty());
+//  };
 
   do {
     auto nodeData = workQueue.front();
@@ -152,7 +153,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
 
     //std::cout << "Working on " << *nodeData << "\n";
 
-    for (auto& caller : sccResults.findAllCallers(nodeData->node)) {
+    for (auto& caller : sccResults.findAllCallers(nodeData->node, *helper)) {
 
       auto& callerData = sccDataMap[caller];
       bool relaxCaller{false};
@@ -206,7 +207,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
   // Detect LCAs - CAs with out-degree zero
   for (auto& ca : commonAncestors) {
     bool isLCA = true;
-    for (auto& callee : sccResults.findAllCallees(ca->node)) {
+    for (auto& callee : sccResults.findAllCallees(ca->node, *helper)) {
       if (auto entry = sccDataMap.find(callee); entry != sccDataMap.end() && entry->second.isCA()) {
         isLCA = false;
         break;
@@ -216,8 +217,8 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
   }
 
   // Compute postdominators w.r.t. A and B
-  auto postDomsA = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults), *targetSCCA);
-  auto postDomsB = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults), *targetSCCB);
+  auto postDomsA = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults, *helper), *targetSCCA);
+  auto postDomsB = computePostDoms<SCCNode, SCCGraph> (SCCGraph(sccResults, *helper), *targetSCCB);
 
 
   int numLCAs = 0;
@@ -286,7 +287,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       }
       bool childReachesOnlyA = false;
       bool childReachesOnlyB = false;
-      for (auto &child : sccResults.findAllCallees(nodeData->node)) {
+      for (auto &child : sccResults.findAllCallees(nodeData->node, *helper)) {
         const auto &childData = sccDataMap[child];
         if (childData.isCA())
           continue;
@@ -317,7 +318,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       }
     }
 
-    for (auto& caller : sccResults.findAllCallers(nodeData->node)) {
+    for (auto& caller : sccResults.findAllCallers(nodeData->node, *helper)) {
 
       auto& callerData = sccDataMap[caller];
 
@@ -382,13 +383,13 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       // TODO: Output trigger information as part of selection result. Also add option for user to control if this should be set at all.
 
       for (auto& member : ca->node->nodes) {
-        member->isTrigger = true;
+        member->get<CaPIMD>()->info.isTrigger = true;
       }
       addToQueue(ca);
     }
   }
 
-  auto getInstrumented = [&targetNodeA, &targetNodeB, &sccResults, &sccDataMap](std::deque<CommonCallerSearchNodeDataSCC*>& queue) {
+  auto getInstrumented = [this, &targetNodeA, &targetNodeB, &sccResults, &sccDataMap](std::deque<CommonCallerSearchNodeDataSCC*>& queue) {
     FunctionSet out{targetNodeA, targetNodeB};
 
     if (queue.empty()) {
@@ -405,7 +406,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
         addToSet(out, member);
       }
       visited.insert(node);
-      for (auto& callee : sccResults.findAllCallees(node)) {
+      for (auto& callee : sccResults.findAllCallees(node, *helper)) {
         auto& calleeData = sccDataMap[callee];
         if (setContains(visited, calleeData.node)) {
           // This node has already been visited, skip.
@@ -431,14 +432,15 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
     for (auto &ca : candidates) {
       if (ca->candidateDist() == 1 && ca->isDistinct) {
         logInfo() << "Candidate " << *ca << " of distance 1 is distinct.\n";
-        auto subgraph = std::make_unique<CallGraph>();
-        DecorationMap decoMap;
-        makeReachableSubgraph(*subgraph, ca, decoMap);
-        auto fileName = ca->getName() + ".dot";
-        std::ofstream out(fileName);
-        writeDOT(*subgraph, {}, decoMap, out);
+        // FIXME: Support subgraph extraction again
+//        auto subgraph = std::make_unique<CallGraph>();
+//        DecorationMap decoMap;
+//        makeReachableSubgraph(*subgraph, ca, decoMap);
+//        auto fileName = ca->getName() + ".dot";
+//        std::ofstream out(fileName);
+//        writeDOT(*subgraph, {}, decoMap, out);
 
-        for (auto &child : sccResults.findAllCallees(ca->node)) {
+        for (auto &child : sccResults.findAllCallees(ca->node, *helper)) {
           const auto &childData = sccDataMap[child];
           if (childData.isCA())
             continue;

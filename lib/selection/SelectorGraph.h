@@ -102,7 +102,7 @@ public:
 
 using SelectorGraphPtr = std::unique_ptr<SelectorGraph>;
 
-SelectionResults runSelectorPipeline(SelectorGraph& graph, CallGraph &cg, bool debugMode);
+SelectionResults runSelectorPipeline(SelectorGraph& graph, TraversalHelper& helper, bool debugMode);
 
 void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph);
 

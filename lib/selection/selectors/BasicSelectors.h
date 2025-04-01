@@ -11,6 +11,9 @@
 
 #include "Selector.h"
 
+#include "metadata/BuiltinMD.h"
+#include "metadata/NumOperationsMD.h"
+
 
 namespace capi {
 
@@ -18,8 +21,8 @@ class EverythingSelector : public Selector {
   FunctionSet allFunctions;
 
 public:
-  void init(CallGraph &cg) override {
-    for (auto &node : cg.getNodes()) {
+  void init(TraversalHelper &helper) override {
+    for (auto& [id, node] : helper.cg.getNodes()) {
       allFunctions.insert(node.get());
     }
   }
@@ -39,7 +42,7 @@ public:
   explicit IncludeListSelector(std::vector<std::string> names)
           : names(names) {}
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "include";
@@ -53,7 +56,7 @@ public:
   ExcludeListSelector(std::vector<std::string> names)
           :  names(std::move(names)) {}
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "exclude";
@@ -79,7 +82,7 @@ public:
       }
   }
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "NameSelector";
@@ -90,7 +93,7 @@ class InlineSelector : public FilterSelector {
 public:
   InlineSelector() = default;
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "InlineSelector";
@@ -104,7 +107,7 @@ public:
   FilePathSelector(std::string regexStr)
           : nameRegex(regexStr) {}
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "FilePathSelector";
@@ -115,7 +118,7 @@ class SystemHeaderSelector : public FilterSelector {
 public:
   SystemHeaderSelector() = default;
 
-  bool accept(const CGNode* fNode) override;
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return "SystemHeaderSelector";
@@ -123,13 +126,13 @@ public:
 };
 
 class UnresolvedCallSelector : public Selector {
-  CallGraph *cg{nullptr};
+  TraversalHelper *helper{nullptr};
 
 public:
   UnresolvedCallSelector() = default;
 
-  void init(CallGraph &cg) override {
-    this->cg = &cg;
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
   }
 
   FunctionSet apply(const FunctionSetList& input) override;
@@ -163,62 +166,111 @@ inline std::optional<IntCmpOp> getCmpOp(const std::string& opStr) {
   return cmpOp;
 }
 
+inline bool evalCmpOp(IntCmpOp op, int val1, int val2) {
+  switch(op) {
+  case IntCmpOp::Equals:
+    return val1 == val2;
+  case IntCmpOp::EqualsGreater:
+    return val1 >= val2;
+  case IntCmpOp::EqualsSmaller:
+    return val1 <= val2;
+  case IntCmpOp::Greater:
+    return val1 > val2;
+  case IntCmpOp::Smaller:
+    return val1 < val2;
+  case IntCmpOp::NotEquals:
+    return val1 != val2;
+  default:
+    assert("Unhandled cmp op");
+  }
+}
+
+template<typename MDType>
 class MetricSelector : public FilterSelector {
 public:
 
-  MetricSelector(std::string selectorName, std::vector<std::string> fieldName,
-                 IntCmpOp op, int val) : selectorName(std::move(selectorName)), fieldName(std::move(fieldName)), cmpOp(op), val(val){
+  MetricSelector(std::string selectorName, IntCmpOp op, int val) : selectorName(std::move(selectorName)), cmpOp(op), val(val){
   }
 
-  bool accept(const CGNode* fNode) override;
+  virtual long readMetric(MDType& md) = 0;
+
+  bool accept(const metacg::CgNode* fNode) override;
 
   std::string getName() override {
     return selectorName;
   }
 
 private:
-  std::string getFieldsAsString() const {
-    std::stringstream ss;
-    for (auto& f : fieldName) {
-      ss << f << ", ";
-    }
-    return ss.str();
-  }
+//  std::string getFieldsAsString() const {
+//    std::stringstream ss;
+//    for (auto& f : fieldName) {
+//      ss << f << ", ";
+//    }
+//    return ss.str();
+//  }
 
 private:
   std::string selectorName;
-  std::vector<std::string> fieldName;
   IntCmpOp cmpOp;
   int val;
 };
 
-class FlopSelector : public MetricSelector {
+template<typename T>
+bool MetricSelector<T>::accept(const metacg::CgNode* fNode) {
+  if (!fNode) {
+    return false;
+  }
+
+  if (!fNode->has<T>()) {
+    logError() << "Metrics metadata " << T::key << " for function " << fNode->getFunctionName() << " not available.\n";
+    return false;
+  }
+
+  auto metricsMD = fNode->get<T>();
+  assert(metricsMD);
+
+  long fnVal = readMetric(*metricsMD);
+
+  return evalCmpOp(cmpOp, fnVal, val);
+}
+
+class FlopSelector : public MetricSelector<NumOperationsMD> {
 public:
-  FlopSelector(IntCmpOp op, int val) : MetricSelector("FlopSelector", {"numOperations", "numberOfFloatOps"}, op, val) {
+  FlopSelector(IntCmpOp op, int val) : MetricSelector("FlopSelector", op, val) {
+  }
+
+  long readMetric(NumOperationsMD& md) override {
+    return md.numberOfFloatOps;
   }
 };
 
-class MemOpSelector : public MetricSelector {
+class MemOpSelector : public MetricSelector<NumOperationsMD> {
 public:
-  MemOpSelector(IntCmpOp op, int val) : MetricSelector("MemOpSelector", {"numOperations", "numberOfMemoryAccesses"}, op, val) {
+  MemOpSelector(IntCmpOp op, int val) : MetricSelector("MemOpSelector", op, val) {
+  }
+  long readMetric(NumOperationsMD& md) override {
+    return md.numberOfMemoryAccesses;
   }
 };
 
-class LoopDepthSelector: public MetricSelector {
+class LoopDepthSelector: public MetricSelector<LoopDepthMD> {
 public:
-  LoopDepthSelector(IntCmpOp op, int val) : MetricSelector("LoopDepthSelector", {"loopDepth"}, op, val) {
+  LoopDepthSelector(IntCmpOp op, int val) : MetricSelector("LoopDepthSelector", op, val) {
+  }
+  long readMetric(LoopDepthMD& md) override {
+    return md.loopDepth;
   }
 };
 
 class CoarseSelector : public Selector {
-  CallGraph *cg{nullptr};
+  TraversalHelper *helper{nullptr};
 
 public:
   explicit CoarseSelector() {
   }
 
-  void init(CallGraph &cg) override {
-    this->cg = &cg;
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
   }
 
   FunctionSet apply(const FunctionSetList& input) override;
@@ -230,15 +282,15 @@ public:
 };
 
 class MinCallDepthSelector : public Selector {
-  CallGraph *cg{nullptr};
+  TraversalHelper *helper{nullptr};
   IntCmpOp op;
   int val;
 public:
   MinCallDepthSelector(IntCmpOp op, int val) : op(op), val(val){
   }
 
-  void init(CallGraph &cg) override {
-    this->cg = &cg;
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
   }
 
   FunctionSet apply(const FunctionSetList&parent) override;

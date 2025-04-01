@@ -12,14 +12,14 @@
 namespace capi {
 
 namespace {
-  void processNode(SelectorNode *node, CallGraph &cg, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
+  void processNode(SelectorNode *node, TraversalHelper &helper, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
     if (resultsMap.find(node->getName()) != resultsMap.end()) {
       // Already run
       return;
     }
     auto& selector = *node->getSelector();
     logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << " ...\n";
-    selector.init(cg);
+    selector.init(helper);
     FunctionSetList inputList;
     for (auto&& inputName : node->getInputDependencies()) {
       auto resultIt = resultsMap.find(inputName);
@@ -78,7 +78,7 @@ static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<Select
   return true;
 }
 
-SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg, bool debugMode) {
+SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, TraversalHelper& helper, bool debugMode) {
   auto entries = selectorGraph.getEntryNodes();
 
   if (entries.empty()) {
@@ -111,7 +111,7 @@ SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg
       for (int i = 0; i < executionOrder.size(); i++) {
         auto node = executionOrder[i];
 
-        processNode(node, cg, resultsMap, true);
+        processNode(node, helper, resultsMap, true);
       }
     } else {
       std::unordered_map<std::string, int> nodeOrderMap;
@@ -129,7 +129,7 @@ SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, CallGraph &cg
               auto &deps = node->getInputDependencies();
 
 #pragma omp task depend(iterator(j = 0 : deps.size()), in : executionOrder[nodeOrderMap.at(deps[j])]) depend(out : executionOrder[i]) shared(resultsMap, cg, executionOrder)
-              processNode(node, cg, resultsMap, false);
+              processNode(node, helper, resultsMap, false);
             }
         }
       }
@@ -159,7 +159,7 @@ void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
 
 void dumpSelection(std::ostream& os, FunctionSet& functions) {
   for (auto& fn : functions) {
-    os << fn->getName() << "\n";
+    os << fn->getFunctionName() << "\n";
   }
 }
 

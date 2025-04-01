@@ -8,13 +8,16 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "CallGraph.h"
-#include "MetaCGReader.h"
+#include "TraversalHelper.h"
+//#include "MetaCGReader.h"
 #include "support/Logging.h"
+
+#include "Callgraph.h"
+
 
 namespace capi {
 
-using FunctionSet = std::unordered_set<const CGNode*>;
+using FunctionSet = std::unordered_set<const metacg::CgNode*>;
 
 using FunctionSetList = std::vector<FunctionSet>;
 
@@ -62,7 +65,7 @@ public:
 
   virtual ~Selector() = default;
 
-  virtual void init(CallGraph &cg)
+  virtual void init(TraversalHelper& helper)
   {}
 
   virtual FunctionSet apply(const FunctionSetList &) = 0;
@@ -77,17 +80,17 @@ class FilterSelector : public Selector
 {
 
 protected:
-  CallGraph *cg;
+  TraversalHelper *helper;
 
 public:
   FilterSelector() = default;
 
-  void init(CallGraph &cg) override
+  void init(TraversalHelper& helper) override
   {
-    this->cg = &cg;
+    this->helper = &helper;
   }
 
-  virtual bool accept(const CGNode*) = 0;
+  virtual bool accept(const metacg::CgNode*) = 0;
 
   FunctionSet apply(const FunctionSetList &input) override
   {
