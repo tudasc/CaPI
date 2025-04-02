@@ -22,7 +22,7 @@ bool NameSelector::accept(const metacg::CgNode* fNode) {
   std::smatch nameMatch;
   bool matches;
   assert(fNode->has<CaPIMD>());
-  auto& info = fNode->get<CaPIMD>()->info;
+  auto& info = fNode->get<CaPIMD>()->value;
   if (isMangled) {
     auto name = fNode->getFunctionName();
     matches = std::regex_match(name, nameMatch, nameRegex);
@@ -185,6 +185,10 @@ FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
     }
   }
   return out;
+}
+
+FunctionSet ISCSelector::apply(const FunctionSetList& input) {
+
 }
 
 //bool MinCallDepthSelector::accept(const metacg::CgNode* fNode) {

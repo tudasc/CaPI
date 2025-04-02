@@ -149,6 +149,15 @@ struct TraversalHelper {
     return roots;
   }
 
+  std::vector<const metacg::CgNode*> findLeaves() const {
+    std::vector<const metacg::CgNode*> leaves;
+    for (auto& [id, node] : cg.getNodes()) {
+      if (cg.getCallees(*node).empty())
+        leaves.push_back(node.get());
+    }
+    return leaves;
+  }
+
   bool shouldTraverseVirtualDtors() const {
     return traverseVirtualDtors;
   }

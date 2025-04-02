@@ -22,6 +22,7 @@
 #include "capi_version.h"
 #include "support/Logging.h"
 
+#include "StatementCountAnalysis.h"
 #include "io/MCGReader.h"
 #include "metadata/BuiltinMD.h"
 #include "metadata/CaPIMD.h"
@@ -112,7 +113,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                 if (addToSet(newSet, caller)) {
                   if (trigger) {
                     assert(caller->has<CaPIMD>());
-                    caller->get<CaPIMD>()->info.isTrigger = true;
+                    caller->get<CaPIMD>()->value.isTrigger = true;
                   }
                   numAdded++;
                 }
@@ -146,7 +147,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
     }
     // Recursively looks for the first available callers and adds them.
     assert(fn->has<CaPIMD>());
-    addValidCallers(*fn, fn->get<CaPIMD>()->info.isTrigger, {});
+    addValidCallers(*fn, fn->get<CaPIMD>()->value.isTrigger, {});
     numProcessed++;
 
     // Status output
@@ -384,6 +385,13 @@ int main(int argc, char **argv) {
               << "\n";
   }
 
+  StatementCountAnalysis sca;
+  sca.run(helper);
+  for (auto& [id, node] : cg->getNodes()) {
+    long isc = node->get<ISCMD>()->value;
+    std::cout << "ISC for function " << node->getFunctionName() << ": " << isc << "\n";
+  }
+
   std::cout << "Running selector pipeline...\n";
 
   auto result = runSelectorPipeline(*selectorGraph, helper, debugMode);
@@ -447,7 +455,7 @@ int main(int argc, char **argv) {
     for (auto &f : afterPostProcessing) {
       filter.addIncludedFunction(f->getFunctionName(), hint.type);
       assert(f->has<CaPIMD>());
-      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->info.isTrigger) {
+      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
         filter.addIncludedFunction(f->getFunctionName(),
                                    InstrumentationType::SCOPE_TRIGGER);
       }

@@ -383,7 +383,7 @@ FunctionSet CommonCallerSelectorSCC::apply(const FunctionSetList& input) {
       // TODO: Output trigger information as part of selection result. Also add option for user to control if this should be set at all.
 
       for (auto& member : ca->node->nodes) {
-        member->get<CaPIMD>()->info.isTrigger = true;
+        member->get<CaPIMD>()->value.isTrigger = true;
       }
       addToQueue(ca);
     }

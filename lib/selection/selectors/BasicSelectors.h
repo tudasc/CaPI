@@ -293,13 +293,31 @@ public:
     this->helper = &helper;
   }
 
-  FunctionSet apply(const FunctionSetList&parent) override;
+  FunctionSet apply(const FunctionSetList& parent) override;
 
   std::string getName() override {
     return "MinCallDepthSelector";
   }
 };
 
+class ISCSelector : public Selector {
+  TraversalHelper *helper{nullptr};
+  IntCmpOp op;
+  int val;
+ public:
+  ISCSelector(IntCmpOp op, int val) : op(op), val(val){
+  }
+
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
+  }
+
+  FunctionSet apply(const FunctionSetList&) override;
+
+  std::string getName() override {
+    return "ISCSelector";
+  }
+};
 
 
 }

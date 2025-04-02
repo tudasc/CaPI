@@ -40,7 +40,7 @@ void demangleNames(metacg::Callgraph &cg) {
     }
     auto md = node->getOrCreateMD<CaPIMD>();
 
-    auto& info = md->info;
+    auto& info = md->value;
 
     std::getline(tmpDemangledNamesFileIn, demangledNameFull);
 

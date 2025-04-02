@@ -11,6 +11,7 @@ set(SOURCES
         SelectionSpecAST.cpp
         SelectorBuilder.cpp
         SelectorGraph.cpp
+        StatementCountAnalysis.cpp
         TraversalHelper.cpp
         selectors/SelectorInstantiation.cpp
         selectors/BasicSelectors.cpp
