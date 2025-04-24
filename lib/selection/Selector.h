@@ -59,6 +59,29 @@ inline bool addToSet(std::unordered_set<T>& set, const T& entry) {
   return false;
 }
 
+// TODO: Incomplete
+//class AnalysisManager {
+// public:
+//  using AnalysisID = int;
+//
+//  AnalysisManager(TraversalHelper& helper) : helper(helper) {}
+//
+//  template<typename AnalysisT>
+//  AnalysisT::AnalysisResultT& getAnalysisResult() {
+//    auto* result = resultMap[AnalysisT::getID()];
+//    if (!result) {
+//      AnalysisT analysis;
+//      result = analysis.run(helper);
+//    }
+//    return *result;
+//  }
+//
+// private:
+//  TraversalHelper& helper;
+//  std::unordered_map<AnalysisID, void*> resultMap;
+//
+//};
+
 class Selector
 {
 public:

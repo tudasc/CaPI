@@ -46,19 +46,22 @@ bool NameSelector::accept(const metacg::CgNode* fNode) {
 }
 
 bool InlineSelector::accept(const metacg::CgNode* fNode) {
-  if (fNode) {
-    // FIXME: Inline MD
-    return true;//fNode->getFunctionInfo().isInlined;
+  if (!fNode) {
+    return false;
   }
-  return false;
+  if (!fNode->has<InlineMD>()) {
+    return false;
+  }
+  auto& md = *fNode->get<InlineMD>();
+  return md.isMarkedInline() || md.isMarkedAlwaysInline() || md.isTemplate();
 }
 
 bool FilePathSelector::accept(const metacg::CgNode* fNode) {
   if (fNode) {
 
     std::smatch pathMatch;
-    auto name = fNode->getFunctionName();
-    bool matches = std::regex_match(name, pathMatch,
+    auto path = fNode->getOrigin();
+    bool matches = std::regex_match(path, pathMatch,
                                     nameRegex);
     return matches;
   }
@@ -66,12 +69,14 @@ bool FilePathSelector::accept(const metacg::CgNode* fNode) {
 }
 
 bool SystemHeaderSelector::accept(const metacg::CgNode* fNode) {
-  if (fNode) {
-    // FIXME: Inline MD
-    return true;
-//    return fNode->getFunctionInfo().definedInSystemInclude;
+  if (!fNode) {
+    return false;
   }
-  return false;
+  if (!fNode->has<FilePropertiesMD>()) {
+    return false;
+  }
+  auto& md = *fNode->get<FilePropertiesMD>();
+  return md.fromSystemInclude;
 }
 
 FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
@@ -87,7 +92,7 @@ FunctionSet UnresolvedCallSelector::apply(const FunctionSetList& input) {
     if (f) {
 //      if (f->getFunctionInfo().containsPointerCall) {
       // FIXME: pointer call MD
-      if (true) {
+      if (false) {
         out.insert(f);
       }
     }
@@ -185,10 +190,6 @@ FunctionSet MinCallDepthSelector::apply(const FunctionSetList& input) {
     }
   }
   return out;
-}
-
-FunctionSet ISCSelector::apply(const FunctionSetList& input) {
-
 }
 
 //bool MinCallDepthSelector::accept(const metacg::CgNode* fNode) {

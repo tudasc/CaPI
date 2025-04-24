@@ -1,0 +1,4 @@
+!import "mpi.capi"
+mpi=subtract(on_call_path_to(by_name(\"MPI_.*\", %%)), by_name(\"^(_ZNK?3)?MPI.*\", %%))
+excl=inSystemHeader(%%)
+join(subtract(flops(\">=\", 10, loopDepth(\">=\", 1, %%)), %excl), %mpi)"

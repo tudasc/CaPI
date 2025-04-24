@@ -342,13 +342,13 @@ int main(int argc, char **argv) {
   std::cout << "Loading call graph from " << cgfile << "\n";
 
   metacg::io::FileSource fileSrc(cgfile);
-  auto reader2 = metacg::io::createReader(fileSrc);
-  if (!reader2) {
+  auto reader = metacg::io::createReader(fileSrc);
+  if (!reader) {
     std::cerr << "Unable to create reader for input file " << cgfile << "\n";
     return EXIT_FAILURE;
   }
 
-  auto cg = reader2->read();
+  auto cg = reader->read();
   demangleNames(*cg);
   TraversalHelper helper(*cg, traverseVirtualDtors);
 
@@ -385,11 +385,12 @@ int main(int argc, char **argv) {
               << "\n";
   }
 
+  // TODO: Add some kind of analysis management logic for selectors to request results
   StatementCountAnalysis sca;
   sca.run(helper);
   for (auto& [id, node] : cg->getNodes()) {
     long isc = node->get<ISCMD>()->value;
-    std::cout << "ISC for function " << node->getFunctionName() << ": " << isc << "\n";
+//    std::cout << "ISC for function " << node->getFunctionName() << ": " << isc << "\n";
   }
 
   std::cout << "Running selector pipeline...\n";

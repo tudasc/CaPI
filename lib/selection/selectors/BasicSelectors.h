@@ -11,9 +11,9 @@
 
 #include "Selector.h"
 
+#include "StatementCountAnalysis.h"
 #include "metadata/BuiltinMD.h"
 #include "metadata/NumOperationsMD.h"
-
 
 namespace capi {
 
@@ -300,22 +300,12 @@ public:
   }
 };
 
-class ISCSelector : public Selector {
-  TraversalHelper *helper{nullptr};
-  IntCmpOp op;
-  int val;
+class ISCSelector : public MetricSelector<ISCMD> {
  public:
-  ISCSelector(IntCmpOp op, int val) : op(op), val(val){
+  ISCSelector(IntCmpOp op, int val) : MetricSelector("ISCSelector", op, val) {
   }
-
-  void init(TraversalHelper &helper) override {
-    this->helper = &helper;
-  }
-
-  FunctionSet apply(const FunctionSetList&) override;
-
-  std::string getName() override {
-    return "ISCSelector";
+  long readMetric(ISCMD& md) override {
+    return md.value;
   }
 };
 

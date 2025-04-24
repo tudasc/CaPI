@@ -47,6 +47,7 @@ for dir in $(find $tc -type d); do
             gtFile=$(generateOutputFilename $testcase $mcg)
             gtFile=${gtFile/.json/.gtjson}
 	    echo "Generating new groundtruth for $testcase with $mcg"
+	        echo "Command: $capi -f $testcase --output-format json -o $gtFile $mcg"
     	    $capi -f $testcase --output-format json -o $gtFile $mcg
         done
     done

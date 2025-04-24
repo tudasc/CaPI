@@ -1,0 +1,85 @@
+{
+    "selection": {
+        "_Z14CommSyncPosVelR6Domain": {
+            "flags": 1
+        },
+        "_Z22CalcKinematicsForElemsR6Domaindi": {
+            "flags": 1
+        },
+        "_Z7CommSBNR6DomainiPMS_FRdiE": {
+            "flags": 1
+        },
+        "_Z8CommRecvR6Domainiiiiibb": {
+            "flags": 1
+        },
+        "_Z8CommSendR6DomainiiPMS_FRdiEiiibb": {
+            "flags": 1
+        },
+        "_Z9CommMonoQR6Domain": {
+            "flags": 1
+        },
+        "_ZL13CalcQForElemsR6Domain": {
+            "flags": 1
+        },
+        "_ZL13LagrangeNodalR6Domain": {
+            "flags": 1
+        },
+        "_ZL15EvalEOSForElemsR6DomainPdiPii": {
+            "flags": 1
+        },
+        "_ZL16LagrangeElementsR6Domaini": {
+            "flags": 1
+        },
+        "_ZL16LagrangeLeapFrogR6Domain": {
+            "flags": 1
+        },
+        "_ZL17CalcForceForNodesR6Domain": {
+            "flags": 1
+        },
+        "_ZL20CalcLagrangeElementsR6Domain": {
+            "flags": 1
+        },
+        "_ZL22CalcMonotonicQForElemsR6Domain": {
+            "flags": 1
+        },
+        "_ZL23CalcVolumeForceForElemsR6Domain": {
+            "flags": 1
+        },
+        "_ZL23IntegrateStressForElemsR6DomainPdS1_S1_S1_ii": {
+            "flags": 1
+        },
+        "_ZL28CalcFBHourglassForceForElemsR6DomainPdS1_S1_S1_S1_S1_S1_dii": {
+            "flags": 1
+        },
+        "_ZL28CalcHourglassControlForElemsR6DomainPdd": {
+            "flags": 1
+        },
+        "_ZL28CalcMonotonicQRegionForElemsR6Domainid": {
+            "flags": 1
+        },
+        "_ZL31ApplyMaterialPropertiesForElemsR6Domain": {
+            "flags": 1
+        },
+        "_ZL31CalcMonotonicQGradientsForElemsR6Domain": {
+            "flags": 1
+        },
+        "_ZN6Domain16SetupCommBuffersEi": {
+            "flags": 1
+        },
+        "_ZN6Domain22AllocateElemPersistentEi": {
+            "flags": 1
+        },
+        "_ZN6Domain22AllocateNodePersistentEi": {
+            "flags": 1
+        },
+        "_ZN6DomainC1Eiiiiiiiii": {
+            "flags": 1
+        },
+        "_ZN6DomainC2Eiiiiiiiii": {
+            "flags": 1
+        },
+        "main": {
+            "flags": 1
+        }
+    }
+}
