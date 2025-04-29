@@ -170,6 +170,8 @@ RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createComm
 RegisterSelector caSelectorDistinct("common_caller_distinct",
     createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>);
 
+RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCSelector>);
+
 }
 
 

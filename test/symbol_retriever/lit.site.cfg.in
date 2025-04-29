@@ -9,6 +9,7 @@ config.filecheck_exe = "@FILECHECK_EXE@"
 config.clang_include_dir = "@CLANG_INCLUDE_DIR@"
 config.test_source_root = "@CMAKE_CURRENT_SOURCE_DIR@/input"
 config.test_include_dir = "@CMAKE_CURRENT_SOURCE_DIR@"
+config.extra_cxx_flags = "@CMAKE_CXX_FLAGS@"
 
 
 # Let the main config do the real work.

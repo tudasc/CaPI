@@ -8,19 +8,24 @@
 #include <string>
 #include <unordered_set>
 
-#include "capi_version.h"
-#include "CallGraph.h"
+#include "../support/Timer.h"
 #include "DOTWriter.h"
+#include "Demangle.h"
 #include "FunctionFilter.h"
-#include "MetaCGReader.h"
 #include "Preprocessor.h"
 #include "SCC.h"
 #include "SelectorBuilder.h"
 #include "SelectorGraph.h"
 #include "SpecParser.h"
 #include "SymbolRetriever.h"
+#include "TraversalHelper.h"
+#include "capi_version.h"
 #include "support/Logging.h"
-#include "../support/Timer.h"
+
+#include "StatementCountAnalysis.h"
+#include "io/MCGReader.h"
+#include "metadata/BuiltinMD.h"
+#include "metadata/CaPIMD.h"
 
 using namespace capi;
 
@@ -40,20 +45,25 @@ void printHelp() {
       << " -i <query>   Parse the selection query from the given string.\n";
   std::cout << " -f <file>      Use a selection query file.\n";
   std::cout << " -o <file>      The output IC file.\n";
-  std::cout << " -v <verbosity>     Set verbosity level (0-3, default is 2). Passing -v without argument sets it to 3.\n";
-  std::cout << " --write-dot <file>  Write a dotfile of the selected call-graph subset.\n";
-  std::cout << " --replace-inlined <binary>  Replaces inlined functions with parents. Requires passing the executable.\n";
-  std::cout << " --output-format <output_format>  Set the file format. Options are \"scorep\" (default), \"json\" and \"simple\"\n";
+  std::cout << " -v <verbosity>     Set verbosity level (0-3, default is 2). "
+               "Passing -v without argument sets it to 3.\n";
+  std::cout << " --write-dot <file>  Write a dotfile of the selected "
+               "call-graph subset.\n";
+  std::cout << " --replace-inlined <binary>  Replaces inlined functions with "
+               "parents. Requires passing the executable.\n";
+  std::cout << " --output-format <output_format>  Set the file format. Options "
+               "are \"scorep\" (default), \"json\" and \"simple\"\n";
   std::cout << " --debug  Enable debugging mode.\n";
-  std::cout << " --print-scc-stats  Prints information about the strongly connected components (SCCs) of this call graph.\n";
+  std::cout << " --print-scc-stats  Prints information about the strongly "
+               "connected components (SCCs) of this call graph.\n";
   std::cout
-      << " --traverse-virtual-dtors Enable traversal of virtual destructors, which may lead to an over-approximation of the function set.\n";
+      << " --traverse-virtual-dtors Enable traversal of virtual destructors, "
+         "which may lead to an over-approximation of the function set.\n";
 }
 
 enum class InputMode { FILE, STRING };
 
 enum class OutputFormat { SIMPLE, SCOREP, JSON };
-
 
 ASTPtr parseSelectionSpec(std::string specStr) {
   auto stripped = stripComments(specStr);
@@ -82,44 +92,49 @@ std::string loadFromFile(std::string_view filename) {
 
 FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                                     const FunctionSet &functions,
-                                    CallGraph &cg) {
+                                    TraversalHelper &helper) {
 
   FunctionSet newSet;
 
   int numAdded = 0;
 
-  std::function<void(const CGNode &, bool, std::unordered_set<const CGNode *>)>
-      addValidCallers = [&](const CGNode &node, bool trigger,
-                            std::unordered_set<const CGNode *> visited) {
-        visited.insert(&node);
-        for (const auto *caller : node.getCallers()) {
-          if (visited.find(caller) != visited.end()) {
-            continue;
-          }
-          if (findSymbol(symSets, caller->getName())) {
-            if (addToSet(newSet, caller)) {
-              if (trigger) {
-                caller->isTrigger = true;
+  std::function<void(const metacg::CgNode &, bool,
+                     std::unordered_set<const metacg::CgNode *>)>
+      addValidCallers =
+          [&](const metacg::CgNode &node, bool trigger,
+              std::unordered_set<const metacg::CgNode *> visited) {
+            visited.insert(&node);
+            auto nodeInfo = helper.get(&node);
+            for (auto *caller : nodeInfo.getCallers()) {
+              if (visited.find(caller) != visited.end()) {
+                continue;
               }
-              numAdded++;
+              if (findSymbol(symSets, caller->getFunctionName())) {
+                if (addToSet(newSet, caller)) {
+                  if (trigger) {
+                    assert(caller->has<CaPIMD>());
+                    caller->get<CaPIMD>()->value.isTrigger = true;
+                  }
+                  numAdded++;
+                }
+              } else {
+                addValidCallers(*caller, trigger, visited);
+              }
             }
-          } else {
-            addValidCallers(*caller, trigger, visited);
-          }
-        }
-      };
+          };
 
   FunctionSet notFound;
 
   for (auto &fn : functions) {
-    if (findSymbol(symSets, fn->getName())) {
+    if (findSymbol(symSets, fn->getFunctionName())) {
       newSet.insert(fn);
     } else {
       notFound.insert(fn);
     }
   }
   std::cout << notFound.size()
-            << " functions could not be located in the executable, likely due to inlining.\n";
+            << " functions could not be located in the executable, likely due "
+               "to inlining.\n";
 
   int numProcessed = 0;
   int numBetweenOutputs = notFound.size() / 10;
@@ -131,7 +146,8 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
       continue;
     }
     // Recursively looks for the first available callers and adds them.
-    addValidCallers(*fn, fn->isTrigger, {});
+    assert(fn->has<CaPIMD>());
+    addValidCallers(*fn, fn->get<CaPIMD>()->value.isTrigger, {});
     numProcessed++;
 
     // Status output
@@ -148,7 +164,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
 
   return newSet;
 }
-}
+} // namespace
 
 int main(int argc, char **argv) {
 
@@ -195,7 +211,8 @@ int main(int argc, char **argv) {
         } else if (option == "replace-inlined") {
           replaceInlined = true;
           if (++i >= argc) {
-            std::cerr << "Need to pass the target executable after --replaced-inline. \n";
+            std::cerr << "Need to pass the target executable after "
+                         "--replaced-inline. \n";
             printHelp();
             return EXIT_FAILURE;
           }
@@ -324,24 +341,25 @@ int main(int argc, char **argv) {
 
   std::cout << "Loading call graph from " << cgfile << "\n";
 
-  MetaCGReader reader(cgfile);
-  if (!reader.read()) {
-    std::cerr << "Unable to load call graph!\n";
+  metacg::io::FileSource fileSrc(cgfile);
+  auto reader = metacg::io::createReader(fileSrc);
+  if (!reader) {
+    std::cerr << "Unable to create reader for input file " << cgfile << "\n";
     return EXIT_FAILURE;
   }
 
-  auto functionInfo = reader.getFunctionInfo();
-
-  auto cg = createCG(functionInfo);
+  auto cg = reader->read();
+  demangleNames(*cg);
+  TraversalHelper helper(*cg, traverseVirtualDtors);
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
   std::cout << "Running graph analysis...\n";
 
-  decltype(computeSCCs(*cg, true)) sccResults;
+  decltype(computeSCCs(helper, true)) sccResults;
   {
     Timer sccTimer("SCC Analysis took ", std::cout);
-    sccResults = std::move(computeSCCs(*cg, true));
+    sccResults = std::move(computeSCCs(helper, true));
   }
   if (printSCCStats) {
     auto largestSCC =
@@ -367,9 +385,17 @@ int main(int argc, char **argv) {
               << "\n";
   }
 
+  // TODO: Add some kind of analysis management logic for selectors to request results
+  StatementCountAnalysis sca;
+  sca.run(helper);
+  for (auto& [id, node] : cg->getNodes()) {
+    long isc = node->get<ISCMD>()->value;
+//    std::cout << "ISC for function " << node->getFunctionName() << ": " << isc << "\n";
+  }
+
   std::cout << "Running selector pipeline...\n";
 
-  auto result = runSelectorPipeline(*selectorGraph, *cg, debugMode);
+  auto result = runSelectorPipeline(*selectorGraph, helper, debugMode);
 
   // If hints empty, use full instrumentation of last defined selector instance
   if (hints.empty()) {
@@ -420,16 +446,18 @@ int main(int argc, char **argv) {
       if (symSets.empty()) {
         std::cout << "Skipping inline compensation.\n";
       } else {
-        afterPostProcessing = replaceInlinedFunctions(symSets, selResult, *cg);
+        afterPostProcessing =
+            replaceInlinedFunctions(symSets, selResult, helper);
         std::cout << afterPostProcessing.size()
                   << " functions selected after inline compensation.\n";
       }
     }
 
     for (auto &f : afterPostProcessing) {
-      filter.addIncludedFunction(f->getName(), hint.type);
-      if (hint.type == ALWAYS_INSTRUMENT && f->isTrigger) {
-        filter.addIncludedFunction(f->getName(),
+      filter.addIncludedFunction(f->getFunctionName(), hint.type);
+      assert(f->has<CaPIMD>());
+      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
+        filter.addIncludedFunction(f->getFunctionName(),
                                    InstrumentationType::SCOPE_TRIGGER);
       }
     }
@@ -453,7 +481,8 @@ int main(int argc, char **argv) {
       writeSuccess = writeScorePFilterFile(filter, outfile);
       break;
     case OutputFormat::JSON:
-      // FIXME: This data should not be stored in the CG! It should be part of the selection result.
+      // FIXME: This data should not be stored in the CG! It should be part of
+      // the selection result.
       writeSuccess = writeJSONFilterFile(filter, outfile);
       break;
     }
@@ -465,7 +494,7 @@ int main(int argc, char **argv) {
   if (shouldWriteDOT) {
     std::ofstream os(dotFile);
     if (os.is_open()) {
-      writeDOT(*cg, filter, {}, os);
+      writeDOT(helper, filter, {}, os);
     } else {
       logError() << "Could not write DOT file to '" << dotFile << "'.\n";
     }

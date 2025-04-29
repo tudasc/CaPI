@@ -18,7 +18,7 @@ public:
   };
 private:
 
-  CallGraph *cg{nullptr};
+  TraversalHelper *helper{nullptr};
   int maxLCADist;
   CAHeuristicType type;
 
@@ -26,8 +26,8 @@ public:
 
   explicit CommonCallerSelectorSCC(int maxLCADist, CAHeuristicType type) : maxLCADist(maxLCADist), type(type) {};
 
-  void init(CallGraph &cg) override {
-    this->cg = &cg;
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
   }
 
   FunctionSet apply(const FunctionSetList& input) override;
