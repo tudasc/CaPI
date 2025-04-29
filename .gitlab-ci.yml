@@ -122,10 +122,10 @@ capi-build-example:
     - module load dlb/3.5
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
-    - make all
+    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." all
     - cd ../AMG2013 
     - make veryclean
-    - make all
+    - make INCLUDE_LFLAGS="-lm  -fopenmp --gcc-toolchain=$(dirname $(which gcc))/.." all
 
 capi-test-example-selection:
   <<: *job-setup
