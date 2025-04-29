@@ -5,7 +5,6 @@
 #ifndef CAPI_CGTRAITS_H
 #define CAPI_CGTRAITS_H
 
-#include "CallGraph.h"
 #include "Selector.h"
 #include "FunctionFilter.h"
 
@@ -30,7 +29,7 @@ struct NodeDecoration {
 
 using DecorationMap = std::unordered_map<std::string, NodeDecoration>;
 
-bool writeDOT(const CallGraph &cg, const FunctionFilter& selection, const DecorationMap& decoration, std::ostream &out);
+bool writeDOT(TraversalHelper &helper, const FunctionFilter& selection, const DecorationMap& decoration, std::ostream &out);
 
 }
 

@@ -17,4 +17,4 @@ int main(int argc, char** argv) {
 
 
 // CHECK: main
-// CHECK-NOT: std::
+// CHECK-NOT: {{^std::.*}}

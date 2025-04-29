@@ -10,8 +10,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "CallGraph.h"
-
 namespace capi {
 
 template<typename NodeT>

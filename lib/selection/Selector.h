@@ -8,13 +8,16 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "CallGraph.h"
-#include "MetaCGReader.h"
+#include "TraversalHelper.h"
+//#include "MetaCGReader.h"
 #include "support/Logging.h"
+
+#include "Callgraph.h"
+
 
 namespace capi {
 
-using FunctionSet = std::unordered_set<const CGNode*>;
+using FunctionSet = std::unordered_set<const metacg::CgNode*>;
 
 using FunctionSetList = std::vector<FunctionSet>;
 
@@ -56,13 +59,36 @@ inline bool addToSet(std::unordered_set<T>& set, const T& entry) {
   return false;
 }
 
+// TODO: Incomplete
+//class AnalysisManager {
+// public:
+//  using AnalysisID = int;
+//
+//  AnalysisManager(TraversalHelper& helper) : helper(helper) {}
+//
+//  template<typename AnalysisT>
+//  AnalysisT::AnalysisResultT& getAnalysisResult() {
+//    auto* result = resultMap[AnalysisT::getID()];
+//    if (!result) {
+//      AnalysisT analysis;
+//      result = analysis.run(helper);
+//    }
+//    return *result;
+//  }
+//
+// private:
+//  TraversalHelper& helper;
+//  std::unordered_map<AnalysisID, void*> resultMap;
+//
+//};
+
 class Selector
 {
 public:
 
   virtual ~Selector() = default;
 
-  virtual void init(CallGraph &cg)
+  virtual void init(TraversalHelper& helper)
   {}
 
   virtual FunctionSet apply(const FunctionSetList &) = 0;
@@ -77,17 +103,17 @@ class FilterSelector : public Selector
 {
 
 protected:
-  CallGraph *cg;
+  TraversalHelper *helper;
 
 public:
   FilterSelector() = default;
 
-  void init(CallGraph &cg) override
+  void init(TraversalHelper& helper) override
   {
-    this->cg = &cg;
+    this->helper = &helper;
   }
 
-  virtual bool accept(const CGNode*) = 0;
+  virtual bool accept(const metacg::CgNode*) = 0;
 
   FunctionSet apply(const FunctionSetList &input) override
   {

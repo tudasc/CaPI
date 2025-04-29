@@ -5,12 +5,17 @@
 #ifndef CAPI_SCC_H
 #define CAPI_SCC_H
 
-#include "CallGraph.h"
+//#include "CallGraph.h"
+
+// MetaCG includes
+#include "Callgraph.h"
+#include "TraversalHelper.h"
+#include "../support/Logging.h"
 
 namespace capi {
 
 struct SCCNode {
-  std::vector<const CGNode*> nodes;
+  std::vector<const metacg::CgNode*> nodes;
 
   size_t size() const {
     return nodes.size();
@@ -19,7 +24,7 @@ struct SCCNode {
   std::string getName() const {
     if (nodes.empty())
       return "EMPTY";
-    return nodes.front()->getName() + "(" + std::to_string(size()) + ")";
+    return nodes.front()->getFunctionName() + "(" + std::to_string(size()) + ")";
   }
 };
 
@@ -37,30 +42,31 @@ struct SCCAnalysisResults {
 
   std::vector<SCCNode> sccs;
 
-  std::unordered_map<const CGNode*, SCCNode*> nodeMap;
+  std::unordered_map<const metacg::CgNode*, SCCNode*> nodeMap;
 
   size_t size() const {
     return sccs.size();
   }
 
-  const SCCNode* getSCC(const CGNode& node) const {
+  const SCCNode* getSCC(const metacg::CgNode& node) const {
     auto it = nodeMap.find(&node);
     if (it == nodeMap.end()) {
-      std::cerr << "Node not found in SCC\n";
+      logError() << "Node not found in SCC\n";
       return nullptr;
     }
     return it->second;
   }
 
-  int getSCCSize(const CGNode& node) const {
+  int getSCCSize(const metacg::CgNode& node) const {
     auto* scc = getSCC(node);
     return scc ? scc->size() : 0;
   }
 
-  std::vector<const SCCNode*> findAllCallers(const SCCNode* node) const {
+  std::vector<const SCCNode*> findAllCallers(const SCCNode* node, TraversalHelper& helper) const {
     std::vector<const SCCNode*> callers;
     for (auto& v : node->nodes) {
-      auto vCallers = v->findAllCallers();
+      auto& vTInfo = helper.get(v);
+      auto vCallers = vTInfo.findAllCallers();
       for (auto& w : vCallers)  {
         auto callerSCC = getSCC(*w);
         if (callerSCC == node)
@@ -73,10 +79,11 @@ struct SCCAnalysisResults {
     return callers;
   }
 
-  std::vector<const SCCNode*> findAllCallees(const SCCNode* node) const {
+  std::vector<const SCCNode*> findAllCallees(const SCCNode* node, TraversalHelper& helper) const {
     std::vector<const SCCNode*> callees;
     for (auto& v : node->nodes) {
-      auto vCallees = v->findAllCallees();
+      auto& vTInfo = helper.get(v);
+      auto vCallees = vTInfo.findAllCallees();
       for (auto& u : vCallees)  {
         auto calleeSCC = getSCC(*u);
         if (calleeSCC == node)
@@ -94,19 +101,20 @@ struct SCCAnalysisResults {
 // For graph trait
 struct SCCGraph {
   const SCCAnalysisResults& sccResults;
+  TraversalHelper& helper;
 
-  explicit SCCGraph(const SCCAnalysisResults& sccAnalysisResults) : sccResults(sccAnalysisResults) {}
+  explicit SCCGraph(const SCCAnalysisResults& sccAnalysisResults, TraversalHelper& helper) : sccResults(sccAnalysisResults), helper(helper) {}
 
   std::vector<const SCCNode*> getCallers(const SCCNode* node) const {
-    return sccResults.findAllCallers(node);
+    return sccResults.findAllCallers(node, helper);
   }
 
   std::vector<const SCCNode*> getCallees(const SCCNode* node) const {
-    return sccResults.findAllCallees(node);
+    return sccResults.findAllCallees(node, helper);
   }
 };
 
-SCCAnalysisResults computeSCCs(const capi::CallGraph&, bool followVirtualCalls);
+SCCAnalysisResults computeSCCs(capi::TraversalHelper&, bool followVirtualCalls);
 
 }
 

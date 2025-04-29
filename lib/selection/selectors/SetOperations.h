@@ -16,7 +16,7 @@ template <SetOperation Op> class SetOperationSelector : public Selector {
 public:
   SetOperationSelector() = default;
 
-  void init(CallGraph &cg) override {
+  void init(TraversalHelper& helper) override {
   }
 
   FunctionSet apply(const FunctionSetList& input) override;

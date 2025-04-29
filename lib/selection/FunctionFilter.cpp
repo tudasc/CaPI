@@ -3,6 +3,7 @@
 //
 
 #include "FunctionFilter.h"
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>

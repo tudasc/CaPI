@@ -7,7 +7,7 @@
 namespace capi {
 
 struct SCCData {
-  const CGNode* node{nullptr};
+  const metacg::CgNode* node{nullptr};
   int index{-1};
   int lowlink{-1};
   bool onStack{false};
@@ -18,24 +18,24 @@ struct SCCData {
 };
 
 
-static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bool followVirtualCall, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<SCCNode>& sccs) {
+static void strongConnect(std::unordered_map<const metacg::CgNode*, SCCData>& sccMap, capi::TraversalHelper& helper, bool followVirtualCall, std::vector<SCCData*>& nodeStack, int& index, SCCData& nodeData, std::vector<SCCNode>& sccs) {
   nodeData.index = index;
   nodeData.lowlink = index;
   index++;
   nodeStack.push_back(&nodeData);
   nodeData.onStack = true;
-  for (auto& callee : followVirtualCall ? nodeData.node->findAllCallees() : nodeData.node->getCallees()) {
+  for (auto& callee : followVirtualCall ? helper.get(nodeData.node).findAllCallees() :  helper.get(nodeData.node).getCallees()) {
     auto& calleeData = sccMap[callee];
     if (calleeData.undefined()) {
       calleeData.node = callee;
-      strongConnect(sccMap, followVirtualCall, nodeStack, index, calleeData, sccs);
+      strongConnect(sccMap, helper, followVirtualCall, nodeStack, index, calleeData, sccs);
       nodeData.lowlink = std::min(nodeData.lowlink, calleeData.lowlink);
     } else if (calleeData.onStack) {
       nodeData.lowlink = std::min(nodeData.lowlink, calleeData.index);
     }
   }
   if (nodeData.lowlink == nodeData.index) {
-    std::vector<const CGNode*> scc;
+    std::vector<const metacg::CgNode*> scc;
     SCCData* member{nullptr};
     do {
       member = nodeStack.back();
@@ -49,17 +49,17 @@ static void strongConnect(std::unordered_map<const CGNode*, SCCData>& sccMap, bo
 }
 
 // Implements Tarjan's algorithm
-SCCAnalysisResults computeSCCs(const CallGraph& cg, bool followVirtualCalls) {
+SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtualCalls) {
   std::vector<SCCNode> sccs;
-  std::unordered_map<const CGNode*, SCCData> sccMap;
+  std::unordered_map<const metacg::CgNode*, SCCData> sccMap;
   std::vector<SCCData*> nodeStack;
   int index = 0;
 
-  for (const auto& node : cg.getNodes()) {
+  for (const auto& [id, node] : helper.cg.getNodes()) {
     auto& nodeData = sccMap[node.get()];
     if (nodeData.undefined()) {
       nodeData.node = node.get();
-      strongConnect(sccMap, followVirtualCalls, nodeStack, index, nodeData, sccs);
+      strongConnect(sccMap, helper, followVirtualCalls, nodeStack, index, nodeData, sccs);
     }
   }
 
