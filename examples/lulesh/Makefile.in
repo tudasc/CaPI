@@ -6,15 +6,17 @@ SHELL = /bin/sh
 LULESH_EXEC = lulesh2.0
 LULESH_EXEC_SCOREP = lulesh2.0_scorep
 LULESH_EXEC_EXTRAE = lulesh2.0_extrae
+LULESH_EXEC_NESMIK = lulesh2.0_nesmik
 
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-export OMPI_CC=@CC_PATH@
-export OMPI_CXX=@CXX_PATH@
+#export OMPI_CC=@CC_PATH@
+#export OMPI_CXX=@CXX_PATH@
 
-SERCXX = ./../../scripts/capi-cxx -DUSE_MPI=0
-MPICXX = ./../../scripts/capi-mpicxx -DUSE_MPI=1
+SERCXX = @CXX_PATH@ -DUSE_MPI=0
+MPICXX = mpic++ -DUSE_MPI=1
+CAPICC = ./../../scripts/capi-cxx
 CXX = $(MPICXX)
 
 SOURCES2.0 = \
@@ -25,30 +27,34 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-CXXFLAGS = -O3 -I. -Wall
-LDFLAGS = -O3 
+CXXFLAGS = -O3 -I. -Wall -g
+LDFLAGS = -O3 -g
 
 .cc.o: lulesh.h
 	@echo "Building $<"
-	$(CXX) -c $(CXXFLAGS) -o $@  $<
+	$(CAPICC) --verbose $(CXX) -c $(CXXFLAGS) -o $@  $<
 
-all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE)
+all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK)
 
 
 $(LULESH_EXEC): $(OBJECTS2.0)
 	@echo "Linking vanilla"
-	$(CXX) --capi-interface=gnu $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CAPICC) --verbose --capi-interface=gnu $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 $(LULESH_EXEC_SCOREP): $(OBJECTS2.0)
 	@echo "Linking Score-P"
-	$(CXX) --capi-interface=scorep $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CAPICC) --verbose --capi-interface=scorep $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 $(LULESH_EXEC_EXTRAE): $(OBJECTS2.0)
 	@echo "Linking Extrae"
-	$(CXX) --capi-interface=extrae $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CAPICC) --verbose --capi-interface=extrae $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+
+$(LULESH_EXEC_NESMIK): $(OBJECTS2.0)
+	@echo "Linking neSmiK"
+	$(CAPICC) --verbose --capi-interface=nesmik $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
-	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) scorep_init.c
+	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK) scorep_init.c
 	/bin/rm -rf *.dSYM
 
 tar: clean

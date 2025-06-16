@@ -17,6 +17,7 @@ include(clang-format)
 include(llvm-util)
 
 include(talp)
+include(nesmik)
 
 option(ENABLE_INST_PASSES "Enable instrumentation passes (deprecated, do not work with up-to-date LLVM)" OFF)
 
@@ -43,6 +44,18 @@ endif()
 option(ENABLE_XRAY "Enable XRay dynamic instrumentation interface" ON)
 
 if (ENABLE_XRAY)
+  # Detect Clang's internal resource dir
+  execute_process(
+          COMMAND ${CMAKE_CXX_COMPILER} -print-resource-dir
+          OUTPUT_VARIABLE CLANG_RESOURCE_DIR
+          OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  # Compose the internal include path
+  set(CLANG_INTERNAL_INCLUDE_DIR "${CLANG_RESOURCE_DIR}/include")
+
+  # Optional: print it for debugging
+  message(STATUS "Clang internal include directory: ${CLANG_INTERNAL_INCLUDE_DIR}")
   set(CLANG_INCLUDE_DIR "${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include" CACHE PATH "Path to internal clang headers, needed for XRay runtime")
   if (NOT EXISTS "${CLANG_INCLUDE_DIR}/xray/xray_interface.h")
     message(FATAL_ERROR "The XRay headers could not be found in ${CLANG_INCLUDE_DIR}/xray/xray_interface.h. Please specify CLANG_INCLUDE_DIR explicitly, pointing to the directory that contains \"xray/xray_interface.h\".")
