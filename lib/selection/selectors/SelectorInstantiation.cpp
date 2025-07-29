@@ -7,6 +7,7 @@
 #include "CommonCallerSelectorSCC.h"
 #include "SelectorRegistry.h"
 #include "SetOperations.h"
+#include "TalpMetricSelector.h"
 
 namespace  {
 
@@ -93,6 +94,7 @@ SelectorPtr createMetricSelector(const std::vector<Param>& params) {
     return std::make_unique<MetricSelectorT>(std::move(selectorOrErr.value()));
 }
 
+
 // TODO: Could probably use same function as createMetricSelector
 SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
   CHECK_NUM_ARGS(MinCallDepthSelector, params, 2)
@@ -172,6 +174,19 @@ RegisterSelector caSelectorDistinct("common_caller_distinct",
     createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>);
 
 RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCSelector>);
+
+// TALP metrics
+// TODO: OMP metrics not added yet
+RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetricSelector<TalpMetricKind::CYCLES>>);
+RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetricSelector<TalpMetricKind::INSTRUCTIONS>>);
+RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetricSelector<TalpMetricKind::ELAPSED_TIME>>);
+RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetricSelector<TalpMetricKind::NUM_MPI_CALLS>>);
+RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::PARALLEL_EFFICIENCY>>);
+RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_PARALLEL_EFFICIENCY>>);
+RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY>>);
+RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE>>);
+RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_IN>>);
+RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_OUT>>);
 
 }
 

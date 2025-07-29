@@ -11,13 +11,13 @@ if(USE_EXTERNAL_JSON)
     set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
     find_package(
             nlohmann_json
-            3.10
+            3.12
             REQUIRED
     )
 else()
     message("Using fetched release version of json library")
 
-    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
     FetchContent_MakeAvailable(json)
 endif()
 

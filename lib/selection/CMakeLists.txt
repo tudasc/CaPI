@@ -6,6 +6,7 @@ set(SOURCES
         Demangle.cpp
         DOTWriter.cpp
         FunctionFilter.cpp
+        MeasurementConfigIO.cpp
         Preprocessor.cpp
         SpecParser.cpp
         SelectionSpecAST.cpp

@@ -10,6 +10,9 @@
 
 namespace capi {
 
+using InvocationRange = std::pair<unsigned, unsigned>;
+using Invocations = std::vector<InvocationRange>;
+
 enum InstrumentationType {
   NONE = 0,
   ALWAYS_INSTRUMENT = 1,
@@ -42,6 +45,7 @@ inline bool isEndTrigger(int flags) {
 struct InstrumentationHint {
   InstrumentationType type;
   std::string selRefName;
+  Invocations activeInvocations;
 };
 
 using InstrumentationHints = std::vector<InstrumentationHint>;

@@ -12,6 +12,8 @@
 #include "DOTWriter.h"
 #include "Demangle.h"
 #include "FunctionFilter.h"
+#include "MeasurementConfig.h"
+#include "MeasurementConfigIO.h"
 #include "Preprocessor.h"
 #include "SCC.h"
 #include "SelectorBuilder.h"
@@ -52,7 +54,7 @@ void printHelp() {
   std::cout << " --replace-inlined <binary>  Replaces inlined functions with "
                "parents. Requires passing the executable.\n";
   std::cout << " --output-format <output_format>  Set the file format. Options "
-               "are \"scorep\" (default), \"json\" and \"simple\"\n";
+               "are \"json\" (default), \"scorep\", \"legacy_json\" and \"simple\"\n";
   std::cout << " --debug  Enable debugging mode.\n";
   std::cout << " --print-scc-stats  Prints information about the strongly "
                "connected components (SCCs) of this call graph.\n";
@@ -63,7 +65,7 @@ void printHelp() {
 
 enum class InputMode { FILE, STRING };
 
-enum class OutputFormat { SIMPLE, SCOREP, JSON };
+enum class OutputFormat { JSON, SIMPLE, SCOREP, LEGACY_JSON};
 
 ASTPtr parseSelectionSpec(std::string specStr) {
   auto stripped = stripComments(specStr);
@@ -191,7 +193,7 @@ int main(int argc, char **argv) {
   bool printSCCStats{false};
 
   InputMode mode = InputMode::FILE;
-  OutputFormat outputFormat = OutputFormat::SCOREP;
+  OutputFormat outputFormat = OutputFormat::JSON;
 
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
@@ -229,6 +231,8 @@ int main(int argc, char **argv) {
             outputFormat = OutputFormat::SIMPLE;
           } else if (outputFormatStr == "json") {
             outputFormat = OutputFormat::JSON;
+          } else if (outputFormatStr == "legacy_json") {
+            outputFormat = OutputFormat::LEGACY_JSON;
           } else if (outputFormatStr == "scorep") {
             outputFormat = OutputFormat::SCOREP;
           } else {
@@ -403,6 +407,11 @@ int main(int argc, char **argv) {
                      selectorGraph->getEntryNodes().back()->getName()});
   }
 
+  bool legacyExport = outputFormat != OutputFormat::JSON;
+
+  MeasurementConfig mc;
+
+  // TODO: Get rid of old filter format
   FunctionFilter filter;
 
   for (auto &hint : hints) {
@@ -453,6 +462,7 @@ int main(int argc, char **argv) {
       }
     }
 
+    // Legacy function filter
     for (auto &f : afterPostProcessing) {
       filter.addIncludedFunction(f->getFunctionName(), hint.type);
       assert(f->has<CaPIMD>());
@@ -461,17 +471,26 @@ int main(int argc, char **argv) {
                                    InstrumentationType::SCOPE_TRIGGER);
       }
     }
+
+    // Measurement config
+    for (auto &f : afterPostProcessing) {
+      auto pathEntry = PathEntry{{}, hint.activeInvocations, "", {}}; // TODO: Measurement level?
+
+      assert(f->has<CaPIMD>());
+      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
+        pathEntry.flags.push_back("scope_trigger");
+      }
+      mc.add(f->getFunctionName(), std::move(pathEntry));
+    }
   }
 
   if (outfile.empty()) {
-    outfile = cgfile.substr(0, cgfile.find_last_of('.')) + ".filt";
+    const char* fileEnding = outputFormat == OutputFormat::JSON || outputFormat == OutputFormat::LEGACY_JSON ? ".json" : ".filt";
+    outfile = cgfile.substr(0, cgfile.find_last_of('.')) + fileEnding;
   }
 
   {
-    //    FunctionFilter filter;
-    //    for (auto &f : afterPostProcessing) {
-    //      filter.addIncludedFunction(f->getName());
-    //    }
+
     bool writeSuccess{false};
     switch (outputFormat) {
     case OutputFormat::SIMPLE:
@@ -481,13 +500,14 @@ int main(int argc, char **argv) {
       writeSuccess = writeScorePFilterFile(filter, outfile);
       break;
     case OutputFormat::JSON:
-      // FIXME: This data should not be stored in the CG! It should be part of
-      // the selection result.
+      writeSuccess = write(mc, outfile);
+      break;
+    case OutputFormat::LEGACY_JSON:
       writeSuccess = writeJSONFilterFile(filter, outfile);
       break;
     }
     if (!writeSuccess) {
-      std::cerr << "Error: Writing filter file failed.\n";
+      std::cerr << "Error: Writing result file failed.\n";
     }
   }
 

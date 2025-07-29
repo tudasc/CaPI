@@ -13,12 +13,9 @@
 #include "SpecParser.h"
 #include "InstrumentationHint.h"
 
-
 namespace capi {
 
 //using DirectiveReplacement = std::pair<Directive*, NodePtr>;
-
-
 
 struct DirectiveReplacement {
   Directive* directive{nullptr};
@@ -47,6 +44,47 @@ struct InstrumentHintHandler : public DirectiveHandler {
   }
 
   virtual void consumeParameter(Param p) override {
+    if (p.kind != Param::STRING) {
+      logError() << "Instrument directive expected range string as input, but received " << p.kindNames[p.kind] << "\n";
+      return;
+    }
+    auto rangeStr = std::get<std::string>(p.val);
+    // Remove whitespaces
+    rangeStr.erase(std::remove_if(rangeStr.begin(), rangeStr.end(),
+                           [](unsigned char c){ return std::isspace(c); }),
+            rangeStr.end());
+
+    Invocations invocations;
+    bool isRange = false;
+    unsigned rangeStart;
+    std::string idxStr;
+    for (int pos = 0; pos < rangeStr.size(); pos++) {
+      char c = rangeStr[pos];
+      bool isLastChar = (pos == rangeStr.size() -1);
+      if (std::isdigit(c)) {
+        idxStr += c;
+        if (!isLastChar) {
+          continue;
+        }
+      }
+      unsigned idx = std::stoi(idxStr);
+      idxStr = "";
+      if (isLastChar || c == ',') {
+        if (isRange) {
+          invocations.emplace_back(rangeStart, idx);
+          isRange = false;
+        } else {
+          invocations.emplace_back(idx, idx);
+        }
+      } else if (c == '-') {
+        rangeStart = idx;
+        isRange = true;
+      } else {
+          logError() << "Invalid character '" << c << "' in invocation range. Valid characters are digits, ',', and '-'\n";
+          return;
+      }
+    }
+    this->activeInvocations = invocations;
   }
 
   void consumeRef(const SelectorRef& ref) override {
@@ -57,7 +95,7 @@ struct InstrumentHintHandler : public DirectiveHandler {
     if (refName.empty()) {
       return false;
     }
-    collector.addHint({type, refName});
+    collector.addHint({type, refName, activeInvocations});
     return true;
   }
 
@@ -68,6 +106,7 @@ struct InstrumentHintHandler : public DirectiveHandler {
 private:
   std::string refName;
   InstrumentationType type;
+  Invocations activeInvocations;
 };
 
 struct ImportHandler : public DirectiveHandler{
@@ -133,7 +172,6 @@ struct ImportHandler : public DirectiveHandler{
 
     return {&directive, std::move(subAST), true};
 
-
   }
 
 private:
@@ -188,7 +226,7 @@ public:
         replacements.push_back(std::move(repment));
       }
     }
-    handler.release();
+    handler.reset();
   }
 
   void visitRef(SelectorRef &ref) override {
@@ -200,7 +238,6 @@ public:
 
   void visitDecl(SelectorDecl &decl) override {
     // Decls can be skipped completely
-    return;
   }
 
   void visitBoolLiteral(Literal<bool> &l) override {
