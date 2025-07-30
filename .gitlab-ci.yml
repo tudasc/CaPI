@@ -78,7 +78,7 @@ capi-build:
     - module load scorepnoplugin/7.1
     - module load dlb/3.5
     - module load metacg/devel
-    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
+    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DENABLE_NESMIK=OFF -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
     - cmake --build $CAPI_BUILD --parallel
     - module purge
 
