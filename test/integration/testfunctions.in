@@ -1,7 +1,7 @@
 #!/bin/bash
 
 builddir=@CAPI_BIN_DIR@
-capi=$builddir/lib/selection/capi
+capi=$builddir/src/driver/capi
 testExe=./simpleTester
 
 #Function runs test
