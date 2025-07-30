@@ -1,6 +1,6 @@
 
 add_library(symbol_retriever_test_rt STATIC SymbolRetrieverTestRT.cpp)
-target_include_directories(symbol_retriever_test_rt PRIVATE ${PROJECT_SOURCE_DIR}/lib/symbol_retriever)
+target_include_directories(symbol_retriever_test_rt PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 set(TEST_COMPILER_BIN_DIR "${LLVM_TOOLS_BINARY_DIR}" CACHE STRING "Clang binary directory for symbol retriever tests" )
 

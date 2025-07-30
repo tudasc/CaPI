@@ -88,7 +88,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif ()
 
 function(add_version_include target)
-  target_include_directories(${target} PUBLIC "${PROJECT_BINARY_DIR}")
+  target_include_directories(${target} PRIVATE $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
 endfunction()
 
 function(target_project_compile_options target)
