@@ -56,7 +56,7 @@ bool writeDOT(TraversalHelper &helper, const FunctionFilter& filter, const Decor
   bool acceptAll = filter.size() == 0;
 
   out << "digraph {\n";
-  for (auto &[id, node] : helper.cg.getNodes()) {
+  for (auto& node: helper.cg.getNodes()) {
 
     if (acceptAll || filter.accepts(node->getFunctionName())) {
       auto attrStr = getNodeAttrs(getDeco(node->getFunctionName()));
@@ -64,7 +64,7 @@ bool writeDOT(TraversalHelper &helper, const FunctionFilter& filter, const Decor
     }
   }
 
-  for (auto &[id, node] : helper.cg.getNodes()) {
+  for (auto& node : helper.cg.getNodes()) {
     if (acceptAll || filter.accepts(node->getFunctionName())) {
       for (auto &callee : helper.get(node.get()).findAllCallees()) {
         if (acceptAll || filter.accepts(callee->getFunctionName())) {

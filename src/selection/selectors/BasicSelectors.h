@@ -23,7 +23,7 @@ class EverythingSelector : public Selector {
 
 public:
   void init(TraversalHelper &helper) override {
-    for (auto& [id, node] : helper.cg.getNodes()) {
+    for (auto& node : helper.cg.getNodes()) {
       allFunctions.insert(node.get());
     }
   }

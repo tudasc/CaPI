@@ -3,6 +3,7 @@
 //
 
 #include "capi/selection/TraversalHelper.h"
+#include "metadata/OverrideMD.h"
 
 namespace capi {
 
@@ -18,10 +19,10 @@ void NodeTraversalInfo::compute(const metacg::CgNode& node, TraversalHelper* hel
   // FIXME: Assuming for now that all function calls are virtual
   virtualCalls = this->callees;
   virtualCalledBy = this->callers;
-  if (!node.has<OverrideMD>()) {
+  if (!node.has<metacg::OverrideMD>()) {
     return;
   }
-  auto overrideMD = node.get<OverrideMD>();
+  auto overrideMD = node.get<metacg::OverrideMD>();
   overrides = overrideMD->overrides;
   overriddenBy = overrideMD->overriddenBy;
 }

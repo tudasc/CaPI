@@ -142,7 +142,7 @@ struct TraversalHelper {
 
   std::vector<const metacg::CgNode*> findRoots() const {
     std::vector<const metacg::CgNode*> roots;
-    for (auto& [id, node] : cg.getNodes()) {
+    for (auto& node : cg.getNodes()) {
       if (cg.getCallers(*node).empty())
         roots.push_back(node.get());
     }
@@ -151,7 +151,7 @@ struct TraversalHelper {
 
   std::vector<const metacg::CgNode*> findLeaves() const {
     std::vector<const metacg::CgNode*> leaves;
-    for (auto& [id, node] : cg.getNodes()) {
+    for (auto& node : cg.getNodes()) {
       if (cg.getCallees(*node).empty())
         leaves.push_back(node.get());
     }

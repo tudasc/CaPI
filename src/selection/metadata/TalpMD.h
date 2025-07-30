@@ -106,10 +106,10 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
   static constexpr const char* key = "talp";
   TalpMD() = default;
 
-  explicit TalpMD(const nlohmann::json& j) {
-    metacg::MCGLogger::instance().getConsole()->warn("Reading TalpMD from JSON");
+  explicit TalpMD(const nlohmann::json& j, metacg::StrToNodeMapping&) {
+    metacg::MCGLogger::logInfoUnique("Reading TalpMD from JSON");
     if (j.is_null()) {
-      metacg::MCGLogger::instance().getConsole()->warn("Could not retrieve meta data for TalpMD");
+      metacg::MCGLogger::logWarnUnique("Could not retrieve meta data for TalpMD");
       return;
     }
     // Iterate over all entries in list. Each entry contains metrics for a given
@@ -117,11 +117,11 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
     for (auto it = j.begin(); it != j.end(); ++it) {
       auto& jPathMetrics = it.value();
       if (!jPathMetrics.contains("path")) {
-        metacg::MCGLogger::instance().getConsole()->warn("TalpMD entry is missing a path field!");
+        metacg::MCGLogger::logWarnUnique("TalpMD entry is missing a path field!");
         continue;
       }
       if (!jPathMetrics.contains("metrics")) {
-        metacg::MCGLogger::instance().getConsole()->warn("TalpMD entry is missing a metrics field!");
+        metacg::MCGLogger::logWarnUnique("TalpMD entry is missing a metrics field!");
         continue;
       }
 
@@ -156,7 +156,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
       depth++;
     }
     if (searchList.size() > 1) {
-      metacg::MCGLogger::instance().getConsole()->warn("Multiple metric entries for path!");
+      metacg::MCGLogger::logWarnUnique("Multiple metric entries for path!");
     }
     return &pathMetrics[searchList.front()].metrics;
   }
@@ -165,7 +165,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
   TalpMD(const TalpMD& other) : pathMetrics(other.pathMetrics) {}
 
  public:
-  nlohmann::json to_json() const final {
+  nlohmann::json toJson(metacg::NodeToStrMapping&) const final {
     nlohmann::json j = nlohmann::json::array();
     for (auto& pathMetricsEntry : pathMetrics) {
       nlohmann::json jPathMetricsEntry;
@@ -178,15 +178,17 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
     return j;
   }
 
-  const char* getKey() const override { return key; }
+  const char* getKey() const final { return key; }
 
-  void merge(const MetaData& toMerge) final {
+  void merge(const MetaData& toMerge, const metacg::MergeAction&, const metacg::GraphMapping&) final {
     assert(toMerge.getKey() == getKey() && "Trying to merge TalpMD with meta data of different types");
-    metacg::MCGLogger::instance().getConsole()->warn(
+    metacg::MCGLogger::logWarn(
         "TalpMD is not meant to be merged, as it is attached to the completed static CG. Keeping MD of original node.");
   }
 
-  MetaData* clone() const final { return new TalpMD(*this); }
+  std::unique_ptr<MetaData> clone() const final { return std::unique_ptr<TalpMD>(new TalpMD(*this)); }
+
+  virtual void applyMapping(const metacg::GraphMapping&) final {}
 
  private:
   std::vector<TalpPathMetrics> pathMetrics;

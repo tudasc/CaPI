@@ -50,7 +50,7 @@ std::string loadFromFile(std::string_view filename) {
 
 bool isForest(const metacg::Callgraph& cg) {
   for (auto& node : cg.getNodes()) {
-    if (cg.getCallers(*node.second).size() > 1) {
+    if (cg.getCallers(*node).size() > 1) {
       return false;
     }
   }

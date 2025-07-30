@@ -49,10 +49,10 @@ bool InlineSelector::accept(const metacg::CgNode* fNode) {
   if (!fNode) {
     return false;
   }
-  if (!fNode->has<InlineMD>()) {
+  if (!fNode->has<metacg::InlineMD>()) {
     return false;
   }
-  auto& md = *fNode->get<InlineMD>();
+  auto& md = *fNode->get<metacg::InlineMD>();
   return md.isMarkedInline() || md.isMarkedAlwaysInline() || md.isTemplate();
 }
 
@@ -61,7 +61,11 @@ bool FilePathSelector::accept(const metacg::CgNode* fNode) {
 
     std::smatch pathMatch;
     auto path = fNode->getOrigin();
-    bool matches = std::regex_match(path, pathMatch,
+    if (!path) {
+      return false;
+    }
+
+    bool matches = std::regex_match(*path, pathMatch,
                                     nameRegex);
     return matches;
   }
@@ -72,10 +76,10 @@ bool SystemHeaderSelector::accept(const metacg::CgNode* fNode) {
   if (!fNode) {
     return false;
   }
-  if (!fNode->has<FilePropertiesMD>()) {
+  if (!fNode->has<metacg::FilePropertiesMD>()) {
     return false;
   }
-  auto& md = *fNode->get<FilePropertiesMD>();
+  auto& md = *fNode->get<metacg::FilePropertiesMD>();
   return md.fromSystemInclude;
 }
 
@@ -126,7 +130,7 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
   std::function<void(const metacg::CgNode*, bool)> traverse = [&](const metacg::CgNode* node, bool mayRemove) {
     visited.insert(node);
     bool selected = setContains(in, node);
-    bool onlyChild = helper->cg.getCallers(node).size() == 1;
+    bool onlyChild = helper->cg.getCallers(*node).size() == 1;
     if (selected) {
       if (mayRemove && onlyChild && !setContains(critical, node)) {
         selected = false;
@@ -135,7 +139,7 @@ FunctionSet CoarseSelector::apply(const FunctionSetList& input) {
       }
     }
 
-    for (auto& callee : helper->cg.getCallees(node)) {
+    for (auto& callee : helper->cg.getCallees(*node)) {
       if (visited.find(callee) == visited.end()) {
         // Callees are eligible for removal, if (1) their parent was selected or (2) their parent is an only child.
         traverse(callee, selected ||  onlyChild);

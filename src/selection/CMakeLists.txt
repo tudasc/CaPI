@@ -17,7 +17,7 @@ set(SOURCES
         selectors/BasicSelectors.cpp
         selectors/CommonCallerSelectorSCC.cpp)
 
-add_library(capi_select ${SOURCES})
+add_library(capi_select SHARED ${SOURCES})
 target_include_directories(capi_select
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

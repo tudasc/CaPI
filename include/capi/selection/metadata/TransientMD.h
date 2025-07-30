@@ -18,20 +18,24 @@ class TransientMD : public metacg::MetaData::Registrar<TransientMD<DataT, KeyT>>
 
   explicit TransientMD() = default;
 
-  explicit TransientMD(const nlohmann::json& j) {
+  explicit TransientMD(const nlohmann::json& j, metacg::StrToNodeMapping&) {
     // In-memory only
   }
 
-  virtual const char* getKey() const { return key; }
+  virtual const char* getKey() const final { return key; }
 
  private:
   TransientMD(const TransientMD& other) : value(other.value) {}
 
-  nlohmann::json to_json() const final { return {}; }
+  nlohmann::json toJson(metacg::NodeToStrMapping&) const final { return {}; }
 
-  void merge(const metacg::MetaData& toMerge) final {}
+  void merge(const metacg::MetaData& toMerge, const metacg::MergeAction&, const metacg::GraphMapping& ) final {}
 
-  metacg::MetaData* clone() const final { return new TransientMD<DataT, KeyT>(*this); }
+  std::unique_ptr<metacg::MetaData> clone() const final {
+    return std::unique_ptr<TransientMD<DataT, KeyT>>(new TransientMD<DataT, KeyT>(*this));
+  }
+
+  void applyMapping(const metacg::GraphMapping&) override {}
 };
 
 }

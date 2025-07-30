@@ -76,7 +76,7 @@ bool StatementCountAnalysis::run(TraversalHelper& helper) {
   for (auto& [id, isc] : cache) {
     auto* node = helper.cg.getNode(id);
     assert(node && "Node should not be null here");
-    node->getOrCreateMD<ISCMD>()->value = isc;
+    node->getOrCreate<ISCMD>().value = isc;
   }
   return true;
 }

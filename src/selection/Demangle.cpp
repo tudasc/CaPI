@@ -21,7 +21,7 @@ namespace capi {
 void demangleNames(metacg::Callgraph &cg) {
 
   std::ofstream tmpMangledNamesFileOut("tmpMangledNames.txt");
-  for (auto& [id, node] : cg.getNodes()) {
+  for (auto& node : cg.getNodes()) {
     tmpMangledNamesFileOut << node->getFunctionName() << "\n";
   }
   tmpMangledNamesFileOut.close();
@@ -34,14 +34,11 @@ void demangleNames(metacg::Callgraph &cg) {
   std::string mangledName, demangledNameFull;
   while (std::getline(tmpMangledNamesFileIn, mangledName)) {
 
-    auto node = cg.getNode(mangledName);
-    if (!node) {
+    auto nodes = cg.getNodes(mangledName);
+    if (nodes.empty()) {
       logError() << "Node for function " << mangledName << " does not exist!\n";
       continue;
     }
-    auto md = node->getOrCreateMD<CaPIMD>();
-
-    auto& info = md->value;
 
     std::getline(tmpDemangledNamesFileIn, demangledNameFull);
 
@@ -76,12 +73,10 @@ void demangleNames(metacg::Callgraph &cg) {
     if (returnValueEnd > 0)
       demangledNoParameters = demangledNoParameters.substr(returnValueEnd + 1);
 
-    info.demangledName = demangledNoParameters;
-
     // extract parameters
-    std::string parameterString = demangledNameFull.substr(
-        parameterStartPos + 1,
-        demangledNameFull.size() - parameterStartPos - 1);
+    std::vector<std::string> params;
+    std::string parameterString =
+        demangledNameFull.substr(parameterStartPos + 1, demangledNameFull.size() - parameterStartPos - 1);
     int bracketDepth = 0;
     size_t currentStartPos = 0;
     for (int i = 0; i < parameterString.size(); i++) {
@@ -91,18 +86,25 @@ void demangleNames(metacg::Callgraph &cg) {
       } else if (parameterString[i] == '>' || parameterString[i] == ')') {
         bracketDepth--;
         if (bracketDepth < 0 && parameterString.size() > 1) {
-          info.parameters.push_back(
-              parameterString.substr(currentStartPos, i - currentStartPos));
+          params.push_back(parameterString.substr(currentStartPos, i - currentStartPos));
           break;
         }
         continue;
       }
 
       if (parameterString[i] == ',' && bracketDepth == 0) {
-        info.parameters.push_back(
-            parameterString.substr(currentStartPos, i - currentStartPos));
+        params.push_back(parameterString.substr(currentStartPos, i - currentStartPos));
         currentStartPos = i + 2;
       }
+    }
+
+    // Attach to all matching nodes
+    for (auto& nodeId : nodes) {
+      auto* node = cg.getNode(nodeId);
+      auto& md = node->getOrCreate<CaPIMD>();
+      auto& info = md.value;
+      info.demangledName = demangledNoParameters;
+      info.parameters = params;
     }
   }
 

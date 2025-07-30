@@ -55,7 +55,7 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
   std::vector<SCCData*> nodeStack;
   int index = 0;
 
-  for (const auto& [id, node] : helper.cg.getNodes()) {
+  for (const auto& node : helper.cg.getNodes()) {
     auto& nodeData = sccMap[node.get()];
     if (nodeData.undefined()) {
       nodeData.node = node.get();
