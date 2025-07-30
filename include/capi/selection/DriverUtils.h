@@ -38,7 +38,7 @@ class SelectionRunner {
     return helper;
   }
 
-  std::expected<MeasurementConfig, std::string> runQuery(const std::string& query, bool debugMode = false);
+  std::expected<MeasurementConfig, std::string> runQuery(const std::string& query, bool pathSensitive = false, bool debugMode = false);
 
   void onASTParsed(AstCB cb) {
     astParsedCBs.push_back(cb);

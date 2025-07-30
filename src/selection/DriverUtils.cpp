@@ -48,6 +48,38 @@ std::string loadFromFile(std::string_view filename) {
   return queryStr;
 }
 
+bool isForest(const metacg::Callgraph& cg) {
+  for (auto& node : cg.getNodes()) {
+    if (cg.getCallers(*node.second).size() > 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::optional<std::vector<const metacg::CgNode*>> getCallPath(const metacg::Callgraph& cg, const metacg::CgNode& node) {
+  std::vector<const metacg::CgNode*> path;
+  auto* n = &node;
+  do {
+    auto callers = cg.getCallers(node);
+    // No more parents -> return
+    if (callers.empty()) {
+      return path;
+    }
+    // Abort if the call path is ambiguous
+    if (callers.size() > 1) {
+      return std::nullopt;
+    }
+    n = *callers.begin();
+    if (std::find(path.begin(), path.end(), n) != path.end()) {
+      // Found cycle
+      return std::nullopt;
+    }
+    path.insert(path.begin(), n);
+  } while(true);
+  return {};
+}
+
 
 FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                                     const FunctionSet &functions,
@@ -130,7 +162,7 @@ SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtor
   sca.run(helper);
 }
 
-std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool debugMode) {
+std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool pathSensitive, bool debugMode) {
   auto ast = parseSelectionQuery(query);
   if (!ast) {
     return std::unexpected("Failed to parse selection query");
@@ -179,26 +211,40 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
 
   MeasurementConfig mc;
 
-  for (auto &hint : actions) {
-    auto it = result.find(hint.selRefName);
+  if (pathSensitive && !isForest(cg)) {
+    logError() << "Warning: path sensitive selection is only possible if the call graph is a forest.\n";
+    pathSensitive = false;
+  }
+
+  for (auto & action : actions) {
+    auto it = result.find(action.selRefName);
     if (it == result.end()) {
-      logError() << "Warning: no selection results for '" << hint.selRefName << "'\n";
+      logError() << "Warning: no selection results for '" << action.selRefName << "'\n";
       continue;
     }
     auto selResult = it->second;
 
     for (auto& cb : selectionResultCBs) {
-      if (!cb(hint, selResult)) {
+      if (!cb(action, selResult)) {
         return std::unexpected("Aborted by callback");
       }
     }
 
     // Measurement config
     for (auto &f : selResult) {
-      auto pathEntry = PathEntry{{}, hint.activeInvocations, "", {}}; // TODO: Measurement level?
+      CallPath strPath;
+
+      if (pathSensitive) {
+        auto path = getCallPath(cg, *f).value_or({});
+        for (auto* pathNode : path) {
+          strPath.push_back(pathNode->getFunctionName());
+        }
+      }
+
+      auto pathEntry = PathEntry{strPath, action.activeInvocations, "", {}}; // TODO: Measurement level?
 
       assert(f->has<CaPIMD>());
-      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
+      if (action.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
         pathEntry.flags.push_back("scope_trigger");
       }
       mc.add(f->getFunctionName(), std::move(pathEntry));
