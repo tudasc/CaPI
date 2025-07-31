@@ -1,7 +1,7 @@
 # TEST talp_mpi_calls: --path-sensitive
 
-# TODO: change to:  talp_fns = has_talp_metrics(%%)
-bad_par_eff = talp_mpi_parallel_efficiency("<", 1, %%) # TODO: support floats
+talp_fns = has_talp_metrics(%%)
+bad_par_eff = talp_mpi_parallel_efficiency("<", 1, %talp_fns) # TODO: support floats
 leapfrog = by_name("LagrangeLeapFrog", %%)
 # TODO: support loops in the future
 

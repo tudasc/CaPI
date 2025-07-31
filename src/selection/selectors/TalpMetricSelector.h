@@ -95,6 +95,19 @@ class TalpMetricSelector : public MetricSelector<TalpMD> {
   }
 };
 
+class HasTalpMetricsSelector: public FilterSelector {
+ public:
+  explicit HasTalpMetricsSelector() = default;
+
+  bool accept(const metacg::CgNode* fNode) override {
+    return fNode->has<TalpMD>();
+  }
+
+  std::string getName() override {
+    return "HasTalpMetrics";
+  }
+};
+
 }
 
 #endif  // CAPI_TALPSELECTOR_H

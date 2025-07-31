@@ -175,10 +175,9 @@ RegisterSelector caSelectorDistinct("common_caller_distinct",
 
 RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCSelector>);
 
-//RegisterSelector hasTalpSelector("") // TODO:
-
 // TALP metrics
 // TODO: OMP metrics not added yet
+RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>);
 RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetricSelector<TalpMetricKind::CYCLES>>);
 RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetricSelector<TalpMetricKind::INSTRUCTIONS>>);
 RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetricSelector<TalpMetricKind::ELAPSED_TIME>>);
