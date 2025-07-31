@@ -29,25 +29,20 @@ struct PathEntry {
 
 using PathEntries = std::vector<PathEntry>;
 
-struct FunctionEntry {
-  std::string name;
-  PathEntries pathEntries;
-};
-
 
 class MeasurementConfig {
  public:
   void add(const std::string& name, PathEntry entry) {
-    auto& functionEntry = selectedFunctions[name];
-    functionEntry.pathEntries.push_back(std::move(entry));
+    auto& pathEntries = selectedFunctions[name];
+    pathEntries.push_back(std::move(entry));
   }
 
-  FunctionEntry& get(std::string& name) {
+  PathEntries& get(std::string& name) {
     return selectedFunctions[name];
   }
 
  private:
-  std::unordered_map<std::string, FunctionEntry> selectedFunctions;
+  std::unordered_map<std::string, PathEntries> selectedFunctions;
 
   friend void to_json(json&, const MeasurementConfig&);
   friend void from_json(const json&, MeasurementConfig&);
@@ -56,32 +51,32 @@ class MeasurementConfig {
 // PathEntry
 inline void to_json(json& j, const PathEntry& p) {
   j = json{
-      {"callPath", p.callPath},
-      {"selectedInvocations", p.selectedInvocations},
-      {"measurementLevel", p.measurementLevel},
+      {"path", p.callPath},
+      {"invocations", p.selectedInvocations},
+      {"measurement_level", p.measurementLevel},
       {"flags", p.flags}
   };
 }
 
 inline void from_json(const json& j, PathEntry& p) {
-  j.at("callPath").get_to(p.callPath);
-  j.at("selectedInvocations").get_to(p.selectedInvocations);
-  j.at("measurementLevel").get_to(p.measurementLevel);
+  j.at("path").get_to(p.callPath);
+  j.at("invocations").get_to(p.selectedInvocations);
+  j.at("measurement_level").get_to(p.measurementLevel);
   j.at("flags").get_to(p.flags);
 }
 
-// FunctionEntry
-inline void to_json(json& j, const FunctionEntry& f) {
-  j = json{
-      {"name", f.name},
-      {"pathEntries", f.pathEntries}
-  };
-}
-
-inline void from_json(const json& j, FunctionEntry& f) {
-  j.at("name").get_to(f.name);
-  j.at("pathEntries").get_to(f.pathEntries);
-}
+//// FunctionEntry
+//inline void to_json(json& j, const FunctionEntry& f) {
+//  j = json{
+//      {"name", f.name},
+//      {"path", f.pathEntries}
+//  };
+//}
+//
+//inline void from_json(const json& j, FunctionEntry& f) {
+//  j.at("name").get_to(f.name);
+//  j.at("path").get_to(f.pathEntries);
+//}
 
 // MeasurementConfig
 inline void to_json(json& j, const MeasurementConfig& config) {
@@ -94,8 +89,8 @@ inline void to_json(json& j, const MeasurementConfig& config) {
 inline void from_json(const json& j, MeasurementConfig& config) {
   config.selectedFunctions.clear();
   for (const auto& [name, value] : j.items()) {
-    FunctionEntry entry = value.get<FunctionEntry>();
-    config.selectedFunctions[name] = std::move(entry);
+    PathEntries entries = value.get<PathEntries>();
+    config.selectedFunctions[name] = std::move(entries);
   }
 }
 

@@ -55,6 +55,8 @@ double lookupMetric(const TalpMetrics& metrics) {
       return metrics.elapsed_time;
     case TalpMetricKind::PARALLEL_EFFICIENCY:
       return metrics.parallel_efficiency;
+    case TalpMetricKind::MPI_PARALLEL_EFFICIENCY:
+      return metrics.mpi_parallel_efficiency;
     case TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY:
       return metrics.mpi_communication_efficiency;
     case TalpMetricKind::MPI_LOAD_BALANCE:

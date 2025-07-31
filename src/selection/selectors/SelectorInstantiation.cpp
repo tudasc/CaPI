@@ -27,7 +27,7 @@ if (params.size() < expected) { \
 
 #define CHECK_KIND(param, expected) \
 if (param.kind != expected) { \
-      logError() << "Expected argument of type expected, but received " << param.kindNames[param.kind] << "\n"; \
+      logError() << "Expected argument of type " << param.kindNames[expected] << ", but received " << param.kindNames[param.kind] << "\n"; \
       return nullptr; \
 }
 
@@ -174,6 +174,8 @@ RegisterSelector caSelectorDistinct("common_caller_distinct",
     createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>);
 
 RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCSelector>);
+
+//RegisterSelector hasTalpSelector("") // TODO:
 
 // TALP metrics
 // TODO: OMP metrics not added yet

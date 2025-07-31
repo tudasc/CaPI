@@ -40,6 +40,7 @@ enum class OutputFormat { JSON, SIMPLE, SCOREP, LEGACY_JSON};
 struct Options {
   bool shouldWriteDOT{false};
   std::string dotFile;
+  bool pathSensitive{false};
   bool replaceInlined{false};
   bool traverseVirtualDtors{false};
   std::string cgFile;
@@ -74,6 +75,8 @@ void printHelp() {
   std::cout
       << " --traverse-virtual-dtors Enable traversal of virtual destructors, "
          "which may lead to an over-approximation of the function set.\n";
+  std::cout << " --path-sensitive Specify call paths in the generated measurement configuration. Requires the input graph"
+               "to be a forest.\n";
 }
 
 
@@ -132,6 +135,8 @@ bool parseOptions(int argc, char** argv, Options& opts) {
           opts.printSCCStats = true;
         } else if (option == "traverse-virtual-dtors") {
           opts.traverseVirtualDtors = true;
+        } else if (option == "path-sensitive") {
+          opts.pathSensitive = true;
         } else {
           std::cerr << "Invalid parameter --" << option << "\n";
           printHelp();
@@ -372,7 +377,7 @@ int main(int argc, char **argv) {
 
 
   // Execute the query
-  auto resultOrErr = runner.runQuery(queryStr, opts.debugMode);
+  auto resultOrErr = runner.runQuery(queryStr, opts.pathSensitive, opts.debugMode);
 
   if (!resultOrErr) {
     std::cerr << "Selection query failed with error: " << resultOrErr.error() << "\n";
@@ -418,175 +423,6 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
   }
-
-  return EXIT_SUCCESS;
-
-
-//  InstrumentationActions actions;
-//  if (!preprocessAST(*ast, actions)) {
-//    std::cerr << "Failed to pre-process query AST\n";
-//    return EXIT_FAILURE;
-//  }
-//  bool instActionsSpecified = !actions.empty();
-//
-//  std::cout << "AST after pre-processing:\n";
-//  std::cout << "------------------\n";
-//  ast->dump(std::cout);
-//  std::cout << "\n";
-//  std::cout << "------------------\n";
-//
-//  auto selectorGraph = buildSelectorGraph(*ast, !instActionsSpecified);
-//
-//  if (!selectorGraph) {
-//    std::cerr << "Could not build selector pipeline.\n";
-//    return EXIT_FAILURE;
-//  }
-//
-//  // If no actions specified, use full instrumentation of last defined selector instance
-//  if (!instActionsSpecified) {
-//    actions.push_back({capi::InstrumentationType::ALWAYS_INSTRUMENT,
-//                       selectorGraph->getEntryNodes().back()->getName()});
-//  } else {
-//    for (auto &action : actions) {
-//      selectorGraph->addEntryNode(action.selRefName);
-//    }
-//  }
-//
-//  std::cout << "Selector pipeline:\n";
-//  std::cout << "------------------\n";
-//  dumpSelectorGraph(std::cout, *selectorGraph);
-//  std::cout << "------------------\n";
-
-
-
-
-
-
-
-  // TODO: Add some kind of analysis management logic for selectors to request results
-//  StatementCountAnalysis sca;
-//  sca.run(helper);
-
-//  std::cout << "Running selector pipeline...\n";
-
-//  auto result = runSelectorPipeline(*selectorGraph, helper, opts.debugMode);
-
-//  bool legacyExport = opts.outputFormat != OutputFormat::JSON;
-
-
-//  MeasurementConfig mc;
-
-  // TODO: Get rid of old filter format
-//  FunctionFilter filter;
-
-//  for (auto &hint : actions) {
-//    auto it = result.find(hint.selRefName);
-//    if (it == result.end()) {
-//      logError() << "No selection results for '" << hint.selRefName << "'\n";
-//      continue;
-//    }
-//    auto selResult = it->second;
-//
-//    switch (hint.type) {
-//      case capi::InstrumentationType::ALWAYS_INSTRUMENT: {
-//        std::cout << "Selected " << selResult.size()
-//                  << " functions for instrumentation.\n";
-//        break;
-//      }
-//      case capi::InstrumentationType::BEGIN_TRIGGER: {
-//        std::cout << "Selected " << selResult.size()
-//                  << " functions triggering the start of measurement.\n";
-//        break;
-//      }
-//      case capi::InstrumentationType::END_TRIGGER: {
-//        std::cout << "Selected " << selResult.size()
-//                  << " functions triggering the end of measurement.\n";
-//        break;
-//      }
-//      case capi::InstrumentationType::SCOPE_TRIGGER: {
-//        std::cout << "Selected " << selResult.size()
-//                  << " functions triggering scope measurement.\n";
-//        break;
-//      }
-//      default:
-//        assert(false && "Unhandled instrumentation type");
-//    }
-
-//    auto afterPostProcessing = selResult;
-//
-//    // Only run inline compensation for functions that are actually measured.
-//    if (opts.replaceInlined && hint.type == InstrumentationType::ALWAYS_INSTRUMENT) {
-//      auto symSets = loadSymbolSets(opts.execFile);
-//      if (symSets.empty()) {
-//        std::cout << "Skipping inline compensation.\n";
-//      } else {
-//        afterPostProcessing =
-//            replaceInlinedFunctions(symSets, selResult, helper);
-//        std::cout << afterPostProcessing.size()
-//                  << " functions selected after inline compensation.\n";
-//      }
-//    }
-
-//    // Legacy function filter
-//    for (auto &f : afterPostProcessing) {
-//      filter.addIncludedFunction(f->getFunctionName(), hint.type);
-//      assert(f->has<CaPIMD>());
-//      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
-//        filter.addIncludedFunction(f->getFunctionName(),
-//                                   InstrumentationType::SCOPE_TRIGGER);
-//      }
-//    }
-
-//    // Measurement config
-//    for (auto &f : afterPostProcessing) {
-//      auto pathEntry = PathEntry{{}, hint.activeInvocations, "", {}}; // TODO: Measurement level?
-//
-//      assert(f->has<CaPIMD>());
-//      if (hint.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
-//        pathEntry.flags.push_back("scope_trigger");
-//      }
-//      mc.add(f->getFunctionName(), std::move(pathEntry));
-//    }
-//  }
-
-//  std::string outfile = opts.outfile;
-//  if (outfile.empty()) {
-//    const char* fileEnding = opts.outputFormat == OutputFormat::JSON || opts.outputFormat == OutputFormat::LEGACY_JSON ? ".json" : ".filt";
-//    outfile = opts.cgFile.substr(0, opts.cgFile.find_last_of('.')) + fileEnding;
-//  }
-//
-//  {
-//
-//    bool writeSuccess{false};
-//    switch (opts.outputFormat) {
-//      case OutputFormat::SIMPLE:
-//        writeSuccess = writeSimpleFilterFile(filter, outfile);
-//        break;
-//      case OutputFormat::SCOREP:
-//        writeSuccess = writeScorePFilterFile(filter, outfile);
-//        break;
-//      case OutputFormat::JSON:
-//        writeSuccess = write(mc, outfile);
-//        break;
-//      case OutputFormat::LEGACY_JSON:
-//        writeSuccess = writeJSONFilterFile(filter, outfile);
-//        break;
-//    }
-//    if (!writeSuccess) {
-//      std::cerr << "Error: Writing result file failed.\n";
-//      return EXIT_FAILURE;
-//    }
-//  }
-//
-//  if (opts.shouldWriteDOT) {
-//    std::ofstream os(opts.dotFile);
-//    if (os.is_open()) {
-//      writeDOT(helper, filter, {}, os);
-//    } else {
-//      std::cerr << "Could not write DOT file to '" << opts.dotFile << "'.\n";
-//      return EXIT_FAILURE;
-//    }
-//  }
 
   return EXIT_SUCCESS;
 }

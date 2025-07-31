@@ -29,21 +29,17 @@ for arg in "$@" ; do
 done
 
 #Running testcases
-testcases=$tc/*.capi
-fails=0
-for dir in $(find $tc -type d); do
-    testcases=${dir}/*.capi
-    for testcase in ${testcases}; do
-        mcgs=${dir}/*.mcg
-        for mcg in ${mcgs}; do
-            if [[ "$testcase" == "$testcases" ]]; then
-                break
-            fi
-            echo "Running testcase ${testcase} with ${mcg}"
-            runTestcase ${testcase} ${mcg}
+for dir in $(find "$tc" -type d); do
+    for testcase in "$dir"/*.capi; do
+        # Skip if no .capi files matched
+        [ -e "$testcase" ] || continue
+        for mcg in "$dir"/*.mcg; do
+            [ -e "$mcg" ] || continue
+            echo "Running test cases with CaPI file ${testcase} and ${mcg}"
+            runTestcase "$testcase" "$mcg"
             fail=$?
             echo "-------------------------------------------------------------------------------"
-            fails=$(($fails + $fail))
+            fails=$((fails + fail))
         done
     done
 done

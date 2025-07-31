@@ -61,7 +61,7 @@ std::optional<std::vector<const metacg::CgNode*>> getCallPath(const metacg::Call
   std::vector<const metacg::CgNode*> path;
   auto* n = &node;
   do {
-    auto callers = cg.getCallers(node);
+    auto callers = cg.getCallers(*n);
     // No more parents -> return
     if (callers.empty()) {
       return path;
