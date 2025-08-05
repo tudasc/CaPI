@@ -9,23 +9,20 @@ message(STATUS "Found MPI ${MPI_C_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
+option(ENABLE_INST_PASSES "Enable instrumentation passes (deprecated, do not work with up-to-date LLVM)" OFF)
+option(ENABLE_TESTING "Enable testing (requires lit)" ON)
+
 include(FetchContent)
 include(json)
 include(AddLLVM)
 include(clang-tidy)
 include(clang-format)
 include(llvm-util)
-
+include(metacg)
 include(talp)
 include(nesmik)
 
-option(ENABLE_INST_PASSES "Enable instrumentation passes (deprecated, do not work with up-to-date LLVM)" OFF)
-
-option(ENABLE_TESTING "Enable testing (requires lit)" ON)
-
 if (ENABLE_TESTING)
-  include(metacg)
-
   find_llvm_progs(FILECHECK_EXE "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
 
   if(LLVM_EXTERNAL_LIT)

@@ -16,7 +16,7 @@ list(APPEND CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
-include(ToolchainOptions)
+include(CapiToolchainOptions)
 #include(CMakePackageConfigHelpers)
 
 add_format_target(format-sources

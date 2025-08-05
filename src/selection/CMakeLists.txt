@@ -25,6 +25,7 @@ target_include_directories(capi_select
 target_include_directories(capi_select
         PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${METACG_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:include>
 )
 
