@@ -108,6 +108,7 @@ capi-test-selection:
         module use extern/modulefiles/
       fi
     - module load llvm/20.1.3
+    - molude load metacg/devel
     - cd $CAPI_BUILD
     - ninja capi-selection-test
 
