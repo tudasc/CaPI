@@ -1,7 +1,8 @@
 #!/bin/bash
 
-#source testfunctions
-source ./testfunctions
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+source "$script_dir/testfunctions"
 if [ "$#" -ne 1 ]; then
     echo "Invalid input argument!"
     echo "Usage: runTestCases -tc=path/to/testcase"
