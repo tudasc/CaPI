@@ -28,6 +28,8 @@ stages:
   - build-deps
   - build
   - test
+  - install
+  - install-test
   - integration-test
   - integration-test-profile
 
@@ -46,6 +48,7 @@ workflow:
       - GCC: 13
   variables:
     CAPI_BUILD: build-GCC-$GCC
+    CAPI_INSTALL: install-GCC-$GCC
 
 capi-download:
   stage: download
@@ -78,7 +81,7 @@ capi-build:
     - module load scorepnoplugin/7.1
     - module load dlb/3.5
     - module load metacg/devel
-    - cmake -S . -B $CAPI_BUILD -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DENABLE_NESMIK=OFF -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
+    - cmake -S . -B $CAPI_BUILD  -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_INSTALL_PREFIX="$CAPI_INSTALL" -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DENABLE_NESMIK=OFF -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
     - cmake --build $CAPI_BUILD --parallel
     - module purge
 
@@ -107,6 +110,37 @@ capi-test-selection:
     - module load llvm/20.1.3
     - cd $CAPI_BUILD
     - ninja capi-selection-test
+
+capi-install:
+  <<: *job-setup
+  stage: install
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/20.1.3
+    - module load scorepnoplugin/7.1
+    - module load dlb/3.5
+    - module load metacg/devel
+    - cmake --install $CAPI_BUILD
+
+capi-test-install:
+  <<: *job-setup
+  stage: install-test
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/20.1.3
+    - module load metacg/devel
+    - cd $CAPI_BUILD
+    - ctest -R "capi_test_install_configure" --verbose
+    - ctest -R "capi_test_install_build" --verbose
+    - ctest -R "capi_test_install_run" --verbose
 
 capi-build-example:
   <<: *job-setup
