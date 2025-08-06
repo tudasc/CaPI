@@ -235,7 +235,7 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
       CallPath strPath;
 
       if (pathSensitive) {
-        auto path = getCallPath(cg, *f).value_or({});
+        auto path = getCallPath(cg, *f).value_or(std::vector<const metacg::CgNode*>{});
         for (auto* pathNode : path) {
           strPath.push_back(pathNode->getFunctionName());
         }
