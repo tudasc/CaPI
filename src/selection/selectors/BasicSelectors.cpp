@@ -21,27 +21,29 @@ bool ExcludeListSelector::accept(const metacg::CgNode* fNode) {
 bool NameSelector::accept(const metacg::CgNode* fNode) {
   std::smatch nameMatch;
   bool matches;
-  assert(fNode->has<CaPIMD>());
-  auto& info = fNode->get<CaPIMD>()->value;
   if (isMangled) {
     auto name = fNode->getFunctionName();
     matches = std::regex_match(name, nameMatch, nameRegex);
-  } else if ((matches = std::regex_match(info.demangledName, nameMatch, nameRegex))) {
-    if (!parameterRegexes.empty()) {
-      if (isEmptyMatching)
-        matches = info.parameters.empty();
-      else if ((matches = (info.parameters.size() == parameterRegexes.size()))) {
-        for (int i = 0; i < info.parameters.size(); i++) {
-          if (!(matches = std::regex_match(info.parameters[i], nameMatch, parameterRegexes[i])))
-            break;
+  } else {
+    if (!fNode->has<CaPIMD>()) {
+      logError() << "Could not run NameSelector: demangled names not available!";
+      return false;
+    }
+    auto& info = fNode->get<CaPIMD>()->value;
+    if ((matches = std::regex_match(info.demangledName, nameMatch, nameRegex))) {
+      if (!parameterRegexes.empty()) {
+        if (isEmptyMatching)
+          matches = info.parameters.empty();
+        else if ((matches = (info.parameters.size() == parameterRegexes.size()))) {
+          for (int i = 0; i < info.parameters.size(); i++) {
+            if (!(matches = std::regex_match(info.parameters[i], nameMatch, parameterRegexes[i])))
+              break;
+          }
         }
       }
     }
   }
-  //    if (!matches)
-  //       std::cout << fName << " does not match "  << "\n";
-  //    else
-  //        std::cout << fName << "matches!\n";
+
   return matches;
 }
 

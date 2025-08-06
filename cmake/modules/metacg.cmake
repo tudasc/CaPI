@@ -15,6 +15,7 @@ if(USE_EXTERNAL_METACG)
                 message(STATUS "CGCollector: ${CGC_EXE}")
         endif ()
 else()
+        message(WARNING "Building MetaCG alongside CaPI is an experimental feature. Please revert to USE_EXTERNAL_METACG if you encounter errors")
         set(METACG_BUILD_CGCOLLECTOR ON CACHE BOOL "" FORCE)
         set(METACG_BUILD_GRAPH_TOOLS ON CACHE BOOL "" FORCE)
         FetchContent_Declare(

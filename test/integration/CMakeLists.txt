@@ -1,7 +1,5 @@
 set(CAPI_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-
-
 macro(make_executable input output)
     # Executable permission: In CMAKE 3.19 we can simply use file(CHMOD) instead of file(copy) workaround
     configure_file(${input} ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output} @ONLY)

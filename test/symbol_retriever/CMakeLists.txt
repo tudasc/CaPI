@@ -34,5 +34,5 @@ add_lit_testsuite(capi-symbol-retriever-test
 
 add_test(
         NAME ctest_symbol_retriever_suite COMMAND
-        ${LIT_COMMAND_I} -j 1 --param site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
+        ${LIT_EXE} -j 1 --param site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
 )

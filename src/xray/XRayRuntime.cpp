@@ -30,7 +30,7 @@
 #include <mpi.h>
 #endif
 
-CAPI_DEFINE_VERBOSITY
+CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 namespace capi {
 

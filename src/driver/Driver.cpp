@@ -27,7 +27,7 @@
 // MetaCG
 #include "io/MCGReader.h"
 
-CAPI_DEFINE_VERBOSITY
+CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 using namespace capi;
 
