@@ -108,7 +108,7 @@ capi-test-selection:
         module use extern/modulefiles/
       fi
     - module load llvm/20.1.3
-    - molude load metacg/devel
+    - module load metacg/devel
     - cd $CAPI_BUILD
     - ninja capi-selection-test
 
@@ -155,6 +155,7 @@ capi-build-example:
     - module load llvm/20.1.3
     - module load scorepnoplugin/7.1
     - module load dlb/3.5
+    - module load metacg/devel
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
     - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." all
@@ -174,6 +175,7 @@ capi-test-example-selection:
     - module load llvm/20.1.3
     - module load scorepnoplugin/7.1
     - module load dlb/3.5
+    - module load metacg/devel
     - cd $CAPI_BUILD/test/integration
     - ./runTestCases -tc=input
 
