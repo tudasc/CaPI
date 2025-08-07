@@ -77,7 +77,6 @@ template<typename MetricSelectorT>
 SelectorPtr createMetricSelector(const std::vector<Param>& params) {
     CHECK_NUM_ARGS(MetricSelector, params, 2)
     CHECK_KIND(params[0], Param::STRING)
-    CHECK_KIND(params[1], Param::INT)
 
     auto opStr = std::get<std::string>(params[0].val);
 
@@ -86,10 +85,12 @@ SelectorPtr createMetricSelector(const std::vector<Param>& params) {
       logError() << "Invalid comparison operator: " << opStr << "\n";
       return nullptr;
     }
-
-    auto intVal = std::get<int>(params[1].val);
-
-    return std::make_unique<MetricSelectorT>(*cmpOp, intVal);
+    auto selectorOrErr = MetricSelectorT::create(*cmpOp, params[1]);
+    if (!selectorOrErr) {
+      logError() << "Could not instantiate selector: " << selectorOrErr.error() << "\n";
+      return {};
+    }
+    return std::make_unique<MetricSelectorT>(std::move(selectorOrErr.value()));
 }
 
 // TODO: Could probably use same function as createMetricSelector
