@@ -80,11 +80,12 @@ double lookupMetric(const TalpMetrics& metrics) {
   abort();
 }
 
-template <TalpMetricKind MetricT>
-class TalpMetricSelector : public MetricSelector<TalpMD> {
+template <TalpMetricKind MetricT, typename ValT>
+class TalpMetricSelector : public MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT> {
+  friend class MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>;
+  TalpMetricSelector(CmpOp op, Param val) : MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>("TalpMetricsSelector", op, val) {}
  public:
-  TalpMetricSelector(IntCmpOp op, int val) : MetricSelector("TalpMetricsSelector", op, val) {}
-  long readMetric(TalpMD& md) override {
+  ValT readMetric(TalpMD& md) override {
     std::vector<std::string> path; // TODO: Refactor
     auto metrics = md.findMetrics(path);
     if (!metrics) {

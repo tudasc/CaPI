@@ -178,16 +178,16 @@ RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<I
 // TALP metrics
 // TODO: OMP metrics not added yet
 RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>);
-RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetricSelector<TalpMetricKind::CYCLES>>);
-RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetricSelector<TalpMetricKind::INSTRUCTIONS>>);
-RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetricSelector<TalpMetricKind::ELAPSED_TIME>>);
-RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetricSelector<TalpMetricKind::NUM_MPI_CALLS>>);
-RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::PARALLEL_EFFICIENCY>>);
-RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_PARALLEL_EFFICIENCY>>);
-RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY>>);
-RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE>>);
-RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_IN>>);
-RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_OUT>>);
+RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetricSelector<TalpMetricKind::CYCLES, long>>);
+RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetricSelector<TalpMetricKind::INSTRUCTIONS, long>>);
+RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetricSelector<TalpMetricKind::ELAPSED_TIME, long>>);
+RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetricSelector<TalpMetricKind::NUM_MPI_CALLS,long>>);
+RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::PARALLEL_EFFICIENCY, float>>);
+RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_PARALLEL_EFFICIENCY, float>>);
+RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY, float>>);
+RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE, float>>);
+RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_IN, float>>);
+RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_OUT, float>>);
 
 }
 
