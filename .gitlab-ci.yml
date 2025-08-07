@@ -158,7 +158,7 @@ capi-build-example:
     - module load metacg/devel
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
-    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." all
+    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." lulesh2.0_scorep lulesh2.0_extrae
     - cd ../AMG2013 
     - make veryclean
     - make INCLUDE_LFLAGS="-lm  -fopenmp --gcc-toolchain=$(dirname $(which gcc))/.." all
