@@ -1,2 +1,8 @@
-build/
+build*
 .idea
+.cache/
+
+# Spack
+spack.lock
+spack.yaml
+.spack-env/
