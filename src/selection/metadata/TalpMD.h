@@ -180,7 +180,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
 
   const char* getKey() const final { return key; }
 
-  void merge(const MetaData& toMerge, const metacg::MergeAction&, const metacg::GraphMapping&) final {
+  void merge(const MetaData& toMerge, std::optional<metacg::MergeAction>, const metacg::GraphMapping&) final {
     assert(toMerge.getKey() == getKey() && "Trying to merge TalpMD with meta data of different types");
     metacg::MCGLogger::logWarn(
         "TalpMD is not meant to be merged, as it is attached to the completed static CG. Keeping MD of original node.");

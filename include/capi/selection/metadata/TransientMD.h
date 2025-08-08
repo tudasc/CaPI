@@ -29,7 +29,7 @@ class TransientMD : public metacg::MetaData::Registrar<TransientMD<DataT, KeyT>>
 
   nlohmann::json toJson(metacg::NodeToStrMapping&) const final { return {}; }
 
-  void merge(const metacg::MetaData& toMerge, const metacg::MergeAction&, const metacg::GraphMapping& ) final {}
+  void merge(const metacg::MetaData& toMerge, std::optional<metacg::MergeAction>, const metacg::GraphMapping& ) final {}
 
   std::unique_ptr<metacg::MetaData> clone() const final {
     return std::unique_ptr<TransientMD<DataT, KeyT>>(new TransientMD<DataT, KeyT>(*this));
