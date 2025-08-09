@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <algorithm>
+#include <cctype>
 
 #include "capi/selection/SelectionSpecAST.h"
 
@@ -280,8 +281,8 @@ public:
 
     char c = reader.peek();
 
-    while (c == '-' || c == '.' || isdigit(c)) {
-      if (c == '.')
+    while (c == '-' || c == '.' || isdigit(c) || std::tolower(c) == 'e') {
+      if (c == '.' || std::tolower(c) == 'e')
         isFloat = true;
       numberStr << c;
       c = reader.next();
