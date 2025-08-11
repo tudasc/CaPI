@@ -277,8 +277,6 @@ public:
     std::stringstream numberStr;
     bool isFloat{false};
 
-    // TODO: Currently does not allow for scientific notation or space after the minus for negative numbers
-
     char c = reader.peek();
 
     while (c == '-' || c == '.' || isdigit(c) || std::tolower(c) == 'e') {
