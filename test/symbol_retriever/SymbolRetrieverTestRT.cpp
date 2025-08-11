@@ -2,7 +2,7 @@
 // Created by sebastian on 28.10.24.
 //
 
-#include "SymbolRetriever.h"
+#include "capi/symbol_retriever/SymbolRetriever.h"
 
 #include <iostream>
 

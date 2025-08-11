@@ -1,13 +1,50 @@
 #!/bin/bash
 #
 
+export OMPI_C=@CC_PATH@
 export OMPI_CXX=@CXX_PATH@
 
 CAPI_LIB_GNU=@CAPI_LIB_DIR@/xray/libcapixray_gnu.a
 CAPI_LIB_SCOREP=@CAPI_LIB_DIR@/xray/libcapixray_scorep.a
 CAPI_LIB_EXTRAE=@CAPI_LIB_DIR@/xray/libcapixray_extrae.a
+CAPI_LIB_NESMIK=@CAPI_LIB_DIR@/xray/libcapixray_nesmik.a
 
 LLVM_LIBS=`@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs`
+
+NESMIK_LIB="@NESMIK_LIB_PATH@"
+DLB_LIB="@DLB_LIBRARY@"
+
+XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
+
+VERBOSE=0
+
+ARGS=()
+#Command option
+for arg in "$@" ; do
+    case $arg in
+        --capi-interface=*)
+            CAPI_INTERFACE="${arg#*=}"
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -*)
+            echo "Unknown wrapper option $arg"
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# set -- "${ARGS[@]}"  #  resets the positional parameters ($@) with the values stored in ARGS.
+
+# set first argument as compiler
+COMPILER=$1;
+shift
 
 linking=yes
 for arg in "$@" ; do
@@ -18,40 +55,37 @@ for arg in "$@" ; do
     esac
 done
 
-#Command option
-for arg in "$@" ; do
-    case $arg in
-        --capi-interface=*)
-            CAPI_INTERFACE="${arg#*=}"
-            shift   
-            ;;
-        *)
-            set -- "$@" "$arg"
-            shift
-            ;;
-    esac
-done
-
-#scorep_init.c:
-@SCOREP_CONFIG@ --mpp=mpi  --adapter-init --compiler > scorep_init.c
-#scorep_init.o:
-clang++ -c -x c scorep_init.c
+CMD=""
 
 if [[ "$linking" == yes ]] 
 then 
     if [[ "$CAPI_INTERFACE" == gnu ]]; then
-        echo "gnu"
-        clang++ -Wl,-whole-archive $CAPI_LIB_GNU -Wl,-no-whole-archive -fxray-instrument $LLVM_LIBS $@
+
+        CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_GNU -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
     elif [[ "$CAPI_INTERFACE" == scorep ]]; then
-        echo "scorep"
-        clang++ scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@  --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi  --compiler` -Wl,-end-group -fxray-instrument $LLVM_LIBS $@
+        #scorep_init.c:
+        @SCOREP_CONFIG@ --mpp=mpi  --adapter-init --compiler > scorep_init.c
+        #scorep_init.o:
+        $COMPILER -c -x c scorep_init.c
+        CMD="$COMPILER scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@  --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi  --compiler` -Wl,-end-group $XRAY_FLAGS $LLVM_LIBS $@"
     elif [[ "$CAPI_INTERFACE" == extrae ]]; then
-        echo "extrae"
-        clang++ -Wl,-whole-archive $CAPI_LIB_EXTRAE -Wl,-no-whole-archive -fxray-instrument $LLVM_LIBS $@
+        CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_EXTRAE -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
+    elif [[ "$CAPI_INTERFACE" == nesmik ]]; then
+        CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_NESMIK -Wl,-no-whole-archive $NESMIK_LIB $DLB_LIB $XRAY_FLAGS $LLVM_LIBS $@"
     else
         exit 1
     fi
 else
-    clang++ -fxray-instrument -fxray-instruction-threshold=1 $@
+    CMD="$COMPILER $XRAY_FLAGS $@"
 fi
+
+if [[ "$VERBOSE" == 1 ]]; then
+    API_INFO=""
+    if [[ -n $CAPI_INTERFACE ]]; then
+        API_INFO=" (api=$CAPI_INTERFACE)"
+    fi
+    echo "Compiler command${API_INFO}: $CMD"
+fi
+eval $CMD
+
 

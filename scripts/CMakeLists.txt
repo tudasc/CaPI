@@ -11,7 +11,7 @@ endmacro()
 
 function(configure_script input output)
     set(CAPI_BIN_DIR ${CMAKE_BINARY_DIR})
-    set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
+    set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/src/)
 
     set(LLVM_CONFIG ${LLVM_BINARY_DIR}/bin/llvm-config)
     set(SCOREP_CONFIG ${SCOREP_DIR}/bin/scorep-config)
