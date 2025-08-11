@@ -15,10 +15,10 @@
 // RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_name.filt | c++filt | sort | %filecheck %s -check-prefix=NAME-MANGLED
 //
-// RUN: infile="%s"; %capi -i 'by_name("(main)|(a)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("(main)|(a)", %%%%)' -o %s_name.json --output-format legacy_json ${infile%%.*}.ipcg
 // RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON
 //
-// RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format json ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i 'by_name("@(main)|(_Z1ai)", %%%%)' -o %s_name.json --output-format legacy_json ${infile%%.*}.ipcg
 // RUN: cat %s_name.json | c++filt | %filecheck %s -check-prefix=NAME-JSON-MANGLED
 //
 // RUN: infile="%s"; %capi -i 'by_name("@^(?!_Z1).*", %%%%)' -o %s_name2.filt --output-format simple ${infile%%.*}.ipcg

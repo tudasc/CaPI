@@ -1,0 +1,257 @@
+//
+// Created by sebastian on 28.10.21.
+//
+
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <string>
+#include <unordered_set>
+
+#include "capi/selection/Demangle.h"
+#include "capi/selection/DriverUtils.h"
+#include "capi/selection/FunctionFilter.h"
+#include "capi/selection/MeasurementConfig.h"
+#include "capi/support/Logging.h"
+
+#include "capi/selection/SelectorBuilder.h"
+#include "capi/selection/SelectorGraph.h"
+#include "capi/selection/SpecParser.h"
+#include "capi/selection/StatementCountAnalysis.h"
+#include "capi/selection/TraversalHelper.h"
+#include "capi/selection/metadata//CaPIMD.h"
+#include "capi/symbol_retriever/SymbolRetriever.h"
+
+namespace capi {
+
+ASTPtr parseSelectionQuery(const std::string& query) {
+  auto stripped = stripComments(query);
+  SpecParser parser(stripped);
+  auto ast = parser.parse();
+  return ast;
+}
+
+std::string loadFromFile(std::string_view filename) {
+  if (filename.empty()) {
+    std::cerr << "Given filename is empty!\n";
+    return {};
+  }
+
+  std::ifstream in(std::string{filename});
+
+  std::string queryStr;
+
+  std::string line;
+  while (std::getline(in, line)) {
+    queryStr += line + '\n';
+  }
+  return queryStr;
+}
+
+bool isForest(const metacg::Callgraph& cg) {
+  for (auto& node : cg.getNodes()) {
+    if (cg.getCallers(*node).size() > 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::optional<std::vector<const metacg::CgNode*>> getCallPath(const metacg::Callgraph& cg, const metacg::CgNode& node) {
+  std::vector<const metacg::CgNode*> path;
+  auto* n = &node;
+  do {
+    auto callers = cg.getCallers(*n);
+    // No more parents -> return
+    if (callers.empty()) {
+      return path;
+    }
+    // Abort if the call path is ambiguous
+    if (callers.size() > 1) {
+      return std::nullopt;
+    }
+    n = *callers.begin();
+    if (std::find(path.begin(), path.end(), n) != path.end()) {
+      // Found cycle
+      return std::nullopt;
+    }
+    path.insert(path.begin(), n);
+  } while(true);
+  return {};
+}
+
+
+FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
+                                    const FunctionSet &functions,
+                                    TraversalHelper &helper) {
+
+  FunctionSet newSet;
+
+  int numAdded = 0;
+
+  std::function<void(const metacg::CgNode &, bool,
+                     std::unordered_set<const metacg::CgNode *>)>
+      addValidCallers =
+          [&](const metacg::CgNode &node, bool trigger,
+              std::unordered_set<const metacg::CgNode *> visited) {
+            visited.insert(&node);
+            auto nodeInfo = helper.get(&node);
+            for (auto *caller : nodeInfo.getCallers()) {
+              if (visited.find(caller) != visited.end()) {
+                continue;
+              }
+              if (findSymbol(symSets, caller->getFunctionName())) {
+                if (addToSet(newSet, caller)) {
+                  if (trigger) {
+                    assert(caller->has<CaPIMD>());
+                    caller->get<CaPIMD>()->value.isTrigger = true;
+                  }
+                  numAdded++;
+                }
+              } else {
+                addValidCallers(*caller, trigger, visited);
+              }
+            }
+          };
+
+  FunctionSet notFound;
+
+  for (auto &fn : functions) {
+    if (findSymbol(symSets, fn->getFunctionName())) {
+      newSet.insert(fn);
+    } else {
+      notFound.insert(fn);
+    }
+  }
+  std::cout << notFound.size()
+            << " functions could not be located in the executable, likely due "
+               "to inlining.\n";
+
+  int numProcessed = 0;
+  int numBetweenOutputs = notFound.size() / 10;
+  int nextOutput = numBetweenOutputs;
+
+  for (auto &fn : notFound) {
+    if (!fn) {
+      std::cerr << "Unable to find function in call graph - skipping.\n";
+      continue;
+    }
+    // Recursively looks for the first available callers and adds them.
+    assert(fn->has<CaPIMD>());
+    addValidCallers(*fn, fn->get<CaPIMD>()->value.isTrigger, {});
+    numProcessed++;
+
+    // Status output
+    if (numBetweenOutputs >= 10) {
+      if (numProcessed >= nextOutput) {
+        logInfo() << (int)((numProcessed / (float)notFound.size()) * 100)
+                  << "% of inlined functions processed...\n";
+        nextOutput += numBetweenOutputs;
+      }
+    }
+  }
+
+  std::cout << numAdded << " callers of missing functions added.\n";
+
+  return newSet;
+}
+
+SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtors) : cg(cg), helper(cg, traverseVirtualDtors) {
+  // TODO: Add some kind of analysis management logic for selectors to request results
+  StatementCountAnalysis sca;
+  sca.run(helper);
+}
+
+std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool pathSensitive, bool debugMode) {
+  auto ast = parseSelectionQuery(query);
+  if (!ast) {
+    return std::unexpected("Failed to parse selection query");
+  }
+
+  for (auto& cb : astParsedCBs) {
+    if (!cb(*ast)) {
+      return std::unexpected("Aborted by callback");
+    }
+  }
+
+  InstrumentationActions actions;
+  if (!preprocessAST(*ast, actions)) {
+    return std::unexpected("Failed to pre-process query AST");
+  }
+  for (auto& cb : astProcessedCBs) {
+    if (!cb(*ast)) {
+      return std::unexpected("Aborted by callback");
+    }
+  }
+
+  bool instActionsSpecified = !actions.empty();
+
+  auto selectorGraph = buildSelectorGraph(*ast, !instActionsSpecified);
+  if (!selectorGraph) {
+    return std::unexpected("Could not build selector pipeline");
+  }
+
+  // If no actions specified, use full instrumentation of last defined selector instance
+  if (!instActionsSpecified) {
+    actions.push_back({capi::InstrumentationType::ALWAYS_INSTRUMENT,
+                       selectorGraph->getEntryNodes().back()->getName()});
+  } else {
+    for (auto &action : actions) {
+      selectorGraph->addEntryNode(action.selRefName);
+    }
+  }
+
+  for (auto& cb : selectorGraphBuiltCBs) {
+    if (!cb(*selectorGraph)) {
+      return std::unexpected("Aborted by callback");
+    }
+  }
+
+  auto result = runSelectorPipeline(*selectorGraph, helper, debugMode);
+
+  MeasurementConfig mc;
+
+  if (pathSensitive && !isForest(cg)) {
+    logError() << "Warning: path sensitive selection is only possible if the call graph is a forest.\n";
+    pathSensitive = false;
+  }
+
+  for (auto & action : actions) {
+    auto it = result.find(action.selRefName);
+    if (it == result.end()) {
+      logError() << "Warning: no selection results for '" << action.selRefName << "'\n";
+      continue;
+    }
+    auto selResult = it->second;
+
+    for (auto& cb : selectionResultCBs) {
+      if (!cb(action, selResult)) {
+        return std::unexpected("Aborted by callback");
+      }
+    }
+
+    // Measurement config
+    for (auto &f : selResult) {
+      CallPath strPath;
+
+      if (pathSensitive) {
+        auto path = getCallPath(cg, *f).value_or(std::vector<const metacg::CgNode*>{});
+        for (auto* pathNode : path) {
+          strPath.push_back(pathNode->getFunctionName());
+        }
+      }
+
+      auto pathEntry = PathEntry{strPath, action.activeInvocations, "", {}}; // TODO: Measurement level?
+
+      assert(f->has<CaPIMD>());
+      if (action.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
+        pathEntry.flags.push_back("scope_trigger");
+      }
+      mc.add(f->getFunctionName(), std::move(pathEntry));
+    }
+  }
+
+  return mc;
+}
+
+}

@@ -1,0 +1,18 @@
+{
+    "_format": {
+        "name": "measurement_config",
+        "version": "1.0"
+    },
+    "selection": {
+        "MPI_Abort": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": [
+                    "_Z14InitMeshDecompiiPiS_S_S_"
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,90 @@
+{
+    "_CG": {
+        "meta": {},
+        "nodes": {
+            "0": {
+                "callees": {},
+                "functionName": "MPI_Abort",
+                "hasBody": false,
+                "meta": {
+                    "talp": [
+                        {
+                            "metrics": {
+                                "cycles": 24536695378886.0,
+                                "elapsedTime": 8734734334.0,
+                                "instructions": 116626698039776.0,
+                                "mpiCommunicationEfficiency": 0.75,
+                                "mpiLoadBalance": 0.6700000166893005,
+                                "mpiLoadBalanceIn": 0.8600000143051147,
+                                "mpiLoadBalanceOut": 0.7900000214576721,
+                                "mpiParallelEfficiency": 0.5099999904632568,
+                                "numCpus": 28672,
+                                "numMpiCalls": 6346000,
+                                "numOmpParallels": 286720,
+                                "numOmpTasks": 0,
+                                "ompLoadBalance": 1.0,
+                                "ompParallelEfficiency": 0.3400000035762787,
+                                "ompSchedulingEfficiency": 1.0,
+                                "ompSerializationEfficiency": 0.3400000035762787,
+                                "parallelEfficiency": 0.12999999523162842
+                            },
+                            "path": []
+                        }
+                    ]
+                },
+                "origin": null
+            },
+            "1": {
+                "callees": {
+                    "2": {}
+                },
+                "functionName": "_Z14InitMeshDecompiiPiS_S_S_",
+                "hasBody": false,
+                "meta": {},
+                "origin": null
+            },
+            "2": {
+                "callees": {},
+                "functionName": "MPI_Abort",
+                "hasBody": false,
+                "meta": {
+                    "talp": [
+                        {
+                            "metrics": {
+                                "cycles": 182608915.0,
+                                "elapsedTime": 1725771.0,
+                                "instructions": 80455338.0,
+                                "mpiCommunicationEfficiency": 1.0,
+                                "mpiLoadBalance": 0.009999999776482582,
+                                "mpiLoadBalanceIn": 0.05000000074505806,
+                                "mpiLoadBalanceOut": 0.3100000023841858,
+                                "mpiParallelEfficiency": 0.009999999776482582,
+                                "numCpus": 28672,
+                                "numMpiCalls": 0,
+                                "numOmpParallels": 7168,
+                                "numOmpTasks": 0,
+                                "ompLoadBalance": 0.7799999713897705,
+                                "ompParallelEfficiency": 0.6399999856948853,
+                                "ompSchedulingEfficiency": 0.9700000286102295,
+                                "ompSerializationEfficiency": 0.8500000238418579,
+                                "parallelEfficiency": 0.6399999856948853
+                            },
+                            "path": [
+                                "_Z14InitMeshDecompiiPiS_S_S_"
+                            ]
+                        }
+                    ]
+                },
+                "origin": null
+            }
+        }
+    },
+    "_MetaCG": {
+        "generator": {
+            "name": "MetaCG",
+            "sha": "7e409592c27de3d2bad0810ed8868b51546c9595",
+            "version": "0.7"
+        },
+        "version": "4.0"
+    }
+}

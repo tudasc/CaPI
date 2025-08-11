@@ -1,3 +1,5 @@
+# TEST isc:
+
 application_fns = subtract(%%, in_system_header(%%))
 isc_filtered = inclusive_statement_count(">=", 100, %application_fns)
 callpaths = on_call_path_to(%isc_filtered)
