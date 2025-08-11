@@ -32,14 +32,25 @@ std::unique_ptr<MeasurementConfig> read(const std::string inFile) {
   nlohmann::json j;
   in >> j;
 
+  if (!j.contains("_format")) {
+    logError() << "Missing expected '_format' entry\n";
+    return {};
+  }
+
   auto& jFormat = j.at("_format");
   if (jFormat.at("version") != "1.0") {
     logError() << "Only supporting measurement config file format 1.0\n";
     return {};
   }
 
+  if (!j.contains("selection")) {
+    logError() << "Missing expected 'selection' entry\n";
+    return {};
+  }
+  auto& jSelection = j.at("selection");
+
   auto config = std::make_unique<MeasurementConfig>();
-  j.get_to(*config);
+  jSelection.get_to(*config);
   return config;
 }
 

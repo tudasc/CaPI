@@ -8,6 +8,8 @@
 #include "capi/support/Timer.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 #include "capi/selection/FunctionFilter.h"
+#include "capi/selection/MeasurementConfig.h"
+#include "capi/selection/MeasurementConfigIO.h"
 #include "CallLogger.h"
 
 #include <cstddef>
@@ -158,26 +160,39 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   bool noFilter{true};
   FunctionFilter filter;
-  auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
-  if (filterEnv) {
-    Timer timer("[Info] Loading filter file took ", std::cout);
-    bool success{false};
-    if (0 == strncmp( filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
-      success = readJSONFilterFile(filter, filterEnv);
-    } else {
-      success = readScorePFilterFile(filter, filterEnv);
-    }
-    if (success) {
-      logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
+
+  std::unique_ptr<MeasurementConfig> mc;
+  auto mcEnv = std::getenv("CAPI_MEASUREMENT_CONFIG");
+  if (mcEnv) {
+    logInfo() << "Loading measurement config from " << mcEnv << "...\n";
+    mc = read(mcEnv);
+    if (mc) {
+      filter = mc->createFunctionFilter();
       noFilter = false;
       shouldInit = true;
-    } else {
-      logError() << "Failed to read filter file from " << filterEnv << "\n";
-      return;
     }
-
   } else {
-    logInfo() << "No CaPI filtering file specified.\n";
+    auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
+    if (filterEnv) {
+      Timer timer("[Info] Loading filter file took ", std::cout);
+      bool success{false};
+      if (0 == strncmp(filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
+        success = readJSONFilterFile(filter, filterEnv);
+      } else {
+        success = readScorePFilterFile(filter, filterEnv);
+      }
+      if (success) {
+        logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
+        noFilter = false;
+        shouldInit = true;
+      } else {
+        logError() << "Failed to read filter file from " << filterEnv << "\n";
+        return;
+      }
+
+    } else {
+      logInfo() << "No CaPI filtering file specified.\n";
+    }
   }
 
   if (!shouldInit) {

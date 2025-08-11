@@ -5,6 +5,7 @@ set(SOURCES
         Demangle.cpp
         DOTWriter.cpp
         FunctionFilter.cpp
+        MeasurementConfig.cpp
         MeasurementConfigIO.cpp
         Preprocessor.cpp
         SpecParser.cpp

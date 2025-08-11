@@ -14,6 +14,8 @@ using json = nlohmann::json;
 
 namespace capi {
 
+class FunctionFilter;
+
 // TODO: Remove duplicate declaration (see InstrumentationHint.h)
 using InvocationRange = std::pair<unsigned, unsigned>;
 using InvocationRanges = std::vector<InvocationRange>;
@@ -29,7 +31,6 @@ struct PathEntry {
 
 using PathEntries = std::vector<PathEntry>;
 
-
 class MeasurementConfig {
  public:
   void add(const std::string& name, PathEntry entry) {
@@ -40,6 +41,8 @@ class MeasurementConfig {
   PathEntries& get(std::string& name) {
     return selectedFunctions[name];
   }
+
+  FunctionFilter createFunctionFilter() const;
 
  private:
   std::unordered_map<std::string, PathEntries> selectedFunctions;

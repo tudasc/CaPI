@@ -3,7 +3,9 @@ set(CAPI_XRAY_SOURCES
         XRayRuntime.cpp
         CallLogger.cpp
         ../symbol_retriever/SymbolRetriever.cpp
-        ../selection/FunctionFilter.cpp)
+        ../selection/FunctionFilter.cpp
+        ../selection/MeasurementConfig.cpp
+        ../selection/MeasurementConfigIO.cpp)
 
 add_library(capixray_gnu STATIC ${CAPI_XRAY_SOURCES} GNUInterface.cpp)
 add_json(capixray_gnu)
