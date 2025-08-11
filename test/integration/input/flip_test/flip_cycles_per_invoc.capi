@@ -1,7 +1,7 @@
-# TEST flip_cycles_per_invoc: 
+# TEST cycles_per_invoc: 
 
 flip_fns = has_flip_metrics(%%)
-high_cycles_per_invoc = flip_cycles_per_invocation("<", 50, %flip_fns)
+high_cycles_per_invoc = flip_cycles_per_invocation(">", 50, %flip_fns)
 above = on_call_path_to(%high_cycles_per_invoc)
 
 !instrument(%above)

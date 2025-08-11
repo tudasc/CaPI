@@ -1,4 +1,4 @@
-# TEST flip_cycles_per_invoc: 
+# TEST cycles: 
 
 flip_fns = has_flip_metrics(%%)
 high_cycles = flip_cycles(">", 1000, %flip_fns)

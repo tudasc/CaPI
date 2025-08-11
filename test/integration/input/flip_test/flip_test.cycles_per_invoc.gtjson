@@ -1,0 +1,32 @@
+{
+    "_format": {
+        "name": "measurement_config",
+        "version": "1.0"
+    },
+    "selection": {
+        "foo": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ],
+        "foobar": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ],
+        "main": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ]
+    }
+}

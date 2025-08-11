@@ -1,7 +1,7 @@
-# TEST flip_cycles_per_invoc: 
+# TEST invocs: 
 
 flip_fns = has_flip_metrics(%%)
-low_invocs = flip_invocations("<", 1000, %flip_fns)
+low_invocs = flip_invocations("<", 100, %flip_fns)
 
 !instrument(%low_invocs)
 

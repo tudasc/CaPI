@@ -4,6 +4,9 @@
         "nodes": {
             "main": {
                 "callees": {
+                    "foo": {},
+                    "bar": {},
+                    "foobar": {}
                 },
                 "functionName": "main",
                 "hasBody": false,
