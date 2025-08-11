@@ -252,11 +252,11 @@ bool MetricSelector<DerivedT,MDType,ValT>::accept(const metacg::CgNode* fNode) {
   // We want to compare as the type given by the input parameter
   switch(param.kind) {
     case Param::BOOL:
-      return evalCmpOp<bool>(cmpOp, std::get<bool>(param.val), static_cast<bool>(fnVal));
+      return evalCmpOp<bool>(cmpOp, static_cast<bool>(fnVal), std::get<bool>(param.val));
     case Param::INT:
-      return evalCmpOp<long>(cmpOp, std::get<int>(param.val), static_cast<long>(fnVal));
+      return evalCmpOp<long>(cmpOp, static_cast<long>(fnVal), std::get<int>(param.val));
     case Param::FLOAT:
-      return evalCmpOp<float>(cmpOp, std::get<float>(param.val), static_cast<float>(fnVal), 1e-12);
+      return evalCmpOp<float>(cmpOp, static_cast<float>(fnVal), std::get<float>(param.val), 1e-12);
     case Param::STRING:
     default:
       assert(false && "Unhandled parameter type");
