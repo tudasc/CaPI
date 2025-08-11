@@ -1,0 +1,8 @@
+# TEST flip_cycles_per_invoc: 
+
+flip_fns = has_flip_metrics(%%)
+low_invocs = flip_invocations("<", 1000, %flip_fns)
+
+!instrument(%low_invocs)
+
+# capi -f invocs.capi --output-format json -o /dev/stdout flip_test.mcg
