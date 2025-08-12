@@ -6,24 +6,29 @@
 #define CAPI_NESMIKINTERFACE_H
 
 namespace capi {
-class NeSmiKMode {
- public:
-  virtual ~NeSmiKMode() = default;
-  virtual void handleRegionEnter(int id) = 0;
-  virtual void handleRegionExit(int id) = 0;
+
+enum class Mode {
+  PROFILE, TRACE
 };
 
-class ProfilingMode: public NeSmiKMode {
- public:
-  ProfilingMode(bool dynamicFiltering) : dynamicFiltering(dynamicFiltering) {}
-
-  void handleRegionEnter(int id) override;
-
-  void handleRegionExit(int id) override;
- private:
-  bool dynamicFiltering;
-};
-
+//class NeSmiKMode {
+// public:
+//  virtual ~NeSmiKMode() = default;
+//  virtual void handleRegionEnter(int id) = 0;
+//  virtual void handleRegionExit(int id) = 0;
+//};
+//
+//class ProfilingMode: public NeSmiKMode {
+// public:
+//  ProfilingMode(bool dynamicFiltering) : dynamicFiltering(dynamicFiltering) {}
+//
+//  void handleRegionEnter(int id) override;
+//
+//  void handleRegionExit(int id) override;
+// private:
+//  bool dynamicFiltering;
+//};
+//
 //class TracingMode: public NeSmiKMode {
 // public:
 //  void handleRegionEnter(int id) override;

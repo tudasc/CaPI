@@ -30,7 +30,8 @@ using RegionClock = std::chrono::high_resolution_clock;
 constexpr long FILTERING_THRESHOLD_NANOS = 10000;
 constexpr long FILTERING_MIN_INVOCATIONS = 100;
 
-std::unique_ptr<capi::NeSmiKMode> mode{};
+capi::Mode measurementMode{capi::Mode::PROFILE};
+bool dynamicFiltering{false};
 bool initialized{false};
 bool finalized{false};
 thread_local bool inXRayScope{false};
@@ -56,7 +57,7 @@ thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeS
 namespace capi {
 
 
-void ProfilingMode::handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
+static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
   if (dynamicFiltering) {
     // FIXME: Thread-safety!
     auto& metrics = regionMetricsMap[id];
@@ -72,7 +73,7 @@ void ProfilingMode::handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
   nesmik::region_start(info.name);
 }
 
-void ProfilingMode::handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
+static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
   if (dynamicFiltering) {
     auto& metrics = regionMetricsMap[id];
     if (metrics.filtered) {
@@ -160,11 +161,11 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 
   switch (type) {
   case XRayEntryType::ENTRY:
-    mode->handleRegionEnter(id);
+    handleRegionEnter(id);
     break;
   case XRayEntryType::TAIL:
   case XRayEntryType::EXIT:
-    mode->handleRegionExit(id);
+    handleRegionExit(id);
     break;
   default:
     logError() << "Unhandled XRay event type.\n";
@@ -180,18 +181,30 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
     demangle = false;
   }
 
-  bool shouldFilter = true;
-  auto filterEnv = std::getenv("CAPI_DYNAMIC_FILTERING");
-  if (filterEnv && (!strcmp(filterEnv, "0") || !strcmp(filterEnv, "OFF"))) {
-    shouldFilter = false;
+  measurementMode = Mode::PROFILE;
+  auto modeEnv = std::getenv("CAPI_MODE");
+  if (modeEnv && (!strcmp(modeEnv, "trace") || !strcmp(modeEnv, "TRACE"))) {
+    measurementMode = Mode::TRACE;
   }
 
-  mode = std::make_unique<capi::ProfilingMode>(shouldFilter);
+  // Dynamic filtering is only available in profiling mode.
+  bool shouldFilter = measurementMode == Mode::PROFILE;
+  if (shouldFilter) {
+    // Can be turned off.
+    auto filterEnv = std::getenv("CAPI_DYNAMIC_FILTERING");
+    if (filterEnv && (!strcmp(filterEnv, "0") || !strcmp(filterEnv, "OFF"))) {
+      shouldFilter = false;
+    }
+  }
+  dynamicFiltering = shouldFilter;
 
   logInfo() << "XRay initialization for neSmiK done.\n";
+  logInfo() << "Running in " << (measurementMode == Mode::PROFILE ? "profiling" : "tracing") << " mode.\n";
+  logInfo() << "Dynamic filtering is " << (dynamicFiltering ? "enabled" : "disabled") << ".\n";
 }
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
+  // TODO: Output dynamic filter file
   logInfo() << "Finalizing XRay interface for neSmiK\n";
 //  nesmik::finalize();
 }
