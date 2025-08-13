@@ -12,6 +12,8 @@
 #include <vector>
 #include <cstdint>
 
+namespace logger_rt {
+
 using SymbolTable = std::map<std::uintptr_t, std::string>;
 
 struct MemMapEntry {
@@ -31,7 +33,7 @@ struct RTInitializer {
 
 class FunctionNameCache {
   std::string execFile;
-  std::unordered_map<const void *, std::string> nameCache;
+  std::unordered_map<const void*, std::string> nameCache;
 
   std::map<uintptr_t, MappedSymTable> addrToSymTable;
 
@@ -42,22 +44,24 @@ class FunctionNameCache {
 
   void loadSymTables();
 
-public:
+ public:
   FunctionNameCache(std::string execFile);
 
-  std::string resolve(const void *addr);
+  std::string resolve(const void* addr);
 };
 
 class CallTreeLogger {
   std::ofstream out;
-  FunctionNameCache &cache;
+  FunctionNameCache& cache;
 
-public:
-  CallTreeLogger(std::string filename, FunctionNameCache &cache);
+ public:
+  CallTreeLogger(std::string filename, FunctionNameCache& cache);
 
-  void onFunctionEnter(void *fn, void *caller, int callDepth);
+  void onFunctionEnter(void* fn, void* caller, int callDepth);
 
-  void onFunctionExit(void *fn, void *caller, int callDepth);
+  void onFunctionExit(void* fn, void* caller, int callDepth);
 };
+
+}
 
 #endif // CAPI_TEST_RT_H

@@ -12,6 +12,8 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
+#include "capi/support/IteratorUtils.h"
+
 namespace capi {
 
 class FunctionFilter;
@@ -32,23 +34,39 @@ struct PathEntry {
 using PathEntries = std::vector<PathEntry>;
 
 class MeasurementConfig {
+ private:
+  std::unordered_map<std::string, PathEntries> selectedFunctions;
+
+  friend void to_json(json&, const MeasurementConfig&);
+  friend void from_json(const json&, MeasurementConfig&);
  public:
   void add(const std::string& name, PathEntry entry) {
     auto& pathEntries = selectedFunctions[name];
     pathEntries.push_back(std::move(entry));
   }
 
-  PathEntries& get(std::string& name) {
+  PathEntries& get(const std::string& name) {
     return selectedFunctions[name];
+  }
+
+  const PathEntries* get(const std::string& name) const {
+    auto it = selectedFunctions.find(name);
+    if (it == selectedFunctions.end()) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+
+  IterRange<decltype(selectedFunctions.cbegin())> entries() const {
+    return IterRange(selectedFunctions.cbegin(), selectedFunctions.cend());
+  }
+
+  IterRange<decltype(selectedFunctions.begin())> entries() {
+    return IterRange(selectedFunctions.begin(), selectedFunctions.end());
   }
 
   FunctionFilter createFunctionFilter() const;
 
- private:
-  std::unordered_map<std::string, PathEntries> selectedFunctions;
-
-  friend void to_json(json&, const MeasurementConfig&);
-  friend void from_json(const json&, MeasurementConfig&);
 };
 
 // PathEntry

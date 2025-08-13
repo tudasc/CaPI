@@ -6,7 +6,7 @@ function(configure_lit_site_cfg input output)
   # variables can be passed in.
 
   set(CAPI_PROJECT_DIR ${PROJECT_SOURCE_DIR})
-  set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/lib/)
+  set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/src/)
   set(CAPI_CC ${CMAKE_BINARY_DIR}/scripts/clang-inst)
   set(CAPI_CXX ${CMAKE_BINARY_DIR}/scripts/clang-inst++)
   set(CAPI_MPICC ${CMAKE_BINARY_DIR}/scripts/clang-mpi-inst)

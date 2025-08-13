@@ -36,6 +36,30 @@ CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 namespace capi {
 
+XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, const XRayFunctionMap& xrayMap) {
+  std::unordered_set<std::string> enteredFunctions;
+  for (const auto& [id, info] : xrayMap) {
+    auto* entries = mc.get(info.name);
+    if (!entries) {
+      logError() << "Could not find any measurement config entries for instrumented function '" << info.name << "'.\n";
+      continue;
+    }
+    // Copy all entries into id map.
+    pathEntries[id] = *entries;
+    enteredFunctions.insert(info.name);
+  }
+  // Checking if we got all entries
+  int numMissing = 0;
+  for (const auto& [fname, entries] : mc.entries()) {
+    if (!enteredFunctions.contains(fname)) {
+      numMissing++;
+    }
+  }
+  if (numMissing > 0) {
+    logError() << numMissing << " functions from measurement config not instrumented.\n";
+  }
+}
+
 using namespace llvm;
 
 // Modified from XRay's func-id-helper.h
@@ -189,7 +213,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         logError() << "Failed to read filter file from " << filterEnv << "\n";
         return;
       }
-
     } else {
       logInfo() << "No CaPI filtering file specified.\n";
     }
@@ -294,7 +317,13 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     patchTimer.pause();
   }
 
+  std::unique_ptr<XRayMeasurementConfig> xmc;
+  if (mc) {
+    xmc = std::make_unique<XRayMeasurementConfig>(*mc, xrayMap);
+  }
+
   globalCaPIData->xrayFuncMap = xrayMap;
+  globalCaPIData->measurementConfig = std::move(xmc);
   globalCaPIData->useScopeTriggers = !globalCaPIData->scopeTriggerSet.empty();
   globalCaPIData->logCalls = logCalls;
   if (logCalls) {
