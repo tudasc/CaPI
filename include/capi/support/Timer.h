@@ -8,6 +8,8 @@
 #include <iostream>
 #include <chrono>
 
+#include "Logging.h"
+
 namespace capi {
 
 class Timer {
@@ -25,7 +27,7 @@ public:
   ~Timer() {
     pause();
     auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(totalDiff).count() / 1000.0;
-    out << msg << secs << " seconds\n";
+    logPrefix(out, "") << msg << secs << " seconds\n";
   }
 
   void resume() {

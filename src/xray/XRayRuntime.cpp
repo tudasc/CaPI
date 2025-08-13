@@ -56,7 +56,7 @@ XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, 
     }
   }
   if (numMissing > 0) {
-    logError() << numMissing << "functions from measurement config not instrumented.\n";
+    logError() << numMissing << " functions from measurement config not instrumented.\n";
   }
 }
 
@@ -213,7 +213,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
         logError() << "Failed to read filter file from " << filterEnv << "\n";
         return;
       }
-
     } else {
       logInfo() << "No CaPI filtering file specified.\n";
     }

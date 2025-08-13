@@ -2,9 +2,13 @@
 
 talp_fns = has_talp_metrics(%%)
 bad_par_eff = talp_mpi_parallel_efficiency("<", 0.3, %talp_fns)
+filtered = talp_dyn_filtered(%talp_fns)
 leapfrog = by_name("LagrangeLeapFrog", %%)
+
+final_set = join(%leapfrog, subtract(%bad_par_eff, %filtered))
+
 # TODO: support loops in the future
 
-!instrument(join(%leapfrog, %bad_par_eff))
+!instrument(%final_set)
 
 # capi -f lulesh_mpi_calls.capi --output-format json -o /dev/stdout lulesh_talp.mcg

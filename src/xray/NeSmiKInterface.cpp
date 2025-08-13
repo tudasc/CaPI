@@ -9,9 +9,12 @@
 #include <unordered_map>
 #include <atomic>
 #include <chrono>
+#include <fstream>
 
 #include "capi/support/Logging.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
+
+#include "nlohmann/json.hpp"
 
 #ifdef WITH_MPI
 #include <mpi.h>
@@ -106,7 +109,7 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
           logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
         }
       }
-}
+    }
   }
 }
 
@@ -118,35 +121,9 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 
   if (finalized) {
+    auto& info = capi::globalCaPIData->xrayFuncMap[id];
+    logError() << "Handling XRay event for function " << info.name << " (id=" << id << "): neSmiK interface has already been finalized.\n";
     return;
-  } else {
-    // TODO: Find better solution, this is too expensive to call every time
-    int mpiFinalized = 0;
-    MPI_Finalized(&mpiFinalized);
-    if (mpiFinalized) {
-//      nesmik::finalize();
-      finalized = true;
-      return;
-    }
-  }
-
-  if (!initialized) {
-#ifdef WITH_MPI
-
-    int mpiInited = 0;
-    MPI_Initialized(&mpiInited);
-    if (!mpiInited) {
-      return;
-    }
-    logInfo() << "Initializing neSmiK\n";
-//    nesmik::init();
-    initialized = true;
-
-#else
-//    nesmik::init();
-    initialized = true;
-    // TODO: Should there be a non-MPI version?
-#endif
   }
 
   if (!initialized) {
@@ -204,9 +181,116 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
 }
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
-  // TODO: Output dynamic filter file
   logInfo() << "Finalizing XRay interface for neSmiK\n";
-//  nesmik::finalize();
 }
+
+}
+
+void dyncapi_nesmik_init() {
+#ifdef WITH_MPI
+  int mpiInited = 0;
+  MPI_Initialized(&mpiInited);
+  if (!mpiInited) {
+    capi::logError() << "Called dyncapi_mpi_init before MPI_Init! This may lead to inconsistencies in the neSmiK profile.\n";
+  }
+#endif
+  nesmik::init();
+  initialized = true;
+}
+
+void dyncapi_nesmik_finalize() {
+  __xray_unpatch();
+  nesmik::finalize();
+  finalized = true;
+  if (dynamicFiltering) {
+
+    std::vector<int> filtered;
+    for (auto& [id, metrics] : regionMetricsMap) {
+      if (metrics.filtered) {
+        filtered.push_back(id);
+      }
+    }
+
+  #ifdef WITH_MPI
+    int mpiFinalized = 0;
+    MPI_Finalized(&mpiFinalized);
+    if (mpiFinalized) {
+      capi::logError() << "dyncapi_mpi_finalize was called after MPI was finalized. Unable to gather filtered regions.\n";
+      return;
+    }
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (rank == 0) capi::logInfo() << "Gathering filtered regions in MPI rank 0...\n";
+
+    // Gathering filtered IDs in rank 0
+    int localSize = filtered.size();
+
+    // Gather sizes first
+    std::vector<int> recvCounts;
+    if (rank == 0) recvCounts.resize(size);
+    MPI_Gather(&localSize, 1, MPI_INT,
+               recvCounts.data(), 1, MPI_INT,
+               0, MPI_COMM_WORLD);
+
+    // Calculate displacements for the receive buffer
+    std::vector<int> displs;
+    int totalCount = 0;
+    if (rank == 0) {
+      displs.resize(size);
+      for (int i = 0; i < size; ++i) {
+        displs[i] = totalCount;
+        totalCount += recvCounts[i];
+      }
+    }
+
+    // Gather all data
+    std::vector<int> gathered;
+    if (rank == 0) gathered.resize(totalCount);
+
+    MPI_Gatherv(filtered.data(), localSize, MPI_INT,
+                gathered.data(), recvCounts.data(), displs.data(), MPI_INT,
+                0, MPI_COMM_WORLD);
+
+    std::unordered_set<int> gatheredSet;
+    gatheredSet.insert(gathered.begin(), gathered.end());
+
+    filtered.clear();
+    filtered.reserve(gatheredSet.size());
+    std::copy(gatheredSet.begin(), gatheredSet.end(), std::back_inserter(filtered));
+  #endif
+
+    // Convert to names
+    std::vector<std::string> filteredNames;
+    for (auto id : filtered) {
+      auto& info = capi::globalCaPIData->xrayFuncMap[id];
+      filteredNames.push_back(info.name);
+    }
+
+    // Write to file
+#ifdef WITH_MPI
+    if (rank == 0) {
+#endif
+      // Convert to JSON
+      nlohmann::json j = filteredNames;
+
+      auto execPath = getExecPath();
+      auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
+
+      auto outFile = execFilename + ".filtered.json";
+
+      // Write to file
+      std::ofstream out(outFile);
+      out << j.dump(2) << std::endl;
+
+      capi::logInfo() << "A list of all dynamically filtered regions has been written to " << outFile << "\n";
+
+#ifdef WITH_MPI
+    }
+#endif
+
+  }
 
 }
