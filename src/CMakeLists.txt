@@ -1,26 +1,4 @@
-
 if (ENABLE_INST_PASSES)
-    set(PASS_SOURCES
-        passes/ReadMetaCG.cpp
-        passes/MetaCGReader.cpp)
-
-    make_llvm_module(readmetacg
-        "${PASS_SOURCES}"
-        LINK_LIBS
-            nlohmann_json::nlohmann_json
-        DEPENDS
-        INCLUDE_DIRS
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${PROJECT_SOURCE_DIR}/src/
-        )
-
-
-    install(
-        TARGETS readmetacg
-        EXPORT ${TARGETS_EXPORT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-    )
     add_subdirectory(passes)
 endif()
 add_subdirectory(selection)

@@ -13,6 +13,8 @@
 #include <memory>
 
 #include "xray/xray_interface.h"
+#include "capi/selection/MeasurementConfig.h"
+#include "capi/support/IteratorUtils.h"
 
 #define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
 
@@ -28,8 +30,14 @@ struct XRayFunctionInfo {
   uint64_t addr{0};
 };
 
-
 using XRayFunctionMap = std::unordered_map<int, XRayFunctionInfo>;
+
+struct XRayMeasurementConfig {
+  XRayMeasurementConfig(const MeasurementConfig& mc, const XRayFunctionMap& xrayMap);
+
+ private:
+  std::unordered_map<int, PathEntries> pathEntries;
+};
 
 struct GlobalCaPIData {
   XRayFunctionMap xrayFuncMap;
@@ -38,6 +46,7 @@ struct GlobalCaPIData {
   std::unordered_set<int32_t> endTriggerSet;
   bool beginActive{true};
   bool useScopeTriggers{false};
+  std::unique_ptr<XRayMeasurementConfig> measurementConfig;
   bool logCalls;
   std::unique_ptr<CallLogger> logger;
 };

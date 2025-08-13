@@ -8,7 +8,6 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Passes/PassBuilder.h"
 
@@ -22,7 +21,7 @@ using namespace llvm;
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
   return {
       LLVM_PLUGIN_API_VERSION, "capi-inst", "v0.1", [](llvm::PassBuilder& PB) {
-        PB.registerPipelineStartEPCallback([&](ModulePassManager &MPM, PassBuilder::OptimizationLevel O) {
+        PB.registerPipelineStartEPCallback([&](ModulePassManager &MPM, OptimizationLevel O) {
           MPM.addPass(CaPIInstrumenter());
           return true;
         });

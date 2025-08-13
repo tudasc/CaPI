@@ -14,6 +14,7 @@ enum class TalpMetricKind {
   NUM_CPUS,
   CYCLES,
   INSTRUCTIONS,
+  NUM_MEASUREMENTS,
   NUM_MPI_CALLS,
   NUM_OMP_PARALLELS,
   NUM_OMP_TASKS,
@@ -45,6 +46,8 @@ double lookupMetric(const TalpMetrics& metrics) {
       return metrics.cycles;
     case TalpMetricKind::INSTRUCTIONS:
       return metrics.instructions;
+    case TalpMetricKind::NUM_MEASUREMENTS:
+      return metrics.num_measurements;
     case TalpMetricKind::NUM_MPI_CALLS:
       return metrics.num_mpi_calls;
     case TalpMetricKind::NUM_OMP_PARALLELS:
@@ -106,6 +109,23 @@ class HasTalpMetricsSelector: public FilterSelector {
 
   std::string getName() override {
     return "HasTalpMetrics";
+  }
+};
+
+class TalpDynFilteredSelector: public FilterSelector {
+ public:
+  explicit TalpDynFilteredSelector() = default;
+
+  bool accept(const metacg::CgNode* fNode) override {
+    if (auto* md = fNode->get<TalpMD>(); md) {
+      return md->wasDynamicallyFiltered();
+    }
+    logError() << "TALP metrics not available for function " << fNode->getFunctionName() << ".\n";
+    return false;
+  }
+
+  std::string getName() override {
+    return "TalpDynFiltered";
   }
 };
 

@@ -240,7 +240,7 @@ bool MetricSelector<DerivedT,MDType,ValT>::accept(const metacg::CgNode* fNode) {
   }
 
   if (!fNode->has<MDType>()) {
-    logError() << "Metrics metadata " << MDType::key << " for function " << fNode->getFunctionName() << " not available.\n";
+    logError() << "Metrics metadata " << MDType::key << " not available for function " << fNode->getFunctionName() << ".\n";
     return false;
   }
 

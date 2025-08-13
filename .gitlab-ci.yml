@@ -81,7 +81,7 @@ capi-build:
     - module load scorepnoplugin/7.1
     - module load dlb/3.5
     - module load metacg/devel
-    - cmake -S . -B $CAPI_BUILD  -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_INSTALL_PREFIX="$CAPI_INSTALL" -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_TALP=ON -DENABLE_NESMIK=OFF -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
+    - cmake -S . -B $CAPI_BUILD  -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_INSTALL_PREFIX="$CAPI_INSTALL" -DCMAKE_C_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_CXX_FLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." -DCMAKE_BUILD_TYPE=Release -DENABLE_EXTRAE=ON -DDLB_DIR=$(dirname $(which dlb))/.. -DSCOREP_DIR=$(which scorep)/../.. -DENABLE_INST_PASSES=ON -DENABLE_TALP=ON -DENABLE_NESMIK=OFF -DLLVM_EXTERNAL_LIT=$(which lit) -DCLANG_INCLUDE_DIR="$(clang -print-resource-dir)/include"
     - cmake --build $CAPI_BUILD --parallel
     - module purge
 
@@ -111,6 +111,21 @@ capi-test-selection:
     - module load metacg/devel
     - cd $CAPI_BUILD
     - ninja capi-selection-test
+
+capi-test-passes:
+  <<: *job-setup
+  stage: test
+  script:
+    - |
+      if [ -z "$CAPI_DEPS_MODULEPATH" ]; then
+        echo "Using locally built dependencies"
+        module use extern/modulefiles/
+      fi
+    - module load llvm/20.1.3
+    - module load scorepnoplugin/7.1
+    - module load metacg/devel
+    - cd $CAPI_BUILD
+    - ninja capi-pass-test
 
 capi-install:
   <<: *job-setup
@@ -158,7 +173,8 @@ capi-build-example:
     - module load metacg/devel
     - cd $CAPI_BUILD/examples/lulesh
     - make clean
-    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." lulesh2.0_scorep lulesh2.0_extrae
+    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." VARIANT=scorep
+    - make LDFLAGS="-O3 --gcc-toolchain=$(dirname $(which gcc))/.." VARIANT=extrae
     - cd ../AMG2013 
     - make veryclean
     - make INCLUDE_LFLAGS="-lm  -fopenmp --gcc-toolchain=$(dirname $(which gcc))/.." all

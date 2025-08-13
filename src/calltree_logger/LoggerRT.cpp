@@ -17,10 +17,12 @@
 namespace {
 int call_depth{-1};
 std::string exec_path;
-std::unique_ptr<CallTreeLogger> logger;
-std::unique_ptr<FunctionNameCache> name_cache;
-RTInitializer init;
+std::unique_ptr<logger_rt::CallTreeLogger> logger;
+std::unique_ptr<logger_rt::FunctionNameCache> name_cache;
+logger_rt::RTInitializer init;
 } // namespace
+
+namespace logger_rt {
 
 struct RemoveEnvInScope {
 
@@ -315,6 +317,8 @@ void CallTreeLogger::onFunctionExit(void *fn, void *callsite, int callDepth) {
   }
   out << "[EXIT] " << fn << " " << cache.resolve(fn)
       << " (callsite: " << callsite << " )\n";
+}
+
 }
 
 extern "C" {

@@ -18,6 +18,9 @@ SERCXX = @CXX_PATH@ -DUSE_MPI=0
 MPICXX = mpic++ -DUSE_MPI=1
 CAPICC = ./../../scripts/capi-cxx
 CXX = $(MPICXX)
+VARIANT = scorep
+
+include Makefile.$(VARIANT).include
 
 SOURCES2.0 = \
 	lulesh.cc \
@@ -32,26 +35,13 @@ LDFLAGS = -O3 -g
 
 .cc.o: lulesh.h
 	@echo "Building $<"
-	$(CAPICC) --verbose $(CXX) -c $(CXXFLAGS) -o $@  $<
+	$(CAPICC) $(CAPI_FLAGS) --verbose $(CXX) -c $(CXXFLAGS) -o $@  $<
 
-all: $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK)
+all: $(LULESH_EXEC)_$(VARIANT)
 
-
-$(LULESH_EXEC): $(OBJECTS2.0)
-	@echo "Linking vanilla"
-	$(CAPICC) --verbose --capi-interface=gnu $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
-
-$(LULESH_EXEC_SCOREP): $(OBJECTS2.0)
-	@echo "Linking Score-P"
-	$(CAPICC) --verbose --capi-interface=scorep $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
-
-$(LULESH_EXEC_EXTRAE): $(OBJECTS2.0)
-	@echo "Linking Extrae"
-	$(CAPICC) --verbose --capi-interface=extrae $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
-
-$(LULESH_EXEC_NESMIK): $(OBJECTS2.0)
-	@echo "Linking neSmiK"
-	$(CAPICC) --verbose --capi-interface=nesmik $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+$(LULESH_EXEC)_$(VARIANT): $(OBJECTS2.0)
+	@echo "Linking $(VARIANT)"
+	$(CAPICC) $(CAPI_FLAGS) --verbose $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
 	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK) scorep_init.c
