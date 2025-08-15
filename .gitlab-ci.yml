@@ -123,6 +123,7 @@ capi-test-passes:
       fi
     - module load llvm/20.1.3
     - module load scorepnoplugin/7.1
+    - module load papi
     - module load metacg/devel
     - cd $CAPI_BUILD
     - ninja capi-pass-test
