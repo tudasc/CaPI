@@ -21,6 +21,7 @@ include(llvm-util)
 include(metacg)
 include(talp)
 include(nesmik)
+include(flip)
 
 if (ENABLE_TESTING)
   find_llvm_progs(FILECHECK_EXE "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)

@@ -1,0 +1,70 @@
+{
+    "_CG": {
+        "meta": {},
+        "nodes": {
+            "main": {
+                "callees": {
+                    "foo": {},
+                    "bar": {},
+                    "foobar": {}
+                },
+                "functionName": "main",
+                "hasBody": false,
+                "meta": {
+                    "FLIP_counts": {
+                        "cycles": 0,
+                        "invocations": 1
+                    }
+                },
+                "origin": null
+            },
+            "foo": {
+                "callees": {
+                },
+                "functionName": "foo",
+                "hasBody": false,
+                "meta": {
+                    "FLIP_counts": {
+                        "cycles": 1000,
+                        "invocations": 10
+                    }
+                },
+                "origin": null
+            },
+            "bar": {
+                "callees": {
+                },
+                "functionName": "bar",
+                "hasBody": false,
+                "meta": {
+                    "FLIP_counts": {
+                        "cycles": 100,
+                        "invocations": 10
+                    }
+                },
+                "origin": null
+            },
+            "foobar": {
+                "callees": {
+                },
+                "functionName": "foobar",
+                "hasBody": false,
+                "meta": {
+                    "FLIP_counts": {
+                        "cycles": 100000,
+                        "invocations": 100
+                    }
+                },
+                "origin": null
+            }
+        }
+    },
+    "_MetaCG": {
+        "generator": {
+            "name": "MetaCG",
+            "sha": "3107f6cbf07eac58af19b759059bba3f81a71888",
+            "version": "0.9"
+        },
+        "version": "4.0"
+    }
+}

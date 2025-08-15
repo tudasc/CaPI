@@ -9,6 +9,10 @@
 #include "SetOperations.h"
 #include "TalpMetricSelector.h"
 
+#ifdef CAPI_ENABLE_FLIP
+#include "FlipMetricSelector.h"
+#endif
+
 namespace  {
 
 using namespace capi;
@@ -191,6 +195,12 @@ RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetr
 RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetricSelector<TalpMetricKind::MPI_LOAD_BALANCE_OUT, float>>);
 RegisterSelector dynFilteredSelector("talp_dyn_filtered", createSimpleSelector<TalpDynFilteredSelector>);
 
+#ifdef CAPI_ENABLE_FLIP
+RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>);
+RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipMetricSelector<FlipCycles>>);
+RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipMetricSelector<FlipInvocations>>);
+RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipMetricSelector<FlipCyclesPerInvoc>>);
+#endif
 }
 
 

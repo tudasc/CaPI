@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <algorithm>
+#include <cctype>
 
 #include "capi/selection/SelectionSpecAST.h"
 
@@ -276,12 +277,10 @@ public:
     std::stringstream numberStr;
     bool isFloat{false};
 
-    // TODO: Currently does not allow for scientific notation or space after the minus for negative numbers
-
     char c = reader.peek();
 
-    while (c == '-' || c == '.' || isdigit(c)) {
-      if (c == '.')
+    while (c == '-' || c == '.' || isdigit(c) || std::tolower(c) == 'e') {
+      if (c == '.' || std::tolower(c) == 'e')
         isFloat = true;
       numberStr << c;
       c = reader.next();
