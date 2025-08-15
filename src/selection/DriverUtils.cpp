@@ -241,6 +241,7 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
         }
       }
 
+
       auto pathEntry = PathEntry{strPath, action.activeInvocations, "", {}}; // TODO: Measurement level?
 
       assert(f->has<CaPIMD>());

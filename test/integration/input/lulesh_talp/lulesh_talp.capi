@@ -1,4 +1,4 @@
-# TEST talp_mpi_calls: --path-sensitive
+# TEST trace_cfg: --path-sensitive
 
 talp_fns = has_talp_metrics(%%)
 bad_par_eff = talp_mpi_parallel_efficiency("<", 0.3, %talp_fns)
@@ -6,8 +6,6 @@ filtered = talp_dyn_filtered(%talp_fns)
 leapfrog = by_name("LagrangeLeapFrog", %%)
 
 final_set = join(%leapfrog, subtract(%bad_par_eff, %filtered))
-
-# TODO: support loops in the future
 
 !instrument(%final_set)
 

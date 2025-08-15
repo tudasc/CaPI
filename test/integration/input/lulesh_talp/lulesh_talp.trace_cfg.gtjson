@@ -1,0 +1,84 @@
+{
+    "_format": {
+        "name": "measurement_config",
+        "version": "1.0"
+    },
+    "selection": {
+        "_Z14CommSyncPosVelR6Domain": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": [
+                    "_ZL16LagrangeLeapFrogR6Domain"
+                ]
+            }
+        ],
+        "_Z22CalcKinematicsForElemsR6Domaindi": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": [
+                    "_ZL16LagrangeLeapFrogR6Domain"
+                ]
+            }
+        ],
+        "_Z7CommSBNR6DomainiPMS_FRdiE": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ],
+        "_Z8CommRecvR6Domainiiiiibb": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": [
+                    "_ZL16LagrangeLeapFrogR6Domain"
+                ]
+            },
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ],
+        "_Z8CommSendR6DomainiiPMS_FRdiEiiibb": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            },
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": [
+                    "_ZL16LagrangeLeapFrogR6Domain"
+                ]
+            }
+        ],
+        "_ZL16LagrangeLeapFrogR6Domain": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ],
+        "_ZN6DomainC1Eiiiiiiiii": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ]
+    }
+}
