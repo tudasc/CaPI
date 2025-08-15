@@ -28,6 +28,9 @@ configure_lit_site_cfg(
     ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
+set(TEST_GCC_TOOLCHAIN "" CACHE STRING "GCC toolchain to use for running integration tests")
+message(STATUS "Test toolchain: ${TEST_GCC_TOOLCHAIN}")
+
 add_lit_testsuite(capi-pass-test
     "Running CaPI Pass Tests"
     ${CMAKE_CURRENT_SOURCE_DIR}
