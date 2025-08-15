@@ -1,0 +1,3 @@
+
+VARIANT = extrae
+CAPI_FLAGS = --capi-interface=extrae
