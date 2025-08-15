@@ -3,8 +3,8 @@
 //
 
 // RUN: %clang_cc -c -v -g -fxray-instrument -fxray-instruction-threshold=1 %s -o %s.o
-// RUN: %clang_cxx -v -g -fxray-instrument -Wl,--whole-archive -L %lib_dir/xray -l %capi_xray_lib -Wl,--no-whole-archive %s.o -L %lib_dir/calltree_logger -lcalltreelogger_static -o %s.exe
-// RUN: CAPI_EXE=$(basename %s.exe) XRAY_OPTIONS="patch_premain=false verbosity=1" %s.exe
+// RUN: %clang_cxx -v -g -fxray-instrument -Wl,--whole-archive -L %lib_dir/xray -l %capi_xray_lib -Wl,--no-whole-archive %s.o -L %lib_dir/calltree_logger -lcalltreelogger_static `%llvm-config --libfiles xray symbolize --link-static --system-libs` -o %s.exe
+// RUN: CAPI_EXE=$(basename %s.exe) CAPI_ENABLE=1 XRAY_OPTIONS="patch_premain=false verbosity=1" %s.exe
 // RUN: cat %s.exe.capi.log | FileCheck %s
 // RUN: rm %s.exe.capi.log
 // RUN: CAPI_EXE=$(basename %s.exe) CAPI_FILTERING_FILE="003_xray.filt" XRAY_OPTIONS="patch_premain=false verbosity=1" %s.exe

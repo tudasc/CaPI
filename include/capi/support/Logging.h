@@ -6,16 +6,57 @@
 #define CAPI_LOGGING_H
 
 #include <iostream>
+#include <unistd.h>
+
+#ifdef WITH_MPI
+#include <mpi.h>
+#endif
 
 namespace capi {
 
 enum LogLevel { LOG_NONE, LOG_CRITICAL, LOG_STATUS, LOG_EXTRA };
 
-inline std::ostream &logInfo() { return std::cout << "[Info] "; }
+#ifdef WITH_MPI
+inline int getMPIRank() {
+  static int rank = -1;
+  static bool cached = false;
 
-inline std::ostream &logWarn() { return std::cerr << "[Warning] "; }
+  if (!cached) {
+    int initialized = 0;
+    MPI_Initialized(&initialized);
+    if (initialized) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      cached = true;
+    }
+  }
+  return rank; // -1 if MPI not initialized yet
+}
+#endif
 
-inline std::ostream &logError() { return std::cerr << "[Error] "; }
+inline std::ostream &logPrefix(std::ostream &os, const char *level) {
+#ifdef WITH_MPI
+  int rank = getMPIRank();
+  if (rank >= 0) {
+    os << "[Rank " << rank << "] ";
+  } else {
+    os << "[PID " << getpid() << "] ";
+  }
+#endif
+  os << level;
+  return os;
+}
+
+inline std::ostream &logInfo() {
+  return logPrefix(std::cout, "[Info] ");
+}
+
+inline std::ostream &logWarn() {
+  return logPrefix(std::cerr, "[Warning] ");
+}
+
+inline std::ostream &logError() {
+  return logPrefix(std::cerr, "[Error] ");
+}
 
 // The following macros required 'verbosity' to be defined somewhere.
 extern LogLevel verbosity;
