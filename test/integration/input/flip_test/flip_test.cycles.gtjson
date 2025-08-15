@@ -1,0 +1,16 @@
+{
+    "_format": {
+        "name": "measurement_config",
+        "version": "1.0"
+    },
+    "selection": {
+        "foobar": [
+            {
+                "flags": [],
+                "invocations": [],
+                "measurement_level": "",
+                "path": []
+            }
+        ]
+    }
+}

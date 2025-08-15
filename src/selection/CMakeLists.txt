@@ -24,6 +24,12 @@ target_link_libraries(capi_select PUBLIC symbol_retriever)
 target_link_libraries(capi_select PUBLIC metacg::metacg)
 add_version_include(capi_select)
 
+if (ENABLE_FLIP)
+        target_compile_definitions(capi_select PRIVATE CAPI_ENABLE_FLIP)
+        target_link_libraries(capi_select PRIVATE flip::FLIP_counts)
+endif()
+
+
 target_include_directories(capi_select
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
