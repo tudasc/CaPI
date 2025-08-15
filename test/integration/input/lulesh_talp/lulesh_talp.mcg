@@ -3,77 +3,913 @@
         "meta": {},
         "nodes": {
             "0": {
-                "callees": {},
-                "functionName": "MPI_Abort",
+                "callees": {
+                    "1": {},
+                    "13": {},
+                    "2": {},
+                    "20": {},
+                    "21": {},
+                    "23": {},
+                    "3": {},
+                    "6": {}
+                },
+                "functionName": "_ZN6DomainC1Eiiiiiiiii",
                 "hasBody": false,
                 "meta": {
-                    "talp": [
-                        {
-                            "metrics": {
-                                "cycles": 24536695378886.0,
-                                "elapsedTime": 8734734334.0,
-                                "instructions": 116626698039776.0,
-                                "mpiCommunicationEfficiency": 0.75,
-                                "mpiLoadBalance": 0.6700000166893005,
-                                "mpiLoadBalanceIn": 0.8600000143051147,
-                                "mpiLoadBalanceOut": 0.7900000214576721,
-                                "mpiParallelEfficiency": 0.5099999904632568,
-                                "numCpus": 28672,
-                                "numMpiCalls": 6346000,
-                                "numOmpParallels": 286720,
-                                "numOmpTasks": 0,
-                                "ompLoadBalance": 1.0,
-                                "ompParallelEfficiency": 0.3400000035762787,
-                                "ompSchedulingEfficiency": 1.0,
-                                "ompSerializationEfficiency": 0.3400000035762787,
-                                "parallelEfficiency": 0.12999999523162842
-                            },
-                            "path": []
-                        }
-                    ]
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 197851970.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.1899999976158142,
+                                    "mpiLoadBalanceIn": 0.1899999976158142,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.1899999976158142,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 22,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
                 },
                 "origin": null
             },
             "1": {
-                "callees": {
-                    "2": {}
+                "callees": {},
+                "functionName": "_ZN6Domain9BuildMeshEiii",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 1431799.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.47999998927116394,
+                                    "mpiLoadBalanceIn": 0.47999998927116394,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.47999998927116394,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
                 },
+                "origin": null
+            },
+            "10": {
+                "callees": {},
+                "functionName": "_Z8CommSendR6DomainiiPMS_FRdiEiiibb",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 205588074.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.0,
+                                    "mpiLoadBalance": 0.5699999928474426,
+                                    "mpiLoadBalanceIn": 0.5699999928474426,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.0,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 72,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "11": {
+                "callees": {},
+                "functionName": "_ZN6DomainD1Ev",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 55613.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.6800000071525574,
+                                    "mpiLoadBalanceIn": 0.6800000071525574,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.6800000071525574,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "12": {
+                "callees": {},
+                "functionName": "_Z22CalcKinematicsForElemsR6Domaindi",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 460014941327.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.15000000596046448,
+                                    "mpiLoadBalanceIn": 0.15000000596046448,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.15000000596046448,
+                                    "numCpus": 8,
+                                    "numMeasurements": 16248,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "13": {
+                "callees": {},
+                "functionName": "_ZN6Domain22AllocateNodePersistentEi",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 3299594.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.5699999928474426,
+                                    "mpiLoadBalanceIn": 0.5699999928474426,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.5699999928474426,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "14": {
+                "callees": {},
+                "functionName": "_Z25VerifyAndWriteFinalOutputdR6Domainii",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 164312.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 1.0,
+                                    "mpiLoadBalanceIn": 1.0,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 1.0,
+                                    "numCpus": 1,
+                                    "numMeasurements": 1,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "15": {
+                "callees": {},
+                "functionName": "_Z7CommSBNR6DomainiPMS_FRdiE",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 168270742.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.0,
+                                    "mpiLoadBalance": 0.5,
+                                    "mpiLoadBalanceIn": 0.5,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.0,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 64,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "16": {
+                "callees": {},
+                "functionName": "_Z14CommSyncPosVelR6Domain",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 1736774601.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.2199999988079071,
+                                    "mpiLoadBalance": 0.5099999904632568,
+                                    "mpiLoadBalanceIn": 0.5099999904632568,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.10999999940395355,
+                                    "numCpus": 8,
+                                    "numMeasurements": 16248,
+                                    "numMpiCalls": 73116,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.38999998569488525
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "17": {
+                "callees": {},
+                "functionName": "_Z8CommRecvR6Domainiiiiibb",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 219566.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.18000000715255737,
+                                    "mpiLoadBalance": 0.5299999713897705,
+                                    "mpiLoadBalanceIn": 0.5299999713897705,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.09000000357627869,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 64,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.18000000715255737
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "18": {
+                "callees": {},
                 "functionName": "_Z14InitMeshDecompiiPiS_S_S_",
                 "hasBody": false,
-                "meta": {},
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 45140.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.5099999904632568,
+                                    "mpiLoadBalanceIn": 0.5099999904632568,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.5099999904632568,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "19": {
+                "callees": {},
+                "functionName": "_Z7CommSBNR6DomainiPMS_FRdiE",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 752171578.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.6299999952316284,
+                                    "mpiLoadBalance": 0.9599999785423279,
+                                    "mpiLoadBalanceIn": 0.9599999785423279,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.6100000143051147,
+                                    "numCpus": 8,
+                                    "numMeasurements": 16248,
+                                    "numMpiCalls": 129984,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.5799999833106995
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
                 "origin": null
             },
             "2": {
                 "callees": {},
-                "functionName": "MPI_Abort",
+                "functionName": "_ZN6Domain23SetupBoundaryConditionsEi",
                 "hasBody": false,
                 "meta": {
-                    "talp": [
-                        {
-                            "metrics": {
-                                "cycles": 182608915.0,
-                                "elapsedTime": 1725771.0,
-                                "instructions": 80455338.0,
-                                "mpiCommunicationEfficiency": 1.0,
-                                "mpiLoadBalance": 0.009999999776482582,
-                                "mpiLoadBalanceIn": 0.05000000074505806,
-                                "mpiLoadBalanceOut": 0.3100000023841858,
-                                "mpiParallelEfficiency": 0.009999999776482582,
-                                "numCpus": 28672,
-                                "numMpiCalls": 0,
-                                "numOmpParallels": 7168,
-                                "numOmpTasks": 0,
-                                "ompLoadBalance": 0.7799999713897705,
-                                "ompParallelEfficiency": 0.6399999856948853,
-                                "ompSchedulingEfficiency": 0.9700000286102295,
-                                "ompSerializationEfficiency": 0.8500000238418579,
-                                "parallelEfficiency": 0.6399999856948853
-                            },
-                            "path": [
-                                "_Z14InitMeshDecompiiPiS_S_S_"
-                            ]
-                        }
-                    ]
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 119011.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.6299999952316284,
+                                    "mpiLoadBalanceIn": 0.6299999952316284,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.6299999952316284,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "20": {
+                "callees": {},
+                "functionName": "_Z14CalcElemVolumePKdS0_S0_",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": true,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 76407855.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.12999999523162842,
+                                    "mpiLoadBalanceIn": 0.12999999523162842,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.12999999523162842,
+                                    "numCpus": 8,
+                                    "numMeasurements": 27700,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "21": {
+                "callees": {},
+                "functionName": "_ZN6Domain16SetupCommBuffersEi",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 133498.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.44999998807907104,
+                                    "mpiLoadBalanceIn": 0.44999998807907104,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.44999998807907104,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "22": {
+                "callees": {},
+                "functionName": "_Z8CommRecvR6Domainiiiiibb",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 291582226.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.20999999344348907,
+                                    "mpiLoadBalance": 0.8799999952316284,
+                                    "mpiLoadBalanceIn": 0.8799999952316284,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.1899999976158142,
+                                    "numCpus": 8,
+                                    "numMeasurements": 48744,
+                                    "numMpiCalls": 268092,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.23000000417232513
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "23": {
+                "callees": {},
+                "functionName": "_ZN6Domain22AllocateElemPersistentEi",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 14653861.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.38999998569488525,
+                                    "mpiLoadBalanceIn": 0.38999998569488525,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.38999998569488525,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "3": {
+                "callees": {},
+                "functionName": "_ZN6Domain21CreateRegionIndexSetsEii",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 596393.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.6800000071525574,
+                                    "mpiLoadBalanceIn": 0.6800000071525574,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.6800000071525574,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 8,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "4": {
+                "callees": {
+                    "12": {},
+                    "16": {},
+                    "19": {},
+                    "22": {},
+                    "5": {},
+                    "7": {},
+                    "8": {}
+                },
+                "functionName": "_ZL16LagrangeLeapFrogR6Domain",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 559940279977.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.9700000286102295,
+                                    "mpiLoadBalance": 0.28999999165534973,
+                                    "mpiLoadBalanceIn": 0.28999999165534973,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.2800000011920929,
+                                    "numCpus": 8,
+                                    "numMeasurements": 16248,
+                                    "numMpiCalls": 853022,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.46000000834465027
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "5": {
+                "callees": {},
+                "functionName": "_Z9CommMonoQR6Domain",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 190512378.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.9700000286102295,
+                                    "mpiLoadBalance": 0.8199999928474426,
+                                    "mpiLoadBalanceIn": 0.8199999928474426,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.7900000214576721,
+                                    "numCpus": 8,
+                                    "numMeasurements": 16248,
+                                    "numMpiCalls": 64992,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.9700000286102295
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "6": {
+                "callees": {},
+                "functionName": "_ZN6Domain26SetupElementConnectivitiesEi",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 901596.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.5,
+                                    "mpiLoadBalanceIn": 0.5,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.5,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZN6DomainC1Eiiiiiiiii"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "7": {
+                "callees": {},
+                "functionName": "_ZL32CalcElemShapeFunctionDerivativesPKdS0_S0_PA8_dPd",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": true,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 288273.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.7699999809265137,
+                                    "mpiLoadBalanceIn": 0.7699999809265137,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.7699999809265137,
+                                    "numCpus": 8,
+                                    "numMeasurements": 800,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "8": {
+                "callees": {},
+                "functionName": "_Z8CommSendR6DomainiiPMS_FRdiEiiibb",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 463566919471.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 0.07999999821186066,
+                                    "mpiLoadBalance": 0.75,
+                                    "mpiLoadBalanceIn": 0.75,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.05999999865889549,
+                                    "numCpus": 8,
+                                    "numMeasurements": 48744,
+                                    "numMpiCalls": 316836,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 0.0
+                                },
+                                "path": [
+                                    "_ZL16LagrangeLeapFrogR6Domain"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "9": {
+                "callees": {},
+                "functionName": "_Z23ParseCommandLineOptionsiPPciP11cmdLineOpts",
+                "hasBody": false,
+                "meta": {
+                    "talp": {
+                        "dynamicallyFiltered": false,
+                        "path_metrics": [
+                            {
+                                "metrics": {
+                                    "cycles": 0.0,
+                                    "elapsedTime": 42367.0,
+                                    "instructions": 0.0,
+                                    "mpiCommunicationEfficiency": 1.0,
+                                    "mpiLoadBalance": 0.4300000071525574,
+                                    "mpiLoadBalanceIn": 0.4300000071525574,
+                                    "mpiLoadBalanceOut": 1.0,
+                                    "mpiParallelEfficiency": 0.4300000071525574,
+                                    "numCpus": 8,
+                                    "numMeasurements": 8,
+                                    "numMpiCalls": 0,
+                                    "numOmpParallels": 0,
+                                    "numOmpTasks": 0,
+                                    "ompLoadBalance": 1.0,
+                                    "ompParallelEfficiency": 1.0,
+                                    "ompSchedulingEfficiency": 1.0,
+                                    "ompSerializationEfficiency": 1.0,
+                                    "parallelEfficiency": 1.0
+                                },
+                                "path": []
+                            }
+                        ]
+                    }
                 },
                 "origin": null
             }
@@ -82,8 +918,8 @@
     "_MetaCG": {
         "generator": {
             "name": "MetaCG",
-            "sha": "7e409592c27de3d2bad0810ed8868b51546c9595",
-            "version": "0.7"
+            "sha": "3107f6cbf07eac58af19b759059bba3f81a71888",
+            "version": "0.9"
         },
         "version": "4.0"
     }

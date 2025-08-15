@@ -16,7 +16,10 @@ DLB_LIB="@DLB_LIBRARY@"
 
 XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
 
+NESMIK_PASS=@CAPI_LIB_DIR@/passes/nesmik/nesmik_inst.so
+
 VERBOSE=0
+RUN_INST_PASS=1
 
 ARGS=()
 #Command option
@@ -24,6 +27,10 @@ for arg in "$@" ; do
     case $arg in
         --capi-interface=*)
             CAPI_INTERFACE="${arg#*=}"
+            shift
+            ;;
+        --no-instrument)
+            RUN_INST_PASS=0
             shift
             ;;
         -v|--verbose)
@@ -71,12 +78,22 @@ then
     elif [[ "$CAPI_INTERFACE" == extrae ]]; then
         CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_EXTRAE -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
     elif [[ "$CAPI_INTERFACE" == nesmik ]]; then
-        CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_NESMIK -Wl,-no-whole-archive $NESMIK_LIB $DLB_LIB $XRAY_FLAGS $LLVM_LIBS $@"
+        INST_CMD=""
+        if [[ "$RUN_INST_PASS" == 1 ]]; then
+            INST_CMD=" -Xclang -load -Xclang $NESMIK_PASS -fpass-plugin=$NESMIK_PASS "
+        fi
+        CMD="$COMPILER $INST_CMD -Wl,-whole-archive $CAPI_LIB_NESMIK -Wl,-no-whole-archive $NESMIK_LIB $DLB_LIB $XRAY_FLAGS $LLVM_LIBS $@"
     else
         exit 1
     fi
 else
-    CMD="$COMPILER $XRAY_FLAGS $@"
+    INST_CMD=""
+    if [[ "$RUN_INST_PASS" == 1 ]]; then
+        if [[ "$CAPI_INTERFACE" == nesmik ]]; then
+            INST_CMD=" -Xclang -load -Xclang $NESMIK_PASS -fpass-plugin=$NESMIK_PASS "
+        fi
+    fi
+    CMD="$COMPILER $INST_CMD $XRAY_FLAGS $@"
 fi
 
 if [[ "$VERBOSE" == 1 ]]; then

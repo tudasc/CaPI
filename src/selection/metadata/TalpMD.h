@@ -22,6 +22,8 @@ struct TalpMetrics {
   double cycles;
   /*! Total number of instructions executed during useful time */
   double instructions;
+  /*! Number of measurements of this region */
+  unsigned long num_measurements;
   /*! Number of executed MPI calls combined among all MPI processes */
   unsigned long num_mpi_calls;
   /*! Number of encountered OpenMP parallel regions combined among all processes */
@@ -56,6 +58,7 @@ void to_json(nlohmann::json& j, const TalpMetrics& m) {
       {"numCpus", m.num_cpus},
       {"cycles", m.cycles},
       {"instructions", m.instructions},
+      {"numMeasurements", m.num_measurements},
       {"numMpiCalls", m.num_mpi_calls},
       {"numOmpParallels", m.num_omp_parallels},
       {"numOmpTasks", m.num_omp_tasks},
@@ -77,6 +80,7 @@ void from_json(const nlohmann::json& j, TalpMetrics& m) {
   j.at("numCpus").get_to(m.num_cpus);
   j.at("cycles").get_to(m.cycles);
   j.at("instructions").get_to(m.instructions);
+  j.at("numMeasurements").get_to(m.num_measurements);
   j.at("numMpiCalls").get_to(m.num_mpi_calls);
   j.at("numOmpParallels").get_to(m.num_omp_parallels);
   j.at("numOmpTasks").get_to(m.num_omp_tasks);
@@ -112,9 +116,11 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
       metacg::MCGLogger::logWarnUnique("Could not retrieve meta data for TalpMD");
       return;
     }
+    auto& jPathMetricsArray = j.contains("path_metrics") ? j.at("path_metrics") : j;
+
     // Iterate over all entries in list. Each entry contains metrics for a given
     // call path.
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    for (auto it = jPathMetricsArray.begin(); it != jPathMetricsArray.end(); ++it) {
       auto& jPathMetrics = it.value();
       if (!jPathMetrics.contains("path")) {
         metacg::MCGLogger::logWarnUnique("TalpMD entry is missing a path field!");
@@ -133,6 +139,17 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
       TalpMetrics metrics = jMetrics.get<TalpMetrics>();
       addMetrics(std::move(callPath), std::move(metrics));
     }
+    if (j.contains("dynamicallyFiltered")) {
+      j.at("dynamicallyFiltered").get_to(dynamicallyFiltered);
+    }
+  }
+
+  bool wasDynamicallyFiltered() const {
+    return dynamicallyFiltered;
+  }
+
+  void setDynamicallyFiltered(bool filtered) {
+    this->dynamicallyFiltered = filtered;
   }
 
   void addMetrics(std::vector<std::string> callPath, TalpMetrics metrics) {
@@ -162,7 +179,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
   }
 
  private:
-  TalpMD(const TalpMD& other) : pathMetrics(other.pathMetrics) {}
+  TalpMD(const TalpMD& other) : pathMetrics(other.pathMetrics), dynamicallyFiltered(other.dynamicallyFiltered) {}
 
  public:
   nlohmann::json toJson(metacg::NodeToStrMapping&) const final {
@@ -175,7 +192,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
       jPathMetricsEntry["metrics"] = jMetrics;
       j.push_back(jPathMetricsEntry);
     }
-    return j;
+    return nlohmann::json({{"path_metrics", j}, {"dynamicallyFiltered", dynamicallyFiltered}});
   }
 
   const char* getKey() const final { return key; }
@@ -192,6 +209,7 @@ class TalpMD : public metacg::MetaData::Registrar<TalpMD> {
 
  private:
   std::vector<TalpPathMetrics> pathMetrics;
+  bool dynamicallyFiltered{false};
 };
 
 }

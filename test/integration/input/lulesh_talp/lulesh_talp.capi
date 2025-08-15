@@ -1,0 +1,16 @@
+# TEST trace_cfg: --path-sensitive
+
+talp_fns = has_talp_metrics(%%)
+bad_par_eff = talp_mpi_parallel_efficiency("<", 0.3, %talp_fns)
+filtered = talp_dyn_filtered(%talp_fns)
+leapfrog = by_name("LagrangeLeapFrog", %%)
+
+final_set = join(%leapfrog, subtract(%bad_par_eff, %filtered))
+
+# Fully instrument
+!instrument(%final_set)
+
+# Overwriting config for leapfrog to record invocations 1-10 and 100.
+!instrument(%leapfrog, "1-10,100")
+
+# capi --path-sensitive -f lulesh_mpi_calls.capi --output-format json -o /dev/stdout lulesh_talp.mcg

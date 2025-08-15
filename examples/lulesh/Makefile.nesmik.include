@@ -1,0 +1,3 @@
+
+VARIANT = nesmik
+CAPI_FLAGS = --capi-interface=nesmik
