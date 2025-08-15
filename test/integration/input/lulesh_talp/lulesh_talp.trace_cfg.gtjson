@@ -67,7 +67,16 @@
         "_ZL16LagrangeLeapFrogR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
+                "invocations": [
+                    [
+                        1,
+                        10
+                    ],
+                    [
+                        100,
+                        100
+                    ]
+                ],
                 "measurement_level": "",
                 "path": []
             }

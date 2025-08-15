@@ -241,14 +241,30 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
         }
       }
 
-
       auto pathEntry = PathEntry{strPath, action.activeInvocations, "", {}}; // TODO: Measurement level?
 
       assert(f->has<CaPIMD>());
       if (action.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
         pathEntry.flags.push_back("scope_trigger");
       }
-      mc.add(f->getFunctionName(), std::move(pathEntry));
+
+      // Handle existing entries for that path
+      bool shouldAdd = true;
+      auto& existingEntries = mc.get(f->getFunctionName());
+      for (auto& entry : existingEntries) {
+        if (entry.callPath != strPath) {
+          continue;
+        }
+        // Matching path found. For now, print a warning and always override.
+        // TODO: Figure out sensible override rules
+        logWarn() << "A measurement config entry for function " << f->getFunctionName() << " already exists. Overwriting...\n";
+        entry = std::move(pathEntry);
+        shouldAdd = false;
+      }
+
+      if (shouldAdd) {
+        mc.add(f->getFunctionName(), std::move(pathEntry));
+      }
     }
   }
 
