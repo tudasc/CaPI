@@ -21,12 +21,13 @@ class FunctionFilter;
 // TODO: Remove duplicate declaration (see InstrumentationHint.h)
 using InvocationRange = std::pair<unsigned, unsigned>;
 using InvocationRanges = std::vector<InvocationRange>;
+using MappedInvocations = std::map<InvocationRanges, std::string>;
 using CallPath = std::vector<std::string>;
 
 struct PathEntry {
   CallPath callPath;
   InvocationRanges selectedInvocations;
-  std::string measurementLevel;
+//  std::string measurementLevel;
   std::vector<std::string> flags;
 };
 
@@ -74,7 +75,7 @@ inline void to_json(json& j, const PathEntry& p) {
   j = json{
       {"path", p.callPath},
       {"invocations", p.selectedInvocations},
-      {"measurement_level", p.measurementLevel},
+//      {"measurement_level", p.measurementLevel},
       {"flags", p.flags}
   };
 }
@@ -82,7 +83,7 @@ inline void to_json(json& j, const PathEntry& p) {
 inline void from_json(const json& j, PathEntry& p) {
   j.at("path").get_to(p.callPath);
   j.at("invocations").get_to(p.selectedInvocations);
-  j.at("measurement_level").get_to(p.measurementLevel);
+//  j.at("measurement_level").get_to(p.measurementLevel);
   j.at("flags").get_to(p.flags);
 }
 
