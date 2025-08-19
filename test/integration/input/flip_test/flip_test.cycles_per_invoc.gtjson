@@ -7,24 +7,21 @@
         "foo": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "foobar": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "main": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ]

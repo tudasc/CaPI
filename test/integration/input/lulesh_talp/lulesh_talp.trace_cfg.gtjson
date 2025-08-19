@@ -7,8 +7,9 @@
         "_Z14CommSyncPosVelR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": [
                     "_ZL16LagrangeLeapFrogR6Domain"
                 ]
@@ -17,8 +18,9 @@
         "_Z22CalcKinematicsForElemsR6Domaindi": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": [
                     "_ZL16LagrangeLeapFrogR6Domain"
                 ]
@@ -27,65 +29,78 @@
         "_Z7CommSBNR6DomainiPMS_FRdiE": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": []
             }
         ],
         "_Z8CommRecvR6Domainiiiiibb": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": [
                     "_ZL16LagrangeLeapFrogR6Domain"
                 ]
             },
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": []
             }
         ],
         "_Z8CommSendR6DomainiiPMS_FRdiEiiibb": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
-                "path": []
-            },
-            {
-                "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": [
                     "_ZL16LagrangeLeapFrogR6Domain"
                 ]
+            },
+            {
+                "flags": [],
+                "measurement_level": {
+                    "basic": []
+                },
+                "path": []
             }
         ],
         "_ZL16LagrangeLeapFrogR6Domain": [
             {
                 "flags": [],
-                "invocations": [
-                    [
-                        1,
-                        10
+                "measurement_level": {
+                    "basic": [
+                        [
+                            11,
+                            99
+                        ]
                     ],
-                    [
-                        100,
-                        100
+                    "detail": [
+                        [
+                            1,
+                            10
+                        ],
+                        [
+                            100,
+                            100
+                        ]
                     ]
-                ],
-                "measurement_level": "",
+                },
                 "path": []
             }
         ],
         "_ZN6DomainC1Eiiiiiiiii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {
+                    "basic": []
+                },
                 "path": []
             }
         ]

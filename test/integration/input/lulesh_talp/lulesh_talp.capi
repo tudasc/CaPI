@@ -8,9 +8,9 @@ leapfrog = by_name("LagrangeLeapFrog", %%)
 final_set = join(%leapfrog, subtract(%bad_par_eff, %filtered))
 
 # Fully instrument
-!instrument(%final_set)
+!instrument(%final_set, "basic")
 
-# Overwriting config for leapfrog to record invocations 1-10 and 100.
-!instrument(%leapfrog, "1-10,100")
+# Overwriting config for leapfrog to record invocations 1-10 and 100 in "detail" level.
+!instrument(%leapfrog, "detail:1-10,100", "basic:11-99")
 
 # capi --path-sensitive -f lulesh_mpi_calls.capi --output-format json -o /dev/stdout lulesh_talp.mcg

@@ -7,216 +7,189 @@
         "_Z14CommSyncPosVelR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_Z22CalcKinematicsForElemsR6Domaindi": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_Z7CommSBNR6DomainiPMS_FRdiE": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_Z8CommRecvR6Domainiiiiibb": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_Z8CommSendR6DomainiiPMS_FRdiEiiibb": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_Z9CommMonoQR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL13CalcQForElemsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL13LagrangeNodalR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL15EvalEOSForElemsR6DomainPdiPii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL16LagrangeElementsR6Domaini": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL16LagrangeLeapFrogR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL17CalcForceForNodesR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL20CalcLagrangeElementsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL22CalcMonotonicQForElemsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL23CalcVolumeForceForElemsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL23IntegrateStressForElemsR6DomainPdS1_S1_S1_ii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL28CalcFBHourglassForceForElemsR6DomainPdS1_S1_S1_S1_S1_S1_dii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL28CalcHourglassControlForElemsR6DomainPdd": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL28CalcMonotonicQRegionForElemsR6Domainid": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL31ApplyMaterialPropertiesForElemsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZL31CalcMonotonicQGradientsForElemsR6Domain": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZN6Domain16SetupCommBuffersEi": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZN6Domain22AllocateElemPersistentEi": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZN6Domain22AllocateNodePersistentEi": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZN6DomainC1Eiiiiiiiii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "_ZN6DomainC2Eiiiiiiiii": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ],
         "main": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ]
