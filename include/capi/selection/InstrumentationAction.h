@@ -7,11 +7,13 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace capi {
 
 using InvocationRange = std::pair<unsigned, unsigned>;
 using Invocations = std::vector<InvocationRange>;
+using MappedInvocations = std::map<std::string, Invocations>;
 
 enum InstrumentationType {
   NONE = 0,
@@ -45,7 +47,7 @@ inline bool isEndTrigger(int flags) {
 struct InstrumentationAction {
   InstrumentationType type;
   std::string selRefName;
-  Invocations activeInvocations;
+  MappedInvocations activeInvocations;
 };
 
 using InstrumentationActions = std::vector<InstrumentationAction>;

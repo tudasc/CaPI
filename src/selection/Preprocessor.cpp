@@ -48,11 +48,19 @@ struct InstrumentActionHandler : public DirectiveHandler {
       logError() << "Instrument directive expected range string as input, but received " << p.kindNames[p.kind] << "\n";
       return;
     }
-    auto rangeStr = std::get<std::string>(p.val);
+    auto paramStr = std::get<std::string>(p.val);
     // Remove whitespaces
-    rangeStr.erase(std::remove_if(rangeStr.begin(), rangeStr.end(),
+    paramStr.erase(std::remove_if(paramStr.begin(), paramStr.end(),
                            [](unsigned char c){ return std::isspace(c); }),
-            rangeStr.end());
+                   paramStr.end());
+
+    auto colonPos = paramStr.find(':');
+    if (colonPos == std::string::npos) {
+      activeInvocations[paramStr] = {};
+      return;
+    }
+    std::string lvl = paramStr.substr(0, colonPos);
+    std::string rangeStr = paramStr.substr(colonPos + 1);
 
     Invocations invocations;
     bool isRange = false;
@@ -84,7 +92,7 @@ struct InstrumentActionHandler : public DirectiveHandler {
           return;
       }
     }
-    this->activeInvocations = invocations;
+    this->activeInvocations[lvl] = invocations;
   }
 
   void consumeRef(const SelectorRef& ref) override {
@@ -106,7 +114,7 @@ struct InstrumentActionHandler : public DirectiveHandler {
 private:
   std::string refName;
   InstrumentationType type;
-  Invocations activeInvocations;
+  MappedInvocations activeInvocations;
 };
 
 struct ImportHandler : public DirectiveHandler{

@@ -7,8 +7,7 @@
         "foobar": [
             {
                 "flags": [],
-                "invocations": [],
-                "measurement_level": "",
+                "measurement_level": {},
                 "path": []
             }
         ]

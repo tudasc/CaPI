@@ -21,12 +21,12 @@ class FunctionFilter;
 // TODO: Remove duplicate declaration (see InstrumentationHint.h)
 using InvocationRange = std::pair<unsigned, unsigned>;
 using InvocationRanges = std::vector<InvocationRange>;
+using MappedInvocations = std::map<std::string, InvocationRanges>;
 using CallPath = std::vector<std::string>;
 
 struct PathEntry {
   CallPath callPath;
-  InvocationRanges selectedInvocations;
-  std::string measurementLevel;
+  MappedInvocations selectedInvocations;
   std::vector<std::string> flags;
 };
 
@@ -73,31 +73,16 @@ class MeasurementConfig {
 inline void to_json(json& j, const PathEntry& p) {
   j = json{
       {"path", p.callPath},
-      {"invocations", p.selectedInvocations},
-      {"measurement_level", p.measurementLevel},
+      {"measurement_level", p.selectedInvocations},
       {"flags", p.flags}
   };
 }
 
 inline void from_json(const json& j, PathEntry& p) {
   j.at("path").get_to(p.callPath);
-  j.at("invocations").get_to(p.selectedInvocations);
-  j.at("measurement_level").get_to(p.measurementLevel);
+  j.at("measurement_level").get_to(p.selectedInvocations);
   j.at("flags").get_to(p.flags);
 }
-
-//// FunctionEntry
-//inline void to_json(json& j, const FunctionEntry& f) {
-//  j = json{
-//      {"name", f.name},
-//      {"path", f.pathEntries}
-//  };
-//}
-//
-//inline void from_json(const json& j, FunctionEntry& f) {
-//  j.at("name").get_to(f.name);
-//  j.at("path").get_to(f.pathEntries);
-//}
 
 // MeasurementConfig
 inline void to_json(json& j, const MeasurementConfig& config) {
