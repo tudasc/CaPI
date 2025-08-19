@@ -12,7 +12,7 @@
 
 
 # set the compiler here (currently in Makefile)
-CC = ./../../../scripts/capi-hybrid-mpi 
+CC = ./../../../scripts/capicc mpicc
 
 # set compile flags here
 # MPI only:
