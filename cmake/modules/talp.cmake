@@ -7,7 +7,7 @@ if (ENABLE_TALP)
     get_target_property(DLB_INCLUDE_DIR DLB::DLB INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(DLB_LIBRARY DLB::DLB IMPORTED_LOCATION_RELEASE)
 
-    get_filename_component(DLB_LIBRARY_DIR ${DLB_LIBRARY} DIRECTORY)
+    get_filename_component(DLB_LIB_DIR ${DLB_LIBRARY} DIRECTORY)
 
     message(STATUS "DLB library: ${DLB_LIBRARY}")
 

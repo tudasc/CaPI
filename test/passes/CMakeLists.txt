@@ -7,7 +7,8 @@ function(configure_lit_site_cfg input output)
 
   set(CAPI_PROJECT_DIR ${PROJECT_SOURCE_DIR})
   set(CAPI_LIB_DIR ${CMAKE_BINARY_DIR}/src/)
-  set(CAPI_CC ${CMAKE_BINARY_DIR}/scripts/clang-inst)
+  set(CAPI_CC ${CMAKE_BINARY_DIR}/scripts/capi-cxx )
+#  set(CAPI_CC ${CMAKE_BINARY_DIR}/scripts/clang-inst)
   set(CAPI_CXX ${CMAKE_BINARY_DIR}/scripts/clang-inst++)
   set(CAPI_MPICC ${CMAKE_BINARY_DIR}/scripts/clang-mpi-inst)
   set(CAPI_MPICXX ${CMAKE_BINARY_DIR}/scripts/clang-mpi-inst++)
@@ -30,6 +31,8 @@ configure_lit_site_cfg(
 
 set(TEST_GCC_TOOLCHAIN "" CACHE STRING "GCC toolchain to use for running integration tests")
 message(STATUS "Test toolchain: ${TEST_GCC_TOOLCHAIN}")
+
+message(STATUS "DLB_LIB_DIR: ${DLB_LIB_DIR}")
 
 add_lit_testsuite(capi-pass-test
     "Running CaPI Pass Tests"

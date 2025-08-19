@@ -7,6 +7,7 @@ export OMPI_CXX=@CXX_PATH@
 CAPI_LIB_GNU=@CAPI_LIB_DIR@/xray/libcapixray_gnu.a
 CAPI_LIB_SCOREP=@CAPI_LIB_DIR@/xray/libcapixray_scorep.a
 CAPI_LIB_EXTRAE=@CAPI_LIB_DIR@/xray/libcapixray_extrae.a
+CAPI_LIB_TALP=@CAPI_LIB_DIR@/xray/libcapixray_talp.a
 CAPI_LIB_NESMIK=@CAPI_LIB_DIR@/xray/libcapixray_nesmik.a
 
 LLVM_LIBS=`@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs`
@@ -16,7 +17,10 @@ DLB_LIB="@DLB_LIBRARY@"
 
 XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
 
+CAPI_INST_PASS=@CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so
+TALP_PASS=@CAPI_LIB_DIR@/passes/talp/talp_inst.so
 NESMIK_PASS=@CAPI_LIB_DIR@/passes/nesmik/nesmik_inst.so
+
 
 VERBOSE=0
 RUN_INST_PASS=1
@@ -77,6 +81,11 @@ then
         CMD="$COMPILER scorep_init.o -Wl,-start-group -Wl,-whole-archive $CAPI_LIB_SCOREP -Wl,-no-whole-archive `@SCOREP_CONFIG@  --compiler --ldflags` `@SCOREP_CONFIG@ --libs --mpp=mpi  --compiler` -Wl,-end-group $XRAY_FLAGS $LLVM_LIBS $@"
     elif [[ "$CAPI_INTERFACE" == extrae ]]; then
         CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_EXTRAE -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
+    elif [[ "$CAPI_INTERFACE" == talp ]]; then
+        CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_TALP -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
+    elif [[ "$CAPI_INTERFACE" == talp_static ]]; then
+        INST_CMD=" -Xclang -load -Xclang $CAPI_INST_PASS -Xclang -load -Xclang $TALP_PASS -fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS -mllvm -inst-api=talp "
+        CMD="$COMPILER $INST_CMD $@"
     elif [[ "$CAPI_INTERFACE" == nesmik ]]; then
         INST_CMD=""
         if [[ "$RUN_INST_PASS" == 1 ]]; then
@@ -88,12 +97,18 @@ then
     fi
 else
     INST_CMD=""
-    if [[ "$RUN_INST_PASS" == 1 ]]; then
-        if [[ "$CAPI_INTERFACE" == nesmik ]]; then
-            INST_CMD=" -Xclang -load -Xclang $NESMIK_PASS -fpass-plugin=$NESMIK_PASS "
+    if [[ "$CAPI_INTERFACE" == talp_static ]]; then
+        INST_CMD=" -Xclang -load -Xclang $CAPI_INST_PASS -Xclang -load -Xclang $TALP_PASS -fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS -mllvm -inst-api=talp "
+    elif [[ "$CAPI_INTERFACE" == nesmik ]]; then
+        if [[ "$RUN_INST_PASS" == 1 ]]; then
+            INST_CMD=" -Xclang -load -Xclang $NESMIK_PASS -fpass-plugin=$NESMIK_PASS $XRAY_FLAGS"
+        else
+            INST_CMD="$XRAY_FLAGS"
         fi
+    else
+        INST_CMD="$XRAY_FLAGS"
     fi
-    CMD="$COMPILER $INST_CMD $XRAY_FLAGS $@"
+    CMD="$COMPILER $INST_CMD $@"
 fi
 
 if [[ "$VERBOSE" == 1 ]]; then
