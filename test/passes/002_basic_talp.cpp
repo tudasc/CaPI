@@ -4,8 +4,6 @@
 
 #include <mpi.h>
 
-// TODO: Update test
-
 // basic.filt: main and foo are instrumented, bar is not.
 
 // (1) Check if region instrumentation is inserted correctly.

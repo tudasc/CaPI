@@ -1,14 +1,13 @@
-#!/bin/bash
-#
+#!/usr/bin/env bash
 
 export OMPI_C=@CC_PATH@
 export OMPI_CXX=@CXX_PATH@
 
-CAPI_LIB_GNU=@CAPI_LIB_DIR@/xray/libcapixray_gnu.a
-CAPI_LIB_SCOREP=@CAPI_LIB_DIR@/xray/libcapixray_scorep.a
-CAPI_LIB_EXTRAE=@CAPI_LIB_DIR@/xray/libcapixray_extrae.a
-CAPI_LIB_TALP=@CAPI_LIB_DIR@/xray/libcapixray_talp.a
-CAPI_LIB_NESMIK=@CAPI_LIB_DIR@/xray/libcapixray_nesmik.a
+CAPI_LIB_GNU=@CAPI_XRAY_LIB_DIR@/libcapixray_gnu.a
+CAPI_LIB_SCOREP=@CAPI_XRAY_LIB_DIR@/libcapixray_scorep.a
+CAPI_LIB_EXTRAE=@CAPI_XRAY_LIB_DIR@/libcapixray_extrae.a
+CAPI_LIB_TALP=@CAPI_XRAY_LIB_DIR@/libcapixray_talp.a
+CAPI_LIB_NESMIK=@CAPI_XRAY_LIB_DIR@/libcapixray_nesmik.a
 
 LLVM_LIBS=`@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs`
 
@@ -17,10 +16,9 @@ DLB_LIB="@DLB_LIBRARY@"
 
 XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
 
-CAPI_INST_PASS=@CAPI_LIB_DIR@/passes/capi_inst/capi_inst.so
-TALP_PASS=@CAPI_LIB_DIR@/passes/talp/talp_inst.so
-NESMIK_PASS=@CAPI_LIB_DIR@/passes/nesmik/nesmik_inst.so
-
+CAPI_INST_PASS=@CAPI_INST_PASS_DIR@/capi_inst.so
+TALP_PASS=@CAPI_TALP_PASS_DIR@/talp_inst.so
+NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
 
 VERBOSE=0
 RUN_INST_PASS=1
