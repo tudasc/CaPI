@@ -71,8 +71,10 @@ CMD=""
 if [[ "$linking" == yes ]] 
 then 
     if [[ "$CAPI_INTERFACE" == gnu ]]; then
-
         CMD="$COMPILER -Wl,-whole-archive $CAPI_LIB_GNU -Wl,-no-whole-archive $XRAY_FLAGS $LLVM_LIBS $@"
+    elif [[ "$CAPI_INTERFACE" == gnu_static ]]; then
+        INST_CMD=" -Xclang -load -Xclang $CAPI_INST_PASS -fpass-plugin=$CAPI_INST_PASS -mllvm -inst-api=gnu "
+        CMD="$COMPILER $INST_CMD $@"
     elif [[ "$CAPI_INTERFACE" == scorep ]]; then
         #scorep_init.c:
         @SCOREP_CONFIG@ --mpp=mpi  --adapter-init --compiler > scorep_init.c
@@ -99,6 +101,8 @@ else
     INST_CMD=""
     if [[ "$CAPI_INTERFACE" == talp_static ]]; then
         INST_CMD=" -Xclang -load -Xclang $CAPI_INST_PASS -Xclang -load -Xclang $TALP_PASS -fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS -mllvm -inst-api=talp "
+    elif [[ "$CAPI_INTERFACE" == gnu_static ]]; then
+        INST_CMD=" -Xclang -load -Xclang $CAPI_INST_PASS -fpass-plugin=$CAPI_INST_PASS -mllvm -inst-api=gnu "
     elif [[ "$CAPI_INTERFACE" == nesmik ]]; then
         if [[ "$RUN_INST_PASS" == 1 ]]; then
             INST_CMD=" -Xclang -load -Xclang $NESMIK_PASS -fpass-plugin=$NESMIK_PASS $XRAY_FLAGS"
