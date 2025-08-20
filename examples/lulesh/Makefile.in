@@ -16,7 +16,7 @@ MPI_LIB = /opt/local/lib
 
 SERCXX = @CXX_PATH@ -DUSE_MPI=0
 MPICXX = mpic++ -DUSE_MPI=1
-CAPICC = ./../../scripts/capi-cxx
+CAPICC = ./../../scripts/capicc
 CXX = $(MPICXX)
 VARIANT = scorep
 

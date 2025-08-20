@@ -18,12 +18,24 @@
 
 using namespace llvm;
 
+// TODO: Include header?
+//void __xray_customevent(const void *data, size_t size);
+
+static cl::opt<bool>
+    ClEmitXRay("emit-xray-events",
+              cl::desc("Emit custom XRay init/finalize events instead of using static instrumentation."),
+              cl::Hidden, cl::init(false));
+
+enum class EventType {
+  INIT, FINALIZE
+};
+
 // New PM registration
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
   return {
       LLVM_PLUGIN_API_VERSION, "nesmik-inst", "v1.0", [](llvm::PassBuilder& PB) {
         PB.registerOptimizerLastEPCallback([&](ModulePassManager &MPM, OptimizationLevel O, ThinOrFullLTOPhase) {
-          MPM.addPass(createModuleToFunctionPassAdaptor(NeSmiKPass()));
+          MPM.addPass(NeSmiKPass());
           return true;
         });
       }
@@ -38,18 +50,58 @@ static bool isMPIFinalize(StringRef Name) {
   return Name == "MPI_Finalize";
 }
 
-static void instrument(Instruction* I, FunctionCallee& Callee) {
-  IRBuilder<> IRB(I);
-  IRB.CreateCall(Callee);
+
+
+llvm::PreservedAnalyses NeSmiKPass::run(llvm::Module &M, llvm::ModuleAnalysisManager &) {
+
+  bool Modified = false;
+  for (auto& F: M.functions()) {
+    Modified |= runOnFunction(F);
+  }
+
+  if (Modified)
+    return PreservedAnalyses::all();
+
+  return PreservedAnalyses::none();
+
 }
 
-llvm::PreservedAnalyses NeSmiKPass::run(llvm::Function &F, llvm::FunctionAnalysisManager &) {
+bool NeSmiKPass::runOnFunction(llvm::Function& F) {
 
   Module &M = *F.getParent();
   LLVMContext &C = F.getContext();
 
   FunctionCallee InitFn = M.getOrInsertFunction("dyncapi_nesmik_init", Type::getVoidTy(C));
   FunctionCallee FinalizeFn = M.getOrInsertFunction("dyncapi_nesmik_finalize", Type::getVoidTy(C));
+
+  llvm::Type *CharTy = llvm::Type::getInt8Ty(C);
+  llvm::PointerType *CharPtrTy = llvm::PointerType::getUnqual(CharTy);
+
+  FunctionCallee XRayCustomEvent = M.getOrInsertFunction("__xray_customevent", Type::getVoidTy(C), CharPtrTy, Type::getInt64Ty(C));
+
+  bool EmitXRayEvents = ClEmitXRay;
+
+  auto instrument = [&](Instruction* I, EventType type) {
+
+    IRBuilder<> IRB(I);
+    if (EmitXRayEvents) {
+
+    } else {
+      FunctionCallee* Callee = nullptr;
+      switch(type) {
+        case EventType::INIT:
+          Callee = &InitFn;
+          break;
+        case EventType::FINALIZE:
+          Callee = &FinalizeFn;
+          break;
+        default:
+          llvm_unreachable("Unhandled event type");
+      }
+      assert(Callee && "Callee must not be null");
+      IRB.CreateCall(*Callee);
+    }
+  };
 
   bool DidInstrument = false;
 
@@ -63,11 +115,11 @@ llvm::PreservedAnalyses NeSmiKPass::run(llvm::Function &F, llvm::FunctionAnalysi
         auto Name = Callee->getName();
         if (isMPIInit(Name)) {
           assert(I.getNextNode() && "Insertion point is null");
-          instrument(I.getNextNode(), InitFn);
+          instrument(I.getNextNode(), EventType::INIT);
           DidInstrument = true;
           llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
         } else if (isMPIFinalize(Name)) {
-          instrument(&I, FinalizeFn);
+          instrument(&I, EventType::FINALIZE);
           DidInstrument = true;
           llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
         }
@@ -75,8 +127,5 @@ llvm::PreservedAnalyses NeSmiKPass::run(llvm::Function &F, llvm::FunctionAnalysi
     }
   }
 
-  if (DidInstrument)
-    return PreservedAnalyses::all();
-
-  return PreservedAnalyses::none();
+  return DidInstrument;
 }

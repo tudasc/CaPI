@@ -20,7 +20,11 @@ class NeSmiKPass : public llvm::PassInfoMixin<NeSmiKPass> {
  public:
   NeSmiKPass() = default;
 
-  llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &);
+  llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &);
+
+ private:
+  bool runOnFunction(llvm::Function &);
+
 
 };
 

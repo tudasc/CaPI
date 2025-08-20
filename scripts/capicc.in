@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+
+export OMPI_CC=@CC_PATH@
+export OMPI_CXX=@CXX_PATH@
+
+CAPI_LIB_GNU=@CAPI_XRAY_LIB_DIR@/libcapixray_gnu.a
+CAPI_LIB_SCOREP=@CAPI_XRAY_LIB_DIR@/libcapixray_scorep.a
+CAPI_LIB_EXTRAE=@CAPI_XRAY_LIB_DIR@/libcapixray_extrae.a
+CAPI_LIB_TALP=@CAPI_XRAY_LIB_DIR@/libcapixray_talp.a
+CAPI_LIB_NESMIK=@CAPI_XRAY_LIB_DIR@/libcapixray_nesmik.a
+
+LLVM_LIBS=$(@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
+
+NESMIK_LIB="@NESMIK_LIB_PATH@"
+DLB_LIB="@DLB_LIBRARY@"
+
+XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
+
+CAPI_INST_PASS=@CAPI_INST_PASS_DIR@/capi_inst.so
+TALP_PASS=@CAPI_TALP_PASS_DIR@/talp_inst.so
+NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
+
+VERBOSE=0
+RUN_INST_PASS=1
+
+# -------------------------------
+# Helper: instrumentation command
+# -------------------------------
+get_inst_cmd() {
+    local iface=$1
+    case "$iface" in
+        gnu_static)
+            echo "-Xclang -load -Xclang $CAPI_INST_PASS \
+                  -fpass-plugin=$CAPI_INST_PASS -mllvm -inst-api=gnu"
+            ;;
+        talp_static)
+            echo "-Xclang -load -Xclang $CAPI_INST_PASS \
+                  -Xclang -load -Xclang $TALP_PASS \
+                  -fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS \
+                  -mllvm -inst-api=talp"
+            ;;
+        nesmik)
+            if [[ "$RUN_INST_PASS" == 1 ]]; then
+                echo "-Xclang -load -Xclang $NESMIK_PASS \
+                      -fpass-plugin=$NESMIK_PASS $XRAY_FLAGS"
+            else
+                echo "$XRAY_FLAGS"
+            fi
+            ;;
+        *)
+            echo "$XRAY_FLAGS"
+            ;;
+    esac
+}
+
+# -------------------------------
+# Helper: wrap with whole-archive
+# -------------------------------
+wrap_whole_archive() {
+    local libs="$*"
+    echo "-Wl,-whole-archive $libs -Wl,-no-whole-archive"
+}
+
+# -------------------------------
+# Helpers: Score-P setup
+# -------------------------------
+prepare_scorep_init() {
+    # Generate init file + object
+    @SCOREP_CONFIG@ --mpp=mpi --adapter-init --compiler > scorep_init.c
+    $COMPILER -c -x c scorep_init.c
+}
+
+get_scorep_link_flags() {
+    echo "-Wl,-start-group \
+          $(wrap_whole_archive $CAPI_LIB_SCOREP) \
+          $(@SCOREP_CONFIG@ --compiler --ldflags) \
+          $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) \
+          -Wl,-end-group"
+}
+
+# -------------------------------
+# Parse wrapper options
+# -------------------------------
+for arg in "$@"; do
+    case $arg in
+        --capi-interface=*)
+            CAPI_INTERFACE="${arg#*=}"
+            shift
+            ;;
+        --no-instrument)
+            RUN_INST_PASS=0
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -*)
+            echo "Unknown wrapper option $arg"
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# set first argument as compiler
+COMPILER=$1
+shift
+
+# Check if linking or not
+linking=yes
+for arg in "$@"; do
+    case "$arg" in
+        -c|-S|-E|-M|-MM|-MMD)
+            linking=no
+            ;;
+    esac
+done
+
+CMD=""
+
+# -------------------------------
+# Linking case
+# -------------------------------
+if [[ "$linking" == yes ]]; then
+    case "$CAPI_INTERFACE" in
+        gnu)
+            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_GNU) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            ;;
+        gnu_static|talp_static)
+            INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
+            CMD="$COMPILER $INST_CMD $@"
+            ;;
+        scorep)
+            prepare_scorep_init
+            CMD="$COMPILER scorep_init.o $(get_scorep_link_flags) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            ;;
+        extrae)
+            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_EXTRAE) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            ;;
+        talp)
+            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_TALP) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            ;;
+        nesmik)
+            INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
+            CMD="$COMPILER $INST_CMD $(wrap_whole_archive $CAPI_LIB_NESMIK) \
+                 $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lstdc++ $@"
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+else
+# -------------------------------
+# Non-linking case
+# -------------------------------
+    INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
+    CMD="$COMPILER $INST_CMD $@"
+fi
+
+# -------------------------------
+# Verbose output
+# -------------------------------
+if [[ "$VERBOSE" == 1 ]]; then
+    API_INFO=""
+    if [[ -n $CAPI_INTERFACE ]]; then
+        API_INFO=" (api=$CAPI_INTERFACE)"
+    fi
+    echo "Compiler command${API_INFO}: $CMD"
+fi
+
+eval $CMD
