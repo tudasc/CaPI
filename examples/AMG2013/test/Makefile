@@ -16,7 +16,7 @@
 srcdir = .
                                                                                                
 include ../Makefile.include
-                                                                                               
+
 CFLAGS = \
  -I..\
  -I../utilities\
@@ -66,18 +66,21 @@ veryclean: clean
 ##################################################################
 # Rules
 ##################################################################
-                                                                                                                                         
+
+amg2013_gnu: CCWRAP_FLAGS = "--capi-interface=gnu"
 amg2013_gnu: amg2013.o
 	@echo  "Linking" $@ "... "
-	${CC} --capi-interface=gnu -o amg2013_gnu amg2013.o ${LFLAGS}
+	${CC} -o amg2013_gnu amg2013.o ${LFLAGS}
 
+amg2013_scorep: CCWRAP_FLAGS = "--capi-interface=scorep"
 amg2013_scorep: amg2013.o
 	@echo  "Linking" $@ "... "
-	${CC} --capi-interface=scorep -o amg2013_scorep amg2013.o ${LFLAGS}
+	${CC} -o amg2013_scorep amg2013.o ${LFLAGS}
 
+amg2013_extrae: CCWRAP_FLAGS = "--capi-interface=extrae"
 amg2013_extrae: amg2013.o
 	@echo "Linking" $@ "... "
-	${CC} --capi-interface=extrae -o amg2013_extrae amg2013.o ${LFLAGS}
+	${CC} -o amg2013_extrae amg2013.o ${LFLAGS}
                  
 ##################################################################
 # Generic rules

@@ -5,9 +5,6 @@ import sys
 config.llvm_bin_dir = "@LLVM_TOOLS_BINARY_DIR@"
 config.capi_lib_dir = "@CAPI_LIB_DIR@"
 config.capi_cc = "@CAPI_CC@"
-config.capi_cxx = "@CAPI_CXX@"
-config.capi_mpicc = "@CAPI_MPICC@"
-config.capi_mpicxx = "@CAPI_MPICXX@"
 config.dlb_lib_dir = "@DLB_LIB_DIR@"
 config.capi_scorep_support = @CAPI_SCOREP_SUPPORT@
 config.gcc_toolchain = "@TEST_GCC_TOOLCHAIN@"

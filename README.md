@@ -23,7 +23,7 @@ This project is currently in a pre-release state, frequent changes to the code a
 - CMake >=3.15
 - LLVM >=10 (>=20 for XRay shared library instrumentation)
 - ScoreP 7 (optional)
-- DLB 3.3 (optional, other versions may work)
+- DLB 3.5 (optional, other versions may work)
 - Extrae 3.8.3 (optional, other versions may work)
 - LLVM-Lit (testing only)
 
@@ -198,12 +198,12 @@ With XRay, only one build is required and ICs can be changed without recompilati
 **Note**: This requires LLVM version 20 or newer.
 
 You can toggle this feature by setting `ENABLE_XRAY=ON` on.
-This will generate compiler wrappers in the `scripts` subdirectory of your current build:
-- `capi-cxx` for compiling and instrumenting C++ code.
-- `capi-mpicxx` for compiling and instrumenting C++ that uses MPI.
-These wrappers are fully compatible with the `clang++` frontend and can thus be used as direct replacements.
-`hybrid` versions have been added for compatibility with C code. They compile with `clang` and link with `clang++`.
-- 
+This will generate the compiler wrapper `capicc` in the `scripts` subdirectory of your current build.
+This wrapper automatically adds the required flags to instrument your code and link in the necessary dependencies.
+A corresponding wrapper is generated in the install tree as well.
+To use it, simply prepend your existing compiler invocation with this wrapper.
+For example, Makefile-based projects can be compiled with `make CC='capicc clang' CXX='capicc clang++'`.
+
 There are currently four different tool interfaces implemented in the following CaPI runtime libraries:
 - `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and ``__cyg_profile_func_exit` on exit.
 - `libcapixray_scorep.a`: Compatible with the GNU interface of Score-P.
