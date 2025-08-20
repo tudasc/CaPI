@@ -12,7 +12,10 @@
 
 
 # set the compiler here (currently in Makefile)
-CC = ./../../../scripts/capicc mpicc
+CCWRAP_FLAGS ?= "--verbose"
+CCWRAP = ./../../../scripts/capicc $(CCWRAP_FLAGS)
+CC = $(CCWRAP) mpicc
+
 
 # set compile flags here
 # MPI only:
