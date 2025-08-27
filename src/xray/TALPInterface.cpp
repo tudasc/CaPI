@@ -175,6 +175,9 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
+void handleCustomXRayEvent(void* data, size_t len) {}
+
+
 void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
     talpData = new TalpData{xrayMap};
     initialized = true;

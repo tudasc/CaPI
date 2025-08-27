@@ -113,6 +113,23 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
   }
 }
 
+void handleCustomXRayEvent(void* data, size_t len) {
+  const char* eventName = static_cast<const char*>(data);
+  if (eventName[len-1] != '\0') {
+    logError() << "Custom XRay event is not a string!\n";
+    return;
+  }
+  logInfo() << "Received custom XRay event: " << eventName << "\n";
+  if (!strcmp(eventName, "dyncapi_init")) {
+    dyncapi_nesmik_init();
+  } else if (!strcmp(eventName, "dyncapi_finalize")) {
+    dyncapi_nesmik_finalize();
+  } else {
+    logError() << "Received unknown custom XRay event: " << eventName << "\n";
+  }
+}
+
+
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   XRayRecursionGuard guard(inXRayScope);
   if (!guard) {
