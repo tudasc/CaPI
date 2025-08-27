@@ -6,6 +6,7 @@
 
 #include "llvm/Pass.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/IR/Value.h"
 
 #include <string>
 
@@ -25,6 +26,8 @@ class NeSmiKPass : public llvm::PassInfoMixin<NeSmiKPass> {
  private:
   bool runOnFunction(llvm::Function &);
 
+  llvm::Value* InitEventStr;
+  llvm::Value* ExitEventStr;
 
 };
 

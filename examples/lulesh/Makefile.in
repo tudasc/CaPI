@@ -7,6 +7,7 @@ LULESH_EXEC = lulesh2.0
 LULESH_EXEC_SCOREP = lulesh2.0_scorep
 LULESH_EXEC_EXTRAE = lulesh2.0_extrae
 LULESH_EXEC_NESMIK = lulesh2.0_nesmik
+LULESH_EXEC_NESMIK_XRAY = lulesh2.0_nesmik_xray
 
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
@@ -20,8 +21,6 @@ CAPICC = ./../../scripts/capicc
 CXX = $(MPICXX)
 VARIANT = scorep
 
-include Makefile.$(VARIANT).include
-
 SOURCES2.0 = \
 	lulesh.cc \
 	lulesh-comm.cc \
@@ -32,6 +31,8 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
 CXXFLAGS = -O3 -I. -Wall -g
 LDFLAGS = -O3 -g
+
+include Makefile.$(VARIANT).include
 
 .cc.o: lulesh.h
 	@echo "Building $<"
@@ -44,7 +45,7 @@ $(LULESH_EXEC)_$(VARIANT): $(OBJECTS2.0)
 	$(CAPICC) $(CAPI_FLAGS) --verbose $(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
-	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK) scorep_init.c
+	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC) $(LULESH_EXEC_SCOREP) $(LULESH_EXEC_EXTRAE) $(LULESH_EXEC_NESMIK) $(LULESH_EXEC_NESMIK_XRAY) scorep_init.c
 	/bin/rm -rf *.dSYM
 
 tar: clean

@@ -54,6 +54,13 @@ static bool isMPIFinalize(StringRef Name) {
 
 llvm::PreservedAnalyses NeSmiKPass::run(llvm::Module &M, llvm::ModuleAnalysisManager &) {
 
+  if (ClEmitXRay) {
+    IRBuilder<> IRB(M.getContext());
+    this->InitEventStr = IRB.CreateGlobalString("dyncapi_init", "init.str", 0, &M);
+    this->ExitEventStr = IRB.CreateGlobalString("dyncapi_finalize", "finalize.str", 0, &M);
+    llvm::outs() << "Instrumenting with XRay custom events\n";
+  }
+
   bool Modified = false;
   for (auto& F: M.functions()) {
     Modified |= runOnFunction(F);
@@ -74,10 +81,10 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
   FunctionCallee InitFn = M.getOrInsertFunction("dyncapi_nesmik_init", Type::getVoidTy(C));
   FunctionCallee FinalizeFn = M.getOrInsertFunction("dyncapi_nesmik_finalize", Type::getVoidTy(C));
 
-  llvm::Type *CharTy = llvm::Type::getInt8Ty(C);
-  llvm::PointerType *CharPtrTy = llvm::PointerType::getUnqual(CharTy);
+//  llvm::Type *CharTy = llvm::Type::getInt8Ty(C);
+//  llvm::PointerType *CharPtrTy = llvm::PointerType::getUnqual(CharTy);
 
-  FunctionCallee XRayCustomEvent = M.getOrInsertFunction("__xray_customevent", Type::getVoidTy(C), CharPtrTy, Type::getInt64Ty(C));
+  FunctionCallee XRayCustomEvent = M.getOrInsertFunction("llvm.xray.customevent", Type::getVoidTy(C), PointerType::get(C,0), Type::getInt64Ty(C));
 
   bool EmitXRayEvents = ClEmitXRay;
 
@@ -85,7 +92,31 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
 
     IRBuilder<> IRB(I);
     if (EmitXRayEvents) {
+      Value* EventStr;
 
+      switch (type) {
+        case EventType::INIT:
+          EventStr = InitEventStr;
+
+          break;
+        case EventType::FINALIZE:
+          EventStr = ExitEventStr;
+          break;
+        default:
+          llvm_unreachable("Unhandled event type");
+      }
+      assert(EventStr);
+
+      auto *GV = llvm::cast<llvm::GlobalVariable>(
+          EventStr);
+
+      auto *CDA = llvm::cast<llvm::ConstantDataArray>(GV->getInitializer());
+      unsigned LengthWithNull = CDA->getType()->getArrayNumElements();
+      auto* LenConst =
+          llvm::ConstantInt::get(llvm::Type::getInt64Ty(GV->getContext()),
+                                 LengthWithNull);
+
+      IRB.CreateCall(XRayCustomEvent, {EventStr, LenConst});
     } else {
       FunctionCallee* Callee = nullptr;
       switch(type) {
