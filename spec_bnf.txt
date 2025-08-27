@@ -1,28 +1,68 @@
-<spec> ::= <stmt> | <spec> <stmt>
-<stmt> ::= <selectorDecl> | <directive>
-<directive> ::= '!' <directiveType> | '!' <directiveType> '(' <directiveParams> ')'
-<directiveType> ::= 'import'
-<selectorDecl> ::= <selectorName> '=' <selectorDef> | <selectorDef>
-<selectorDef> ::= <selectorType> '(' <params> ')' | <selectorType> '(' ')'
-<selectorRef> ::= '%' <selectorName> | '%%'
-<selectorType> ::= <identifier>
-<params> ::= <param> | <params> ',' <param>
-<param> ::= <string> | <int> | <float> | <bool> | <selectorRef> | <selectorDef>
+#################################################
+# Core grammar / pipeline rules
+#################################################
 
-<selectorName> ::= <identifier>
-<identifier> ::= <letter> | <letter> <idRest>
-<idRest> ::= <idChar> | <idChar> <idRest>
-<idChar> ::= '_' | <letter> | <digit>
-<letter> ::= [a-z] | [A-Z]
+<query>            ::= <stmt> | <query> <stmt>
 
-<char> ::= any character
-<string> ::= '"' <char>+ '"'
-<bool> ::= 'true' | 'false'
-<digit> ::= [0-9]
-<int> ::= '-' <digit>+ | <digit>+
-<float> ::= <neg_float> | <pos_float>
-<neg_float> ::= '-' <pos_float>
-<pos_float> ::= <digit>* '.' <digit>+
+<stmt>             ::= <selectorDecl> | <directive>
+
+<directive>        ::= '!' <directiveType>
+                     | '!' <directiveType> '(' <directiveParams> ')'
+
+<directiveType>    ::= 'import'
+
+<selectorDecl>     ::= <selectorName> '=' <selectorPipeline>
+                     | <selectorPipeline>
+
+<selectorPipeline> ::= <selectorRefTuple>
+                     | <selectorRefTuple> '|' <pipedDefs>
+
+<pipedDefs>        ::= <selectorDef>
+                     | <selectorDef> '|' <pipedDefs>
+
+<selectorDef>      ::= <selectorType> '(' <params> ')'
+                     | <selectorType> '(' ')'
+
+<selectorRef>      ::= '%' <selectorName> | '%%'
+
+<selectorRefTuple> ::= <selectorRef>
+                     | '(' <selectorRefs> ')'
+
+<selectorRefs>     ::= <selectorRef>
+                     | <selectorRef> ',' <selectorRefs>
+
+<selectorType>     ::= <identifier>
+
+<params>           ::= <param>
+                     | <params> ',' <param>
+
+<param>            ::= <string> | <int> | <float> | <bool>
+
+<selectorName>     ::= <identifier>
+
+#################################################
+# Lexical / helper rules
+#################################################
+
+<identifier>       ::= <letter> | <letter> <idRest>
+
+<idRest>           ::= <idChar> | <idChar> <idRest>
+
+<idChar>           ::= '_' | <letter> | <digit>
+
+<letter>           ::= [a-z] | [A-Z]
+
+<char>             ::= any character
+
+<string>           ::= '"' <char>+ '"'
+
+<bool>             ::= 'true' | 'false'
+
+<digit>            ::= [0-9]
+
+<int>              ::= '-' <digit>+ | <digit>+
+
+<float>            ::= <neg_flo_
 
 
 

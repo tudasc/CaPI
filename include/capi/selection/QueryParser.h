@@ -83,7 +83,7 @@ public:
 struct Token {
   enum Kind {
     UNKNOWN, END_OF_FILE, IDENTIFIER, STR_LITERAL, INT_LITERAL, FLOAT_LITERAL,
-    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA, EXCLAM
+    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA, EXCLAM, PIPE
   };
 
   Token(Kind kind, std::string spelling) : kind(kind), spelling(std::move(spelling)){
@@ -115,6 +115,9 @@ struct Token {
       case EXCLAM:
         spelling = "!";
         break;
+      case PIPE:
+        spelling = "|";
+        break;
       default:
         break;
     }
@@ -126,8 +129,6 @@ struct Token {
 
   Kind kind;
   std::string spelling;
-
-
 };
 
 struct LexResult {
@@ -202,6 +203,9 @@ public:
       case '!':
         reader.consume();
         return Token(Token::EXCLAM);
+      case '|':
+        reader.consume();
+        return Token(Token::PIPE);
       default:
         break;
     }
@@ -378,9 +382,33 @@ public:
 
 protected:
 
+ RefPtr parseSelectorRef() {
+   auto t = lexer.next();
+   if (!t) {
+     printErrorMessage(t.msg);
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector ref");
+     return {};
+   }
+   if (t->kind != Token::PERCENT) {
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector ref (starting with '%')");
+     return {};
+   }
+
+   auto idToken = lexer.next();
+   if (!idToken) {
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier");
+     return {};
+   }
+   if (idToken->kind != Token::IDENTIFIER && idToken->kind != Token::PERCENT) {
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier", idToken->spelling);
+     return {};
+   }
+   return std::make_unique<SelectorRef>(idToken->spelling);
+ }
+
   NodePtr parseParam() {
 
-    // BNF: param := string | int | float | bool | selectorRef | selectorDef
+    // BNF: param := string | int | float | bool | selectorRef
 
     lexer.pushMarker();
 
@@ -404,7 +432,7 @@ protected:
     case Token::BOOL_LITERAL:
       lexer.discardMarker();
       return BoolLiteral::fromString(nextToken->spelling);
-    case Token::IDENTIFIER:
+    case Token::IDENTIFIER: // TODO: refs and defs are not allowed as selector parameters anymore. Change this accordingly.
       // Go back to the last token
       lexer.backtrack();
       return parseSelectorDef();
@@ -583,9 +611,85 @@ protected:
 
   }
 
+  std::vector<RefPtr > parseRefs() {
+
+    // Note: Assumes that the leading parenthesis has already been parsed.
+
+    LexResult nextToken("placeholder");
+    std::vector<RefPtr> refs;
+    do {
+      auto ref = parseSelectorRef();
+      if (!ref) {
+        printErrorMessage("Could not parse selector ref.");
+        return {};
+      }
+      refs.push_back(std::move(ref));
+      nextToken = lexer.next();
+      if (!nextToken) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "',' or ')'");
+        return {};
+      }
+    } while (nextToken->kind == Token::COMMA);
+
+    // Make sure that the last token was ')'
+    if (nextToken->kind != nextToken->RIGHT_PAREN) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "')'", nextToken->spelling);
+      return {};
+    }
+
+    return refs;
+  }
+
+  RefTuplePtr parseSelectorRefTuple() {
+    // BNF: <selectorRefTuple> ::= <selectorRef> | '(' <selectorRefs> ')'
+    lexer.pushMarker();
+    auto t = lexer.next();
+    if (!t) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a tuple of selector refs");
+      return {};
+    }
+    std::vector<RefPtr> refs;
+    if (t->kind == Token::LEFT_PAREN) {
+      lexer.discardMarker();
+      refs = parseRefs();
+    } else if (t->kind == Token::PERCENT) {
+      lexer.backtrack();
+      refs.push_back(parseSelectorRef());
+    } else {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a tuple of selector refs");
+      return {};
+    }
+    return std::make_unique<SelectorRefTuple>(std::move(refs));
+  }
+
+  PipelinePtr parsePipeline() {
+    // BNF: <selectorPipeline> ::= <selectorRefTuple> | <selectorRefTuple> '|' <pipedDefs>
+    auto refTuple = parseSelectorRefTuple();
+    auto t = lexer.next();
+    if (!t) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector pipeline");
+      return {};
+    }
+    lexer.pushMarker();
+    std::vector<DefPtr> defs;
+    while (t->kind == Token::PIPE) {
+      auto def = parseSelectorDef();
+      if (!def) {
+        printErrorMessage("Could not parse selector pipeline");
+        return {};
+      }
+      defs.push_back(std::move(def));
+      lexer.discardMarker();
+      lexer.pushMarker();
+      t = lexer.next();
+    }
+    lexer.backtrack();
+    return std::make_unique<SelectorPipeline>(std::move(refTuple), std::move(defs));
+  }
+
   DeclPtr parseSelectorDecl() {
 
-    // BNF: selectorDecl := selectorName '=' selectorDef | selectorDef
+    // BNF: selectorDecl := selectorName '=' selectorPipeline | selectorPipeline
 
     lexer.pushMarker();
 
@@ -596,7 +700,7 @@ protected:
     }
     auto t2 = lexer.next();
     if (!t2) {
-      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "'=' or a selector definiiton");
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "'=' or a selector definition");
       return {};
     }
 
@@ -614,12 +718,12 @@ protected:
       lexer.backtrack();
     }
 
-    auto def = parseSelectorDef();
-    if (!def) {
+    auto pipeline = parsePipeline();
+    if (!pipeline) {
       printErrorMessage("Failed to parse selector definition.\n");
       return nullptr;
     }
-    return  std::make_unique<SelectorDecl>(std::move(selectorId), std::move(def));
+    return  std::make_unique<SelectorDecl>(std::move(selectorId), std::move(pipeline));
   }
 
 

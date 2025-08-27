@@ -26,6 +26,10 @@ public:
     return name;
   }
 
+  void setName(const std::string& name) {
+    this->name = name;
+  }
+
   Selector* getSelector() {
     return selector.get();
   }
@@ -74,6 +78,17 @@ public:
   SelectorNode* createNode(const std::string& name, SelectorPtr selector) {
     nodes[name] = std::make_unique<SelectorNode>(name, std::move(selector));
     return nodes[name].get();
+  }
+
+  bool renameNode(const std::string& oldName, const std::string newName) {
+    auto it = nodes.find(oldName);
+    if (it == nodes.end()) {
+      return false;
+    }
+    it->second->setName(newName);
+    nodes[newName] = std::move(it->second);
+    nodes.erase(it);
+    return true;
   }
 
   void addEntryNode(std::string name) {

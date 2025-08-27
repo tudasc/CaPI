@@ -39,15 +39,17 @@ class SelectorEmitter: public ASTVisitor {
 
   bool encounteredError{false};
 
-  std::string selectorDeclName;
+//  std::string selectorDeclName;
   std::string lastDeclName;
+
+  std::string lastEmittedDefName;
 
   NameGen nameGen;
 
 public:
 
   SelectorEmitter(QueryAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), nameGen("anon_") {
-    selectorDeclName = "";
+//    selectorDeclName = "";
     graph.createNode("%", std::make_unique<EverythingSelector>());
   }
 
@@ -57,8 +59,10 @@ public:
     std::vector<std::string> refs;
     std::vector<Param> params;
 
-    SelectorBuilder(std::string name, std::string type) : name(std::move(name)), selectorType(std::move(type)) {
+    SelectorBuilder(std::string name) : name(std::move(name)) {
     }
+
+    SelectorBuilder() : name("") {}
 
     void addParam(Param p) {
       params.push_back(p);
@@ -69,6 +73,10 @@ public:
     }
 
     SelectorPtr emitSelector() {
+      if (selectorType.empty()) {
+        logError() << "Selector does not have a type\n";
+        return nullptr;
+      }
       auto it = selectorRegistry.find(selectorType);
       if (it == selectorRegistry.end()) {
         logError() << "Invalid selector type: " << selectorType << "\n";
@@ -80,53 +88,55 @@ public:
 
   };
 
-  struct BuilderStack {
-    std::vector<SelectorBuilder> stack;
+//  struct BuilderStack {
+//    std::vector<SelectorBuilder> stack;
+//
+//    void beginSelector(std::string name, std::string type) {
+//      stack.emplace_back(std::move(name), std::move(type));
+//    }
+//
+//    void addParam(Param p) {
+//      getCurrent().addParam(std::move(p));
+//    }
+//
+//    void addRef(std::string ref) {
+//      getCurrent().addRef(std::move(ref));
+//    }
+//
+//    bool finalizeSelector(SelectorGraph& graph) {
+//      assert(!stack.empty() && "No current selector builder");
+//      auto builder = stack.back();
+//      stack.pop_back();
+//      auto selector = builder.emitSelector();
+//      if (!selector) {
+//        logError() << "Could not instantiate selector.\n";
+//        return false;
+//      }
+//      if (graph.hasNode(builder.name)) {
+//        logError() << "Another selector with name " << builder.name <<  " already exists.\n";
+//        return false;
+//      }
+//      auto node = graph.createNode(builder.name, std::move(selector));
+//      for (auto& ref: builder.refs) {
+//        node->addInputDependency(ref);
+//      }
+//      return true;
+//    }
+//
+//    bool empty() const {
+//      return stack.empty();
+//    }
+//
+//  private:
+//    SelectorBuilder & getCurrent() {
+//      assert(!stack.empty() && "Tried to access empty decl stack");
+//      return stack.back();
+//    }
+//  };
+//
+//  BuilderStack builderStack;
 
-    void beginSelector(std::string name, std::string type) {
-      stack.emplace_back(std::move(name), std::move(type));
-    }
-
-    void addParam(Param p) {
-      getCurrent().addParam(std::move(p));
-    }
-
-    void addRef(std::string ref) {
-      getCurrent().addRef(std::move(ref));
-    }
-
-    bool finalizeSelector(SelectorGraph& graph) {
-      assert(!stack.empty() && "No current selector builder");
-      auto builder = stack.back();
-      stack.pop_back();
-      auto selector = builder.emitSelector();
-      if (!selector) {
-        logError() << "Could not instantiate selector.\n";
-        return false;
-      }
-      if (graph.hasNode(builder.name)) {
-        logError() << "Another selector with name " << builder.name <<  " already exists.\n";
-        return false;
-      }
-      auto node = graph.createNode(builder.name, std::move(selector));
-      for (auto& ref: builder.refs) {
-        node->addInputDependency(ref);
-      }
-      return true;
-    }
-
-    bool empty() const {
-      return stack.empty();
-    }
-
-  private:
-    SelectorBuilder & getCurrent() {
-      assert(!stack.empty() && "Tried to access empty decl stack");
-      return stack.back();
-    }
-  };
-
-  BuilderStack builderStack;
+  SelectorBuilder builder;
 
   void visitAST(QueryAST&queryAst) override {
     visitChildren(queryAst);
@@ -144,58 +154,98 @@ public:
   }
 
   void visitDecl(SelectorDecl &decl) override {
-    selectorDeclName = decl.getName();
+    std::string selectorDeclName = decl.getName();
     if (selectorDeclName.empty()) {
       selectorDeclName = nameGen.next();
     }
     lastDeclName = selectorDeclName;
+    builder = SelectorBuilder(nameGen.next());
     visitChildren(decl);
+    logInfo() << "Last def: " << lastEmittedDefName << "\n";
+    if (!lastEmittedDefName.empty()) {
+      auto* node = graph.getNode(lastEmittedDefName);
+      assert(node && "Emitted node must exist");
+      graph.renameNode(lastEmittedDefName, selectorDeclName);
+    }
+  }
+
+  void visitPipeline(SelectorPipeline& pipeline) override {
+    visitChildren(pipeline);
   }
 
   void visitDef(SelectorDef &def) override {
-    std::string name = selectorDeclName;
-    if (name.empty()) {
-      // Definition is not part of a declaration -> generate name
-      name = nameGen.next();
-      // If definition is passed to selector, add ref parameter.
-      if (!builderStack.empty()) {
-        builderStack.addRef(name);
-      }
-    } else {
-      // Definition is part of a declaration -> reset name for next definition
-      selectorDeclName = "";
-    }
-    builderStack.beginSelector(name, def.getType());
+//    std::string name = selectorDeclName;
+//    if (name.empty()) {
+//      // Definition is not part of a declaration -> generate name
+//      name = nameGen.next();
+////      // If definition is passed to selector, add ref parameter.
+////      if (!builderStack.empty()) {
+////        builderStack.addRef(name);
+////      }
+//    } else {
+//      // Definition is part of a declaration -> reset name for next definition
+//      selectorDeclName = "";
+//    }
+    builder.selectorType = def.getType();
+//    builderStack.beginSelector(name, def.getType());
     visitChildren(def);
-    if (!builderStack.finalizeSelector(graph)) {
+
+    auto selector = builder.emitSelector();
+    if (!selector) {
+      logError() << "Could not instantiate selector.\n";
       encounteredError = true;
+      return;
     }
+    if (graph.hasNode(builder.name)) {
+      logError() << "Another selector with name " << builder.name <<  " already exists.\n";
+      encounteredError = true;
+      return;
+    }
+    auto node = graph.createNode(builder.name, std::move(selector));
+    for (auto& ref: builder.refs) {
+      node->addInputDependency(ref);
+    }
+    lastEmittedDefName = builder.name;
+
+    // Reset name and create a new builder
+//    selectorDeclName = "";
+    builder = SelectorBuilder(nameGen.next());
+    builder.addRef(lastEmittedDefName);
+
+//    if (!builderStack.finalizeSelector(graph)) {
+//      encounteredError = true;
+//    }
 
   }
 
   void visitRef(SelectorRef &ref) override {
-    builderStack.addRef(ref.getIdentifier());
+//    builderStack.addRef(ref.getIdentifier());
+    builder.addRef(ref.getIdentifier());
     visitChildren(ref);
   }
 
   void visitBoolLiteral(Literal<bool> &l) override {
     auto val = l.getValue();
-    builderStack.addParam(Param::makeBool(val));
+//    builderStack.addParam(Param::makeBool(val));
+    builder.addParam(Param::makeBool(val));
   }
 
   void visitIntLiteral(Literal<int> &l) override {
     auto val = l.getValue();
-    builderStack.addParam(Param::makeInt(val));
+//    builderStack.addParam(Param::makeInt(val));
+    builder.addParam(Param::makeInt(val));
   }
 
   void visitFloatLiteral(Literal<float> &l) override {
     auto val = l.getValue();
-    builderStack.addParam(Param::makeFloat(val));
+//    builderStack.addParam(Param::makeFloat(val));
+    builder.addParam(Param::makeFloat(val));
   }
 
   void visitStringLiteral(Literal<std::string> &l) override {
     auto val = l.getValue();
-    builderStack.addParam(Param::makeString(val));
+//    builderStack.addParam(Param::makeString(val));
+    builder.addParam(Param::makeString(val));
   }
 
   bool hasEncounteredError() {
