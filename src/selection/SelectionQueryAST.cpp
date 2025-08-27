@@ -2,11 +2,11 @@
 // Created by sebastian on 14.03.22.
 //
 
-#include "capi/selection/SelectionSpecAST.h"
+#include "capi/selection/SelectionQueryAST.h"
 
 namespace capi {
 
- void ASTVisitor::visitAST(SpecAST &ast){visitChildren(ast);};
+ void ASTVisitor::visitAST(QueryAST&ast){visitChildren(ast);};
  void ASTVisitor::visitDecl(SelectorDecl &decl){visitChildren(decl);};
  void ASTVisitor::visitDef(SelectorDef &def){visitChildren(def);};
  void ASTVisitor::visitRef(SelectorRef &ref){visitChildren(ref);};

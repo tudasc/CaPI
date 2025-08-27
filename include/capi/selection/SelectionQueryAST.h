@@ -2,8 +2,8 @@
 // Created by sebastian on 14.03.22.
 //
 
-#ifndef CAPI_SELECTIONSPECAST_H
-#define CAPI_SELECTIONSPECAST_H
+#ifndef CAPI_SELECTIONQUERYAST_H
+#define CAPI_SELECTIONQUERYAST_H
 
 #include <vector>
 #include <memory>
@@ -20,7 +20,7 @@ class SelectorDef;
 class SelectorRef;
 class SelectorDecl;
 class Directive;
-class SpecAST;
+class QueryAST;
 
 class ASTVisitor;
 
@@ -29,11 +29,11 @@ using DirectivePtr = std::unique_ptr<Directive>;
 using DeclPtr = std::unique_ptr<SelectorDecl>;
 using DefPtr = std::unique_ptr<SelectorDef>;
 using RefPtr = std::unique_ptr<SelectorRef>;
-using ASTPtr = std::unique_ptr<SpecAST>;
+using ASTPtr = std::unique_ptr<QueryAST>;
 
 class ASTVisitor {
 public:
-  virtual void visitAST(SpecAST &ast);
+  virtual void visitAST(QueryAST&ast);
   virtual void visitDecl(SelectorDecl &decl);
   virtual void visitDef(SelectorDef &def);
   virtual void visitRef(SelectorRef &ref);
@@ -232,17 +232,6 @@ public:
   }
 };
 
-//class ImportDirective : public Directive {
-//public:
-//  explicit ImportDirective(Params params) : Directive("ImportDirective", std::move(params)) {
-//  }
-//
-//  void accept(ASTVisitor &visitor) override {
-//    visitor.visitImportDirective(*this);
-//  }
-//
-//};
-
 
 class SelectorDef : public ASTNode {
 
@@ -292,16 +281,16 @@ public:
   }
 };
 
-class SpecAST : public ASTNode {
+class QueryAST : public ASTNode {
 public:
-  explicit SpecAST(std::vector<NodePtr> stmts) {
+  explicit QueryAST(std::vector<NodePtr> stmts) {
     addChildren(stmts.begin(), stmts.end());
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitAST(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SpecAST> stmts=";
+    os << "<QueryAST> stmts=";
     dumpChildren(os);
   }
 
@@ -327,4 +316,4 @@ inline ASTNode* findParent(ASTNode& root, ASTNode& node) {
 }
 
 
-#endif // CAPI_SELECTIONSPECAST_H
+#endif  // CAPI_SELECTIONQUERYAST_H

@@ -2,8 +2,7 @@
 // Created by sebastian on 11.03.22.
 //
 
-#include "capi/selection/SpecParser.h"
-
+#include "capi/selection/QueryParser.h"
 
 namespace capi {
 

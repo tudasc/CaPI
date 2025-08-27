@@ -13,10 +13,10 @@
 #include "capi/selection/DriverUtils.h"
 #include "capi/selection/FunctionFilter.h"
 #include "capi/selection/MeasurementConfigIO.h"
+#include "capi/selection/QueryParser.h"
 #include "capi/selection/SCC.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "capi/selection/SelectorGraph.h"
-#include "capi/selection/SpecParser.h"
 #include "capi/selection/StatementCountAnalysis.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/support/Logging.h"
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
   }
 
   // Print AST after parsing
-  runner.onASTParsed([&queryStr](SpecAST& ast) {
+  runner.onASTParsed([&queryStr](QueryAST& ast) {
     std::cout << "AST for " << stripComments(queryStr) << ":\n";
     std::cout << "------------------\n";
     ast.dump(std::cout);
@@ -297,7 +297,7 @@ int main(int argc, char **argv) {
   });
 
   // Print AST after pre-processing
-  runner.onASTPostProcessed([&queryStr](SpecAST& ast) {
+  runner.onASTPostProcessed([&queryStr](QueryAST& ast) {
     std::cout << "AST after pre-processing:\n";
     std::cout << "------------------\n";
     ast.dump(std::cout);

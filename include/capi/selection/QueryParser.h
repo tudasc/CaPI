@@ -2,8 +2,8 @@
 // Created by sebastian on 11.03.22.
 //
 
-#ifndef CAPI_SPECPARSER_H
-#define CAPI_SPECPARSER_H
+#ifndef CAPI_QUERYPARSER_H
+#define CAPI_QUERYPARSER_H
 
 #include <string>
 #include <sstream>
@@ -14,19 +14,9 @@
 #include <algorithm>
 #include <cctype>
 
-#include "capi/selection/SelectionSpecAST.h"
+#include "capi/selection/SelectionQueryAST.h"
 
 namespace capi {
-
-/*
-class SpecString {
-
-  std::string specStr;
-public:
-  SpecString(std::string specStr) : specStr(std::move(specStr)) {}
-};
-*/
-
 
 std::string stripComments(const std::string& input);
 
@@ -361,11 +351,10 @@ inline void printErrorMessageExpected(int pos, std::string input, std::string ex
   printErrorPosition(input, pos);
 }
 
-class SpecParser
-{
+class QueryParser {
   Lexer lexer;
 public:
-  explicit SpecParser(std::string input) : lexer(std::move(input))
+  explicit QueryParser(std::string input) : lexer(std::move(input))
   {}
 
   bool eof() {
@@ -384,7 +373,7 @@ public:
       }
       lexer.skipWhitespace();
     } while(!eof());
-    return std::make_unique<SpecAST>(std::move(stmts));
+    return std::make_unique<QueryAST>(std::move(stmts));
   }
 
 protected:
@@ -639,4 +628,4 @@ protected:
 
 }
 
-#endif //CAPI_SPECPARSER_H
+#endif //CAPI_QUERYPARSER_H

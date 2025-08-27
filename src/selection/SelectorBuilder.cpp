@@ -2,10 +2,10 @@
 // Created by sebastian on 15.03.22.
 //
 
-#include "capi/support/Logging.h"
-#include "capi/selection/SelectionSpecAST.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "SelectorRegistry.h"
+#include "capi/selection/SelectionQueryAST.h"
+#include "capi/support/Logging.h"
 #include "selectors/BasicSelectors.h"
 
 namespace capi {
@@ -33,8 +33,7 @@ class SelectorEmitter: public ASTVisitor {
     int count;
   };
 
-
-  SpecAST& ast;
+  QueryAST& ast;
   SelectorGraph& graph;
   bool lastDeclIsEntry;
 
@@ -47,7 +46,7 @@ class SelectorEmitter: public ASTVisitor {
 
 public:
 
-  SelectorEmitter(SpecAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), nameGen("anon_") {
+  SelectorEmitter(QueryAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), nameGen("anon_") {
     selectorDeclName = "";
     graph.createNode("%", std::make_unique<EverythingSelector>());
   }
@@ -129,8 +128,8 @@ public:
 
   BuilderStack builderStack;
 
-  void visitAST(SpecAST &specAst) override {
-    visitChildren(specAst);
+  void visitAST(QueryAST&queryAst) override {
+    visitChildren(queryAst);
     if (lastDeclIsEntry) {
       graph.addEntryNode(lastDeclName);
     }
@@ -205,7 +204,7 @@ public:
 
 };
 
-SelectorGraphPtr buildSelectorGraph(SpecAST& ast, bool lastDeclIsEntry) {
+SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry) {
   auto graph = std::make_unique<SelectorGraph>();
   SelectorEmitter emitter(ast, *graph, lastDeclIsEntry);
   emitter.visitAST(ast);

@@ -8,8 +8,8 @@ set(SOURCES
         MeasurementConfig.cpp
         MeasurementConfigIO.cpp
         Preprocessor.cpp
-        SpecParser.cpp
-        SelectionSpecAST.cpp
+        QueryParser.cpp
+        SelectionQueryAST.cpp
         SelectorBuilder.cpp
         SelectorGraph.cpp
         StatementCountAnalysis.cpp
