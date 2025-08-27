@@ -200,6 +200,19 @@ RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipM
 RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipMetricSelector<FlipCycles>>);
 RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipMetricSelector<FlipInvocations>>);
 RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipMetricSelector<FlipCyclesPerInvoc>>);
+
+SelectorPtr createKnapsackSelector(const std::vector<Param>& params) {
+  CHECK_NUM_ARGS(KnapsackSelector, params, 2)
+  CHECK_KIND(params[0], Param::FLOAT)
+  CHECK_KIND(params[1], Param::FLOAT)
+
+  return std::make_unique<FlipKnapsackSelector>(
+    std::get<float>(params[0].val),
+    std::get<float>(params[1].val)
+  );
+}
+
+RegisterSelector flipKnapsackSelector("flip_knapsack", createKnapsackSelector);
 #endif
 }
 
