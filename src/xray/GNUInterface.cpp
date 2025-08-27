@@ -48,6 +48,8 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 
 }
 
+void handleCustomXRayEvent(void* data, size_t len) {}
+
 void postXRayInit(const XRayFunctionMap &xrayFuncMap) XRAY_NEVER_INSTRUMENT {
 #ifdef CAPI_SCOREP_INTERFACE
       initScoreP(xrayFuncMap);

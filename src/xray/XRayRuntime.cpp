@@ -158,6 +158,8 @@ capi::GlobalCaPIData* globalCaPIData;
 
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
+extern void handleCustomXRayEvent(void* data, size_t len);
+
 extern void postXRayInit(const XRayFunctionMap &);
 
 extern void preXRayFinalize();
@@ -248,6 +250,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   __xray_init();
   __xray_set_handler(handleXRayEvent);
+  __xray_set_customevent_handler(handleCustomXRayEvent);
 
   Timer idLoadTimer("[Info] Loading IDs took ", std::cout, false);
   Timer patchTimer("[Info] Patching took ", std::cout, false);

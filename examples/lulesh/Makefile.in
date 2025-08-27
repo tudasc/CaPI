@@ -20,8 +20,6 @@ CAPICC = ./../../scripts/capicc
 CXX = $(MPICXX)
 VARIANT = scorep
 
-include Makefile.$(VARIANT).include
-
 SOURCES2.0 = \
 	lulesh.cc \
 	lulesh-comm.cc \
@@ -32,6 +30,8 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
 CXXFLAGS = -O3 -I. -Wall -g
 LDFLAGS = -O3 -g
+
+include Makefile.$(VARIANT).include
 
 .cc.o: lulesh.h
 	@echo "Building $<"
