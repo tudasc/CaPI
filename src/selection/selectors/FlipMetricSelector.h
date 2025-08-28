@@ -93,18 +93,18 @@ public:
       return {};
     }
     
-    const metacg::Callgraph& cg = helper->cg;
-    FunctionSet functions = input.front();
-
+    FunctionSet notInstrumentedFunctions = input.front();
+    const size_t totalNumberOfFunctions = notInstrumentedFunctions.size();
+    
     // make sure that global counts are available
-    const FlipCounts* overallCounts = cg.get<FlipCounts>();
+    const FlipCounts* overallCounts = helper->cg.get<FlipCounts>();
     if(overallCounts == nullptr) {
       logError() << "Expected callgraph to have FLIP_counts as global metadata.\n";
       return {};
     }
 
     // make sure that all functions have FLIP counts
-    for(const metacg::CgNode* fct : functions) {
+    for(const metacg::CgNode* fct : notInstrumentedFunctions) {
       if (!fct->has<FlipCounts>()) {
         logError() << "Function was " << fct->getFunctionName() << " passed to FlipKnapsackSelector, but does not have FLIP counts.\n";
         return {};
@@ -130,11 +130,11 @@ public:
     };
     
     // keep iterating until the budget is exhausted or we instrumented all functions
-    while (currentlyInstrumentedInvocs < invocBudget && toBeInstrumented.size() < functions.size()) {
+    while (currentlyInstrumentedInvocs < invocBudget && toBeInstrumented.size() < totalNumberOfFunctions) {
       Candidate bestCandidate;
       double highestValueDensity = std::numeric_limits<double>::min();
       
-      for(const metacg::CgNode* fct : functions) {
+      for(const metacg::CgNode* fct : notInstrumentedFunctions) {
         const FlipCounts* counts = fct->get<FlipCounts>();
 
         Candidate candidate{{fct}, counts->getInvocationCount(), counts->getCycleCount()};
@@ -145,8 +145,8 @@ public:
           [this] (const metacg::CgNode& node) -> auto {
             return helper->get(&node).findAllCallers();
           },
-          [&toBeInstrumented, &functions, &candidate] (const metacg::CgNode& node) {
-            if (functions.contains(&node) && !toBeInstrumented.contains(&node) && !candidate.functions.contains(&node)) {
+          [&toBeInstrumented, &notInstrumentedFunctions, &candidate] (const metacg::CgNode& node) {
+            if (notInstrumentedFunctions.contains(&node) && !candidate.functions.contains(&node)) {
               candidate.functions.insert(&node);
 
               const FlipCounts* callerCounts = node.get<FlipCounts>();
@@ -166,6 +166,9 @@ public:
 
       // instrument all functions from the best candidate
       toBeInstrumented.insert(bestCandidate.functions.begin(), bestCandidate.functions.end());
+      for (const metacg::CgNode* node : bestCandidate.functions) {
+        notInstrumentedFunctions.erase(node);
+      }
       currentlyInstrumentedInvocs += bestCandidate.weight;
     }
 
