@@ -10,53 +10,56 @@
 #include "capi/selection/Selector.h"
 #include "capi/support/Logging.h"
 #include "CallPathSelector.h"
-#include <limits>
 #include "selectors/CallPathSelector.h"
 
 #include <Callgraph.h>
 #include <CgNode.h>
+
 #include <flip/FLIP_counts.hpp>
+
+#include <queue>
 
 namespace capi {
 
-using FlipCounts = flip::runtime::output::FLIPCounts;
+using FlipFunctionCounts = flip::runtime::output::FLIPFunctionCounts;
+using FlipGlobalCounts = flip::runtime::output::FLIPGlobalCounts;
 using counter_t = flip::runtime::output::counter_t;
 
 template <typename ValT>
 class FlipMetric {
 public:
   using ValueType = ValT;
-  virtual ValueType readMetric(FlipCounts& md) = 0;
+  virtual ValueType readMetric(FlipFunctionCounts& md) = 0;
 };
 
 struct FlipInvocations : FlipMetric<unsigned> {
 public:
-  virtual unsigned readMetric(FlipCounts& md) override final {
+  virtual unsigned readMetric(FlipFunctionCounts& md) override final {
     return md.getInvocationCount();
   }
 };
 
 struct FlipCycles : FlipMetric<unsigned> {
 public:
-  virtual unsigned readMetric(FlipCounts& md) override final {
+  virtual unsigned readMetric(FlipFunctionCounts& md) override final {
     return md.getCycleCount();
   }
 };
 
 struct FlipCyclesPerInvoc : FlipMetric<float> {
 public:
-  virtual float readMetric(FlipCounts& md) override final {
+  virtual float readMetric(FlipFunctionCounts& md) override final {
     return static_cast<float>(md.getCycleCount()) / static_cast<float>(md.getInvocationCount());
   }
 };
 
 template <typename MetricT>
-class FlipMetricSelector : public MetricSelector<FlipMetricSelector<MetricT>, FlipCounts, typename MetricT::ValueType> {
-  friend class MetricSelector<FlipMetricSelector, FlipCounts, typename MetricT::ValueType>;
+class FlipMetricSelector : public MetricSelector<FlipMetricSelector<MetricT>, FlipFunctionCounts, typename MetricT::ValueType> {
+  friend class MetricSelector<FlipMetricSelector, FlipFunctionCounts, typename MetricT::ValueType>;
   FlipMetricSelector(CmpOp op, Param val) 
-  : MetricSelector<FlipMetricSelector, FlipCounts, typename MetricT::ValueType>("FlipMetricsSelector", op, val) {}
+  : MetricSelector<FlipMetricSelector, FlipFunctionCounts, typename MetricT::ValueType>("FlipMetricsSelector", op, val) {}
 public:
-  typename MetricT::ValueType readMetric(FlipCounts& md) override {
+  typename MetricT::ValueType readMetric(FlipFunctionCounts& md) override {
     MetricT metric;
     return metric.readMetric(md);
   }
@@ -67,7 +70,7 @@ class HasFlipMetricsSelector: public FilterSelector {
   explicit HasFlipMetricsSelector() = default;
 
   bool accept(const metacg::CgNode* fNode) override {
-    return fNode->has<FlipCounts>();
+    return fNode->has<FlipFunctionCounts>();
   }
 
   std::string getName() override {
@@ -97,7 +100,7 @@ public:
     const size_t totalNumberOfFunctions = notInstrumentedFunctions.size();
     
     // make sure that global counts are available
-    const FlipCounts* overallCounts = helper->cg.get<FlipCounts>();
+    const FlipGlobalCounts* overallCounts = helper->cg.get<FlipGlobalCounts>();
     if(overallCounts == nullptr) {
       logError() << "Expected callgraph to have FLIP_counts as global metadata.\n";
       return {};
@@ -105,15 +108,15 @@ public:
 
     // make sure that all functions have FLIP counts
     for(const metacg::CgNode* fct : notInstrumentedFunctions) {
-      if (!fct->has<FlipCounts>()) {
+      if (!fct->has<FlipFunctionCounts>()) {
         logError() << "Function was " << fct->getFunctionName() << " passed to FlipKnapsackSelector, but does not have FLIP counts.\n";
         return {};
       }
     }
 
     // compute budget
-    double cycleBudget = static_cast<double>(overallCounts->getCycleCount()) * static_cast<double>(_overheadBudget);
-    counter_t invocBudget = static_cast<counter_t>(cycleBudget / _instrumentationCost);
+    double runtimeBudget = overallCounts->getRuntime() * overallCounts->getInvocationCount() * (static_cast<double>(_overheadBudget) - 1.0);
+    counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
 
     FunctionSet toBeInstrumented;
     counter_t currentlyInstrumentedInvocs = 0;
@@ -124,18 +127,21 @@ public:
       counter_t weight;
       counter_t value;
 
-      double valueDensity() {
+      inline double valueDensity() const {
         return static_cast<double>(value) / static_cast<double>(weight);
+      }
+
+      inline bool operator<(const Candidate& other) const {
+          return valueDensity() < other.valueDensity(); 
       }
     };
     
-    // keep iterating until the budget is exhausted or we instrumented all functions
-    while (currentlyInstrumentedInvocs < invocBudget && toBeInstrumented.size() < totalNumberOfFunctions) {
-      Candidate bestCandidate;
-      double highestValueDensity = std::numeric_limits<double>::min();
+    // keep iterating until we run out of functions (or bail out with the break; below)
+    while (!notInstrumentedFunctions.empty()) {
+      std::priority_queue<Candidate> candidates;
       
       for(const metacg::CgNode* fct : notInstrumentedFunctions) {
-        const FlipCounts* counts = fct->get<FlipCounts>();
+        const FlipFunctionCounts* counts = fct->get<FlipFunctionCounts>();
 
         Candidate candidate{{fct}, counts->getInvocationCount(), counts->getCycleCount()};
 
@@ -149,28 +155,41 @@ public:
             if (notInstrumentedFunctions.contains(&node) && !candidate.functions.contains(&node)) {
               candidate.functions.insert(&node);
 
-              const FlipCounts* callerCounts = node.get<FlipCounts>();
+              const FlipFunctionCounts* callerCounts = node.get<FlipFunctionCounts>();
               candidate.weight += callerCounts->getInvocationCount();
               candidate.value += callerCounts->getCycleCount();
             }
           }
         );
 
-        // compare with current bestCandidate to determine the candiate with the highest value density
-        const double valueDensity = candidate.valueDensity();
-        if (valueDensity > highestValueDensity) {
-          bestCandidate = candidate;
-          highestValueDensity = valueDensity;
-        } 
+        candidates.push(candidate);
       }
 
-      // instrument all functions from the best candidate
-      toBeInstrumented.insert(bestCandidate.functions.begin(), bestCandidate.functions.end());
-      for (const metacg::CgNode* node : bestCandidate.functions) {
-        notInstrumentedFunctions.erase(node);
+      // find best candidate that still fits in the budget
+      while (!candidates.empty() && candidates.top().weight + currentlyInstrumentedInvocs > invocBudget) {
+        candidates.pop();
       }
-      currentlyInstrumentedInvocs += bestCandidate.weight;
+      if (!candidates.empty()) {
+        const Candidate& best = candidates.top();
+
+        // instrument all functions from the best candidate
+        toBeInstrumented.insert(best.functions.begin(), best.functions.end());
+        for (const metacg::CgNode* node : best.functions) {
+          notInstrumentedFunctions.erase(node);
+        }
+        currentlyInstrumentedInvocs += best.weight;
+      } else {
+        // there is no longer a candidate that fits in our budget
+        break;
+      }
     }
+
+    double expectedOverhead = 1.0 + (
+      static_cast<double>(currentlyInstrumentedInvocs)
+      / static_cast<double>(invocBudget)
+      * (static_cast<double>(_overheadBudget) - 1.0)
+    );
+    logInfo() << "Expected overhead: " << expectedOverhead << ".\n";
 
     return toBeInstrumented;
   }
