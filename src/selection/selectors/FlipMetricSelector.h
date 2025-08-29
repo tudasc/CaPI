@@ -79,10 +79,12 @@ class HasFlipMetricsSelector: public FilterSelector {
 };
 
 class FlipKnapsackSelector : public Selector {
-
 public:
 
-  FlipKnapsackSelector(float overheadBudget, float instrumentationCost) : _overheadBudget(overheadBudget), _instrumentationCost(instrumentationCost) {}
+  FlipKnapsackSelector(float overheadBudget, float instrumentationCost, float setupOverhead) 
+  : _overheadBudget(overheadBudget),
+    _instrumentationCost(instrumentationCost),
+    _setupOverhead(setupOverhead) {}
 
   void init(TraversalHelper& helper) override {
     this->helper = &helper;
@@ -115,7 +117,21 @@ public:
     }
 
     // compute budget
-    double runtimeBudget = overallCounts->getRuntime() * overallCounts->getInvocationCount() * (static_cast<double>(_overheadBudget) - 1.0);
+    // net overhead budget = overhead budget after deducting static setup overhead
+    double netOverheadBudget = (
+      (_overheadBudget * overallCounts->getRuntime() - _setupOverhead)
+      / overallCounts->getRuntime()
+    );
+
+    logInfo() << "Net overhead budget: " << netOverheadBudget << "\n";
+
+    double runtimeBudget = (
+      (
+        overallCounts->getRuntime()
+        * overallCounts->getInvocationCount()
+        * (netOverheadBudget - 1.0)
+      )
+    );
     counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
 
     FunctionSet toBeInstrumented;
@@ -185,10 +201,14 @@ public:
     }
 
     double expectedOverhead = 1.0 + (
-      static_cast<double>(currentlyInstrumentedInvocs)
-      / static_cast<double>(invocBudget)
-      * (static_cast<double>(_overheadBudget) - 1.0)
+      (
+        (static_cast<double>(currentlyInstrumentedInvocs) / static_cast<double>(invocBudget))
+        * (static_cast<double>(netOverheadBudget) - 1.0)
+      )
+      + (_setupOverhead / overallCounts->getRuntime())
     );
+
+
     logInfo() << "Expected overhead: " << expectedOverhead << ".\n";
 
     return toBeInstrumented;
@@ -201,6 +221,7 @@ public:
 private:
   float _overheadBudget;
   float _instrumentationCost;
+  float _setupOverhead;
   TraversalHelper *helper;
 };
 

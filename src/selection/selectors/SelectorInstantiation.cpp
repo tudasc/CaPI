@@ -201,18 +201,28 @@ RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipMetr
 RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipMetricSelector<FlipInvocations>>);
 RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipMetricSelector<FlipCyclesPerInvoc>>);
 
-SelectorPtr createKnapsackSelector(const std::vector<Param>& params) {
-  CHECK_NUM_ARGS(KnapsackSelector, params, 2)
+SelectorPtr createFlipKnapsackSelector(const std::vector<Param>& params) {
+  if (params.size() < 2 || params.size() > 3) {
+    logError() << "FlipKnapsackSelector expects 2 or 3 arguments, but received " << params.size() << "\n";
+    return nullptr;
+  }
   CHECK_KIND(params[0], Param::FLOAT)
   CHECK_KIND(params[1], Param::FLOAT)
 
+  float setupOverhead = 0.0;
+  if (params.size() == 3) {
+    CHECK_KIND(params[2], Param::FLOAT)
+    setupOverhead = std::get<float>(params[2].val);
+  }
+
   return std::make_unique<FlipKnapsackSelector>(
     std::get<float>(params[0].val),
-    std::get<float>(params[1].val)
+    std::get<float>(params[1].val),
+    setupOverhead
   );
 }
 
-RegisterSelector flipKnapsackSelector("flip_knapsack", createKnapsackSelector);
+RegisterSelector flipKnapsackSelector("flip_knapsack", createFlipKnapsackSelector);
 #endif
 }
 
