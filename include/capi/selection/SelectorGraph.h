@@ -9,20 +9,21 @@
 #include "Selector.h"
 
 #include <unordered_map>
+#include <utility>
 
 namespace capi {
 
-class SelectorNode {
+class PipelineNode {
   std::string name;
-  SelectorPtr selector;
+  std::vector<SelectorPtr> selectors;
   std::vector<std::string> inputs;
-public:
+ public:
 
-  SelectorNode(std::string name, SelectorPtr selector) : name(name), selector(std::move(selector)) {
+  PipelineNode(std::string name, std::vector<SelectorPtr> selectors) : name(std::move(name)), selectors(std::move(selectors)) {
 
   }
 
-  std::string getName() const {
+  const std::string& getName() const {
     return name;
   }
 
@@ -30,8 +31,8 @@ public:
     this->name = name;
   }
 
-  Selector* getSelector() {
-    return selector.get();
+  std::vector<SelectorPtr>& getSelectors() {
+    return selectors;
   }
 
   void addInputDependency(std::string dep) {
@@ -42,24 +43,57 @@ public:
     return inputs;
   }
 
-
+  size_t getSize() { return selectors.size(); }
 };
+//
+//class SelectorNode {
+//  std::string name;
+//  SelectorPtr selector;
+//  std::vector<std::string> inputs;
+//public:
+//
+//  SelectorNode(std::string name, SelectorPtr selector) : name(name), selector(std::move(selector)) {
+//
+//  }
+//
+//  std::string getName() const {
+//    return name;
+//  }
+//
+//  void setName(const std::string& name) {
+//    this->name = name;
+//  }
+//
+//  Selector* getSelector() {
+//    return selector.get();
+//  }
+//
+//  void addInputDependency(std::string dep) {
+//    inputs.push_back(std::move(dep));
+//  }
+//
+//  std::vector<std::string>& getInputDependencies() {
+//    return inputs;
+//  }
+//
+//
+//};
 
-using SelectorNodePtr = std::unique_ptr<SelectorNode>;
+using PipelineNodePtr = std::unique_ptr<PipelineNode>;
 
 using SelectionResults = std::unordered_map<std::string, FunctionSet>;
 
 
 class SelectorGraph {
 
-  std::unordered_map<std::string, SelectorNodePtr> nodes;
+  std::unordered_map<std::string, PipelineNodePtr> nodes;
 
   std::unordered_set<std::string> entryNodeNames;
 
 public:
   SelectorGraph() = default;
 
-  SelectorNode* getNode(const std::string& name) {
+  PipelineNode* getNode(const std::string& name) {
     auto it = nodes.find(name);
     if (it != nodes.end()) {
       return it->second.get();
@@ -67,7 +101,7 @@ public:
     return nullptr;
   }
 
-  const SelectorNode* getNode(const std::string& name) const {
+  const PipelineNode* getNode(const std::string& name) const {
     auto it = nodes.find(name);
     if (it != nodes.end()) {
       return it->second.get();
@@ -75,28 +109,28 @@ public:
     return nullptr;
   }
 
-  SelectorNode* createNode(const std::string& name, SelectorPtr selector) {
-    nodes[name] = std::make_unique<SelectorNode>(name, std::move(selector));
+  PipelineNode* createNode(const std::string& name, std::vector<SelectorPtr> selectors) {
+    nodes[name] = std::make_unique<PipelineNode>(name, std::move(selectors));
     return nodes[name].get();
   }
 
-  bool renameNode(const std::string& oldName, const std::string newName) {
-    auto it = nodes.find(oldName);
-    if (it == nodes.end()) {
-      return false;
-    }
-    it->second->setName(newName);
-    nodes[newName] = std::move(it->second);
-    nodes.erase(it);
-    return true;
-  }
+//  bool renameNode(const std::string& oldName, const std::string newName) {
+//    auto it = nodes.find(oldName);
+//    if (it == nodes.end()) {
+//      return false;
+//    }
+//    it->second->setName(newName);
+//    nodes[newName] = std::move(it->second);
+//    nodes.erase(it);
+//    return true;
+//  }
 
   void addEntryNode(std::string name) {
     entryNodeNames.insert(std::move(name));
   }
 
-  std::vector<SelectorNode*> getEntryNodes()  {
-    std::vector<SelectorNode*> entryNodes;
+  std::vector<PipelineNode*> getEntryNodes()  {
+    std::vector<PipelineNode*> entryNodes;
     for (auto& name : entryNodeNames) {
       auto n = getNode(name);
       if (n) {

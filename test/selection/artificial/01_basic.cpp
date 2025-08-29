@@ -37,13 +37,13 @@
 // RUN: infile="%s"; %capi -i '%%%% | flops(">=", 1)' -o %s_flops.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_flops.filt | c++filt | sort | %filecheck %s -check-prefix=FLOPS
 //
-// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_to()' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_to' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-B
 //
-// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_to()' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_to' -o %s_callers_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callers_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLERS-B
 //
-// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_from()' -o %s_callees_b.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | loop_depth("==", 2) | on_call_path_from' -o %s_callees_b.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_callees_b.filt | c++filt | sort | %filecheck %s -check-prefix=CALLEES-B
 //
 // RUN: infile="%s"; %capi -i '%%%% | min_call_depth(">=", 2)' -o %s_call_depth.filt --output-format simple ${infile%%.*}.ipcg
@@ -81,6 +81,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 
+// LOG-NOT: [Warning] Detected inconsistencies
 // LOG: Running graph analysis
 // LOG: Number of SCCs: 5
 // LOG: Largest SCC: 1

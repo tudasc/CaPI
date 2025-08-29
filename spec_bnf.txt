@@ -4,32 +4,36 @@
 
 <query>            ::= <stmt> | <query> <stmt>
 
-<stmt>             ::= <selectorDecl> | <directive>
+<stmt>             ::= <pipelineDecl> | <directive>
 
 <directive>        ::= '!' <directiveType>
                      | '!' <directiveType> '(' <directiveParams> ')'
 
-<directiveType>    ::= 'import'
+<directiveType>    ::= 'import' | 'instrument'
 
-<selectorDecl>     ::= <selectorName> '=' <selectorPipeline>
-                     | <selectorPipeline>
+<pipelineDecl>     ::= <selectorName> '=' <pipelineExpr>
+                     | <pipelineExpr>
 
-<selectorPipeline> ::= <selectorRefTuple>
-                     | <selectorRefTuple> '|' <pipedDefs>
+<pipelineExpr>     ::= <pipelineRef>
+                     | <pipelineExprTuple> '|' <pipedDefs>
+
+<pipelineOp>       ::= <pipelineOp> '+' <pipelineExpr>
+                     | <pipelineOp> '-' <pipelineExpr>
+                     | <pipelineExpr>
+
+<pipelineExprs>     ::= <pipelineExpr>
+                     | <pipelineExpr> ',' <pipelineExprs>
+
+<pipelineExprTuple> ::= <pipelineExpr> | '(' <pipelineExprs> ')'
 
 <pipedDefs>        ::= <selectorDef>
                      | <selectorDef> '|' <pipedDefs>
 
 <selectorDef>      ::= <selectorType> '(' <params> ')'
                      | <selectorType> '(' ')'
+                     | <selectorType>
 
-<selectorRef>      ::= '%' <selectorName> | '%%'
-
-<selectorRefTuple> ::= <selectorRef>
-                     | '(' <selectorRefs> ')'
-
-<selectorRefs>     ::= <selectorRef>
-                     | <selectorRef> ',' <selectorRefs>
+<pipelineRef>      ::= '%' <selectorName> | '%%'
 
 <selectorType>     ::= <identifier>
 
@@ -62,7 +66,11 @@
 
 <int>              ::= '-' <digit>+ | <digit>+
 
-<float>            ::= <neg_flo_
+<float>            ::= <neg_float> | <pos_float>
+
+<neg_float> ::= '-' <pos_float>
+
+<pos_float> ::= <digit>* '.' <digit>+
 
 
 

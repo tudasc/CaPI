@@ -29,7 +29,7 @@ struct DirectiveHandler {
 
   virtual void consumeParameter(Param p) = 0;
 
-  virtual void consumeRef(const SelectorRef&) = 0;
+  virtual void consumeRef(const PipelineRef&) = 0;
 
   virtual bool finalize(InstrumentationActionCollector&) = 0;
 
@@ -95,7 +95,7 @@ struct InstrumentActionHandler : public DirectiveHandler {
     this->activeInvocations[lvl] = invocations;
   }
 
-  void consumeRef(const SelectorRef& ref) override {
+  void consumeRef(const PipelineRef& ref) override {
     this->refName = ref.getIdentifier();
   }
 
@@ -119,7 +119,7 @@ private:
 
 struct ImportHandler : public DirectiveHandler{
 
-  void consumeRef(const SelectorRef&) override {
+  void consumeRef(const PipelineRef&) override {
   }
 
   void consumeParameter(Param p) override {
@@ -237,14 +237,14 @@ public:
     handler.reset();
   }
 
-  void visitRef(SelectorRef &ref) override {
+  void visitRef(PipelineRef&ref) override {
     if (!handler) {
       return;
     }
     handler->consumeRef(ref);
   }
 
-  void visitDecl(SelectorDecl &decl) override {
+  void visitPipelineDecl(PipelineDecl&decl) override {
     // Decls can be skipped completely
   }
 

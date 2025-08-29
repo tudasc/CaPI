@@ -4,13 +4,13 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'on_call_path_from(by_name("testDirectExplicit", %%%%))' -o %s_direct_down.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | by_name("testDirectExplicit") | on_call_path_from' -o %s_direct_down.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_direct_down.filt | c++filt | sort | %filecheck %s -check-prefix=DIRECT-DOWN
 //
-// RUN: infile="%s"; %capi -i 'on_call_path_from(by_name("testVirtual", %%%%))' -o %s_virtual_down.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | by_name("testVirtual") | on_call_path_from' -o %s_virtual_down.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_virtual_down.filt | c++filt | sort | %filecheck %s -check-prefix=VIRTUAL-DOWN
 //
-// RUN: infile="%s"; %capi -i 'on_call_path_to(by_name("bar", %%%%))' -o %s_up.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '%%%% | by_name("bar") | on_call_path_to' -o %s_up.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s_up.filt | c++filt | sort | %filecheck %s -check-prefix=UP
 //
 // XFAIL: *

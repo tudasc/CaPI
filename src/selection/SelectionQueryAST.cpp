@@ -7,12 +7,12 @@
 namespace capi {
 
  void ASTVisitor::visitAST(QueryAST&ast){visitChildren(ast);};
- void ASTVisitor::visitDecl(SelectorDecl &decl){visitChildren(decl);};
+ void ASTVisitor::visitPipelineDecl(PipelineDecl&decl){visitChildren(decl);};
  void ASTVisitor::visitDef(SelectorDef &def){visitChildren(def);};
- void ASTVisitor::visitRef(SelectorRef &ref){visitChildren(ref);};
- void ASTVisitor::visitRefTuple(SelectorRefTuple &tuple){visitChildren(tuple);};
+ void ASTVisitor::visitRef(PipelineRef&ref){visitChildren(ref);};
+ void ASTVisitor::visitInputTuple(PipelineExprTuple&tuple){visitChildren(tuple);};
  void ASTVisitor::visitDirective(Directive& directive){ visitChildren(directive);}
- void ASTVisitor::visitPipeline(SelectorPipeline& pipeline) { visitChildren(pipeline);}
+ void ASTVisitor::visitPipelineExpr(PipelineExpr& pipeline) { visitChildren(pipeline);}
 
 void ASTVisitor::visitChildren(ASTNode& node) {
   for (auto &child : node) {

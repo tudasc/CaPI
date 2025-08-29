@@ -17,10 +17,10 @@ namespace capi {
 class ASTNode;
 template <typename T> class Literal;
 class SelectorDef;
-class SelectorRef;
-class SelectorRefTuple;
-class SelectorDecl;
-class SelectorPipeline;
+class PipelineRef;
+class PipelineExprTuple;
+class PipelineDecl;
+class PipelineExpr;
 class Directive;
 class QueryAST;
 
@@ -28,22 +28,22 @@ class ASTVisitor;
 
 using NodePtr = std::unique_ptr<ASTNode>;
 using DirectivePtr = std::unique_ptr<Directive>;
-using DeclPtr = std::unique_ptr<SelectorDecl>;
-using DefPtr = std::unique_ptr<SelectorDef>;
-using RefPtr = std::unique_ptr<SelectorRef>;
-using RefTuplePtr = std::unique_ptr<SelectorRefTuple>;
-using PipelinePtr = std::unique_ptr<SelectorPipeline>;
+using PipelineDeclPtr = std::unique_ptr<PipelineDecl>;
+using SelectorDefPtr = std::unique_ptr<SelectorDef>;
+using PipelineRefPtr = std::unique_ptr<PipelineRef>;
+using PipelineExprTuplePtr = std::unique_ptr<PipelineExprTuple>;
+using PipelineExprPtr = std::unique_ptr<PipelineExpr>;
 using ASTPtr = std::unique_ptr<QueryAST>;
 
 class ASTVisitor {
 public:
-  virtual void visitAST(QueryAST&ast);
-  virtual void visitDecl(SelectorDecl &decl);
+  virtual void visitAST(QueryAST &ast);
+  virtual void visitPipelineDecl(PipelineDecl &decl);
   virtual void visitDef(SelectorDef &def);
-  virtual void visitRef(SelectorRef &ref);
-  virtual void visitRefTuple(SelectorRefTuple &tuple);
+  virtual void visitRef(PipelineRef&ref);
+  virtual void visitInputTuple(PipelineExprTuple&tuple);
   virtual void visitDirective(Directive &directive);
-  virtual void visitPipeline(SelectorPipeline& pipeline);
+  virtual void visitPipelineExpr(PipelineExpr& pipeline);
 
 #define VISIT_LITERAL(name, type) virtual void visit##name##Literal(Literal<type> &l) {}
 
@@ -107,6 +107,10 @@ public:
       return node;
     }
     return nullptr;
+  }
+
+  size_t getNumChildren() const {
+    return children.size();
   }
 
   void dumpChildren(std::ostream &os) {
@@ -199,11 +203,11 @@ public:
   }
 };
 
-class SelectorRef : public ASTNode {
+class PipelineRef : public ASTNode {
   std::string identifier;
 
 public:
-  explicit SelectorRef(std::string identifier)
+  explicit PipelineRef(std::string identifier)
       : identifier(std::move(identifier)) {}
 
   std::string getIdentifier() const { return identifier; }
@@ -266,57 +270,96 @@ public:
   }
 };
 
-class SelectorRefTuple: public ASTNode {
+class PipelineExprTuple : public ASTNode {
  public:
-  explicit SelectorRefTuple(std::vector<RefPtr> refs) {
-    addChildren(refs.begin(), refs.end());
+  explicit PipelineExprTuple(std::vector<PipelineExprPtr> inputs) {
+    addChildren(inputs.begin(), inputs.end());
   }
 
   void accept(ASTVisitor &visitor) override {
-    visitor.visitRefTuple(*this);
+    visitor.visitInputTuple(*this);
   }
 
   void dump(std::ostream &os) override {
-    os << "<SelectorRefTuple> selectorRefs=";
+    os << "<PipelineInputTuple> tuple=";
     dumpChildren(os);
   }
 };
 
-class SelectorPipeline : public ASTNode {
+class PipelineExpr : public ASTNode {
+  bool definesSelectors;
  public:
-  explicit SelectorPipeline(RefTuplePtr refTuple, std::vector<DefPtr> selectorDefs) {
-    addChild(std::move(refTuple));
+  explicit PipelineExpr(PipelineRefPtr ref) : definesSelectors(false) {
+    addChild(std::move(ref));
+  }
+
+  explicit PipelineExpr(PipelineExprTuplePtr inputTuple, std::vector<SelectorDefPtr> selectorDefs) : definesSelectors(true) {
+    addChild(std::move(inputTuple));
     addChildren(selectorDefs.begin(), selectorDefs.end());
   }
 
-  void accept(ASTVisitor &visitor) override { visitor.visitPipeline(*this); }
+  bool doesDefineSelectors() const {
+    return definesSelectors;
+  }
+
+  void accept(ASTVisitor &visitor) override { visitor.visitPipelineExpr(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SelectorPipeline> refs=";
+    os << "<PipelineExpr> input=";
     dumpChildren(os, 0, 1);
-    os << ", defs=";
-    dumpChildren(os, 1, children.size());
+    if (definesSelectors) {
+      os << ", defs=";
+      dumpChildren(os, 1, children.size());
+    }
   }
 };
 
+//class PipelineInput : public ASTNode {
+//  bool inputIsExpr;
+// public:
+//  explicit PipelineInput(PipelineRefPtr ref) : inputIsExpr(false) {
+//    addChild(std::move(ref));
+//  }
+//  explicit PipelineInput(PipelineExprPtr expr) : inputIsExpr(true) {
+//    addChild(std::move(expr));
+//  }
+//
+//  bool isInputExpr() const {
+//    return inputIsExpr;
+//  }
+//
+//  bool isInputRef() const {
+//    return !inputIsExpr;
+//  }
+//
+//  void accept(ASTVisitor &visitor) override {
+//    visitor.visitPipelineInput(*this);
+//  }
+//
+//  void dump(std::ostream &os) override {
+//    os << "<PipelineInput> value=";
+//    dumpChildren(os);
+//  }
+//};
 
-class SelectorDecl : public ASTNode {
+
+class PipelineDecl : public ASTNode {
   std::string identifier;
 
 public:
-  SelectorDecl(std::string identifier, std::unique_ptr<SelectorPipeline> pipeline)
+ PipelineDecl(std::string identifier, PipelineExprPtr pipeline)
       : identifier(std::move(identifier)) {
     addChild(std::move(pipeline));
   }
 
-  explicit SelectorDecl(std::unique_ptr<SelectorPipeline> pipeline)
-      : SelectorDecl("", std::move(pipeline)) {}
+  explicit PipelineDecl(PipelineExprPtr pipeline)
+      : PipelineDecl("", std::move(pipeline)) {}
 
   std::string getName() const {
     return identifier;
   }
 
-  void accept(ASTVisitor &visitor) override { visitor.visitDecl(*this); }
+  void accept(ASTVisitor &visitor) override { visitor.visitPipelineDecl(*this); }
 
   void dump(std::ostream &os) override {
     os << "<SelectorDecl> name=" << identifier << ", def=";

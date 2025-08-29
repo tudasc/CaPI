@@ -7,10 +7,10 @@
 //
 // RUN: LD_LIBRARY_PATH="$(dirname %cgc)/../lib:$LD_LIBRARY_PATH" %cgc --capture-ctors-dtors --extra-arg=-I%clang_include_dir --metacg-format-version=2 %s
 //
-// RUN: infile="%s"; %capi -i 'common_caller(by_name("@_Z2c1v", %%%%), by_name("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '(%%%% | by_name("@_Z2c1v"), %%%% | by_name("@_Z2c2v")) | common_caller' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck %s
 //
-// RUN: infile="%s"; %capi -i 'common_caller_distinct(by_name("@_Z2c1v", %%%%), by_name("@_Z2c2v", %%%%))' -o %s.filt --output-format simple ${infile%%.*}.ipcg
+// RUN: infile="%s"; %capi -i '(%%%% | by_name("@_Z2c1v"), %%%% | by_name("@_Z2c2v")) | common_caller_distinct' -o %s.filt --output-format simple ${infile%%.*}.ipcg
 // RUN: cat %s.filt | c++filt | sort | %filecheck -check-prefix=DISTINCT %s
 //
 // clang-format on
