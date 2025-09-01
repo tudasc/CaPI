@@ -78,12 +78,16 @@ struct NodeTraversalInfo {
   bool overriddenByComputed{false};
   bool callersComputed{false};
   bool calleesComputed{false};
+  bool ancestorsComputed{false};
+  bool descendantsComputed{false};
   bool isDestructor{false};
 
   ConstCgNodePtrSet recursiveOverrides;
   ConstCgNodePtrSet recursiveOverriddenBy;
   ConstCgNodePtrSet allCallers;
   ConstCgNodePtrSet allCallees;
+  ConstCgNodePtrSet allAncestors;
+  ConstCgNodePtrSet allDescendants;
 
   void compute(const metacg::CgNode& node, TraversalHelper* helper);
 
@@ -139,6 +143,16 @@ struct NodeTraversalInfo {
     return {allCallees.begin(), allCallees.end()};
   }
 
+  IterRange<decltype(allAncestors.begin())> findAllAncestors() {
+    updateAllAncestorsCache();
+    return {allAncestors.begin(), allAncestors.end()};
+  }
+
+  IterRange<decltype(allDescendants.begin())> findAllDescendants() {
+    updateAllDescendantsCache();
+    return {allDescendants.begin(), allDescendants.end()};
+  }
+
 private:
   void updateOverridesCache();
 
@@ -147,6 +161,10 @@ private:
   void updateAllCallersCache();
 
   void updateAllCalleesCache();
+
+  void updateAllAncestorsCache();
+
+  void updateAllDescendantsCache();
 };
 
 
