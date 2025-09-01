@@ -9,8 +9,6 @@
 #include "BasicSelectors.h"
 #include "capi/selection/Selector.h"
 #include "capi/support/Logging.h"
-#include "CallPathSelector.h"
-#include "selectors/CallPathSelector.h"
 
 #include <Callgraph.h>
 #include <CgNode.h>
@@ -118,21 +116,29 @@ public:
 
     // compute budget
     // net overhead budget = overhead budget after deducting static setup overhead
-    double netOverheadBudget = (
-      (_overheadBudget * overallCounts->getRuntime() - _setupOverhead)
-      / overallCounts->getRuntime()
+    const double overallRuntime = overallCounts->getRuntime();
+    logInfo() << "Runtime (single rank) as measured by FLIP: " << overallRuntime << "\n";
+    logInfo() << "Configured overhead budget: " << _overheadBudget << "\n";
+    logInfo() << "Configured setup overhead: " << _setupOverhead << "\n";
+    double netOverheadBudget = std::max(
+      1.0,
+      (_overheadBudget * overallRuntime - _setupOverhead) / overallRuntime
     );
 
     logInfo() << "Net overhead budget: " << netOverheadBudget << "\n";
 
-    double runtimeBudget = (
+    const double runtimeBudget = (
       (
         overallCounts->getRuntime()
-        * overallCounts->getInvocationCount()
+        * static_cast<double>(overallCounts->getInvocationCount())
         * (netOverheadBudget - 1.0)
       )
     );
-    counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
+
+    
+    logInfo() << "Runtime (all ranks) budget: " << runtimeBudget << "\n";
+    const counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
+    logInfo() << "Invocation budget: " << invocBudget << "\n";
 
     FunctionSet toBeInstrumented;
     counter_t currentlyInstrumentedInvocs = 0;
@@ -162,21 +168,15 @@ public:
         Candidate candidate{{fct}, counts->getInvocationCount(), counts->getCycleCount()};
 
         // to prevent gaps in the instrumentation: walk up potential call paths and add all functions to candidate
-        traverseCallGraph(
-          *fct,
-          [this] (const metacg::CgNode& node) -> auto {
-            return helper->get(&node).findAllCallers();
-          },
-          [&toBeInstrumented, &notInstrumentedFunctions, &candidate] (const metacg::CgNode& node) {
-            if (notInstrumentedFunctions.contains(&node) && !candidate.functions.contains(&node)) {
-              candidate.functions.insert(&node);
+        for (const metacg::CgNode* ancestor : helper->get(fct).findAllAncestors()) {
+          if (notInstrumentedFunctions.contains(ancestor) && !candidate.functions.contains(ancestor)) {
+            candidate.functions.insert(ancestor);
 
-              const FlipFunctionCounts* callerCounts = node.get<FlipFunctionCounts>();
-              candidate.weight += callerCounts->getInvocationCount();
-              candidate.value += callerCounts->getCycleCount();
-            }
+            const FlipFunctionCounts* callerCounts = ancestor->get<FlipFunctionCounts>();
+            candidate.weight += callerCounts->getInvocationCount();
+            candidate.value += callerCounts->getCycleCount();
           }
-        );
+        }
 
         candidates.push(candidate);
       }
@@ -200,7 +200,7 @@ public:
       }
     }
 
-    double expectedOverhead = 1.0 + (
+    const double expectedOverhead = 1.0 + (
       (
         (static_cast<double>(currentlyInstrumentedInvocs) / static_cast<double>(invocBudget))
         * (static_cast<double>(netOverheadBudget) - 1.0)
