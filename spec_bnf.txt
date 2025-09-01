@@ -11,29 +11,58 @@
 
 <directiveType>    ::= 'import' | 'instrument'
 
+<pipelineDecl>     ::= <identifier> '=' <expr>
+                     | <expr>
+
+<expr>             ::= <pipelineOp>
+
+<pipelineOp>       ::= <pipelineExpr>
+                  | <pipelineOp> ('|' | '&' | '-') <pipelineExpr>
+
+
+<pipelineExpr>     ::= <term>
+                     | <selectorDef>
+                     | <pipelineExpr> '|>' <selectorDef> #<pipedDefs>
+
+<term>             ::= <ref>
+                     | '(' <expr> ')'
+                     | '[' <exprList> ']'
+
+ <exprList>         ::= <expr>
+                      | <exprList> ',' <expr>
+
+
+---------------- OLD ------------------------------------
 <pipelineDecl>     ::= <selectorName> '=' <pipelineExpr>
                      | <pipelineExpr>
 
-<pipelineExpr>     ::= <pipelineRef>
-                     | <pipelineExprTuple> '|' <pipedDefs>
+#<pipelineDef>      ::= <pipelineOp> | <pipelineExpr>
 
-<pipelineOp>       ::= <pipelineOp> '+' <pipelineExpr>
-                     | <pipelineOp> '-' <pipelineExpr>
-                     | <pipelineExpr>
+<pipelineExpr>     ::= <pipelineLhs> | <pipelineLhs> '|>' <pipedDefs>
 
-<pipelineExprs>     ::= <pipelineExpr>
-                     | <pipelineExpr> ',' <pipelineExprs>
+#<pipelineLhs>      ::= <pipelineRef> | <pipelineOpTuple>
+<pipelineLhs>      ::= <pipelineRef> | <pipelineOpTuple>
 
-<pipelineExprTuple> ::= <pipelineExpr> | '(' <pipelineExprs> ')'
+<pipelineOp>       ::= <pipelineOp> ('|' | '&' | '-') <pipelineOperand>
+                     | <pipelineOperand>
+
+<pipelineOperand> ::= <pipelineRef> | <pipelineExpr>
+
+<pipelineOps>     ::= <pipelineOp>
+                     | <pipelineOp> ',' <pipelineOps>
+
+<pipelineOpTuple> ::= <pipelineOp> | '[' <pipelineOps> ']'
+
+----------------+++++++------------------------------------
 
 <pipedDefs>        ::= <selectorDef>
-                     | <selectorDef> '|' <pipedDefs>
+                     | <selectorDef> '|>' <pipedDefs>
 
 <selectorDef>      ::= <selectorType> '(' <params> ')'
                      | <selectorType> '(' ')'
                      | <selectorType>
 
-<pipelineRef>      ::= '%' <selectorName> | '%%'
+<ref>      ::= '%' <selectorName> | '%%'
 
 <selectorType>     ::= <identifier>
 

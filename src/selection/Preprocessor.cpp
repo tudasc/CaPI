@@ -221,9 +221,9 @@ public:
       logError() << "Cannot consume directive. Another directive handler is still active.\n";
       return;
     }
-    handler = createHandler(directive.getName());
+    handler = createHandler(directive.getDirectiveName());
     if (!handler) {
-      logError() << "Unknown directive '" << directive.getName() << "'. Skipping.\n";
+      logError() << "Unknown directive '" << directive.getDirectiveName() << "'. Skipping.\n";
       return;
     }
     visitChildren(directive);

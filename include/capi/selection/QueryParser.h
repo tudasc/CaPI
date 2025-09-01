@@ -93,7 +93,8 @@ public:
 struct Token {
   enum Kind {
     UNKNOWN, END_OF_FILE, IDENTIFIER, STR_LITERAL, INT_LITERAL, FLOAT_LITERAL,
-    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, PERCENT, EQUALS, COMMA, EXCLAM, PIPE, PLUS, MINUS
+    BOOL_LITERAL, LEFT_PAREN, RIGHT_PAREN, LEFT_BRACKET, RIGHT_BRACKET, PERCENT, EQUALS, COMMA, EXCLAM, PIPE,
+    UNION_OP, INTERSECT_OP, DIFF_OP
   };
 
   Token(Kind kind, std::string spelling) : kind(kind), spelling(std::move(spelling)){
@@ -113,6 +114,12 @@ struct Token {
       case RIGHT_PAREN:
         spelling = ")";
         break;
+      case LEFT_BRACKET:
+        spelling = "[";
+        break;
+      case RIGHT_BRACKET:
+        spelling = "]";
+        break;
       case PERCENT:
         spelling = "%";
         break;
@@ -126,12 +133,15 @@ struct Token {
         spelling = "!";
         break;
       case PIPE:
+        spelling = "|>";
+        break;
+      case UNION_OP:
         spelling = "|";
         break;
-      case PLUS:
-        spelling = "+";
+      case INTERSECT_OP:
+        spelling = "&";
         break;
-      case MINUS:
+      case DIFF_OP:
         spelling = "-";
         break;
       default:
@@ -143,13 +153,27 @@ struct Token {
     return kind != UNKNOWN;
   }
 
-  bool isOperator() const {
-    return kind == PIPE || kind == PLUS || kind == MINUS;
+  bool isSetOperator() const {
+    return kind == UNION_OP || kind == INTERSECT_OP || kind == DIFF_OP;
   }
 
   Kind kind;
   std::string spelling;
 };
+
+inline std::optional<OperatorType> getOperator(Token t) {
+  switch(t.kind) {
+    case Token::UNION_OP:
+      return OperatorType::UNION;
+    case Token::INTERSECT_OP:
+      return OperatorType::INTERSECT;
+    case Token::DIFF_OP:
+      return OperatorType::DIFF;
+    default:
+      break;
+  }
+  return {};
+}
 
 struct LexResult {
 
@@ -200,6 +224,11 @@ public:
 
     char c = reader.peek();
 
+    // Try to parse '-' as number first
+    if (std::isdigit(c) || (c == '-' && std::isdigit(reader.peek(1)))) {
+      return parseNumber();
+    }
+
     switch(c) {
       case '\0':
         return Token(Token::END_OF_FILE);
@@ -211,6 +240,12 @@ public:
       case ')':
         reader.consume();
         return Token(Token::RIGHT_PAREN);
+      case '[':
+        reader.consume();
+        return Token(Token::LEFT_BRACKET);
+      case ']':
+        reader.consume();
+        return Token(Token::RIGHT_BRACKET);
       case '%':
         reader.consume();
         return Token(Token::PERCENT);
@@ -224,14 +259,20 @@ public:
         reader.consume();
         return Token(Token::EXCLAM);
       case '|':
+        c = reader.next();
+        if (c == '>') {
+          reader.consume();
+          return Token(Token::PIPE);
+        }
+        return Token(Token::UNION_OP);
+      case '&':
         reader.consume();
-        return Token(Token::PIPE);
+        return Token(Token::INTERSECT_OP);
+      case '-':
+        reader.consume();
+        return Token(Token::DIFF_OP);
       default:
         break;
-    }
-
-    if (c == '-' || std::isdigit(c)) {
-      return parseNumber();
     }
 
     if (isalpha(c)) {
@@ -350,6 +391,11 @@ public:
     reader.pushMarker();
   }
 
+  void moveMarker() {
+    reader.discardMarker();
+    reader.pushMarker();
+  }
+
   void discardMarker() {
     reader.discardMarker();
   }
@@ -398,8 +444,58 @@ struct MarkerConsistencyChecker {
   int countBefore;
 };
 
+struct ParserTrace {
+
+  struct TraceEntry {
+    int depth;
+    std::string method;
+    std::string info;
+  };
+
+  std::vector<TraceEntry> trace;
+
+  int depth = 0;
+
+  void push(const std::string& method) {
+    trace.push_back({depth++, method});
+  }
+
+  void pop() {
+    depth--;
+  }
+
+  void amend(std::string info) {
+    trace.back().info += info;
+  }
+
+  void dump(std::ostream& os) {
+    for (auto& entry: trace) {
+      for (int i = 0; i < entry.depth; i++) {
+        os << "  ";
+      }
+      os << entry.method;
+      if (!entry.info.empty()) {
+        os << ": " << entry.info;
+      }
+      os << "\n";
+    }
+  }
+};
+
+struct ParserTraceRAII {
+  ParserTrace& trace;
+  ParserTraceRAII(ParserTrace& trace, const std::string& method) : trace(trace) {
+    trace.push(method);
+  }
+
+  ~ParserTraceRAII() {
+    trace.pop();
+  }
+};
+
 class QueryParser {
   Lexer lexer;
+  ParserTrace trace;
 public:
   explicit QueryParser(std::string input) : lexer(std::move(input))
   {}
@@ -410,6 +506,7 @@ public:
 
   ASTPtr parse() {
     MarkerConsistencyChecker checker(lexer, "parse");
+    ParserTraceRAII ptr(trace, "parse");
     std::vector<NodePtr> stmts;
     do {
       auto stmt = parseStmt();
@@ -417,6 +514,10 @@ public:
         stmts.emplace_back(std::move(stmt));
       } else {
         printErrorMessage("Parsing failed.");
+        std::cerr << "Parser trace:\n";
+        std::cerr << "--------------\n";
+        trace.dump(std::cerr);
+        std::cerr << "--------------\n";
         return nullptr;
       }
       lexer.skipWhitespace();
@@ -426,36 +527,39 @@ public:
   }
 
 protected:
- PipelineRefPtr parseSelectorRef() {
-   MarkerConsistencyChecker checker(lexer, "parseSelectorRef");
+ PipelineRefPtr parsePipelineRef() {
+   MarkerConsistencyChecker checker(lexer, "parsePipelineRef");
+   ParserTraceRAII ptr(trace, "parsePipelineRef");
    auto t = lexer.next();
    if (!t) {
      printErrorMessage(t.msg);
-     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector ref");
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline ref");
      return {};
    }
    if (t->kind != Token::PERCENT) {
-     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector ref (starting with '%')");
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline ref (starting with '%')");
      return {};
    }
 
    auto idToken = lexer.next();
    if (!idToken) {
-     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier");
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline identifier");
      return {};
    }
    if (idToken->kind != Token::IDENTIFIER && idToken->kind != Token::PERCENT) {
-     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector identifier", idToken->spelling);
+     printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline identifier", idToken->spelling);
      return {};
    }
+   trace.amend(idToken->spelling);
    return std::make_unique<PipelineRef>(idToken->spelling);
  }
 
   NodePtr parseParam() {
 
-    // BNF: param := string | int | float | bool | selectorRef
+    // BNF: param := string | int | float | bool | pipelineRef
 
     MarkerConsistencyChecker checker(lexer, "parseParam");
+    ParserTraceRAII ptr(trace, "parseParam");
 
     lexer.pushMarker();
 
@@ -511,6 +615,7 @@ protected:
     //      params := param | params ',' param
 
     MarkerConsistencyChecker checker(lexer, "parseSelectorDef");
+    ParserTraceRAII ptr(trace, "parseSelectorDef");
 
     auto selectorToken = lexer.next();
     if (!selectorToken) {
@@ -521,6 +626,7 @@ protected:
       printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "an identifier", selectorToken->spelling);
       return {};
     }
+    trace.amend(selectorToken->spelling);
     lexer.pushMarker();
     auto leftParen = lexer.next();
     if (!leftParen) {
@@ -536,14 +642,13 @@ protected:
       lexer.backtrack();
     }
 
-    std::cout << "Parsing: " << selectorToken->spelling << "\n";
-
     return std::make_unique<SelectorDef>(selectorToken->spelling, std::move(params));
   }
 
   std::vector<NodePtr> parseParams() {
 
     MarkerConsistencyChecker checker(lexer, "parseParams");
+    ParserTraceRAII ptr(trace, "parseParams");
 
     // Note: Assumes that the leading parenthesis has already been parsed.
 
@@ -585,6 +690,7 @@ protected:
 
   NodePtr parseStmt() {
     MarkerConsistencyChecker checker(lexer, "parseStmt");
+    ParserTraceRAII ptr(trace, "parseStmt");
 
     lexer.pushMarker();
     auto t = lexer.next();
@@ -604,6 +710,7 @@ protected:
   DirectivePtr parseDirective() {
 
     MarkerConsistencyChecker checker(lexer, "parseDirective");
+    ParserTraceRAII ptr(trace, "parseDirective");
 
     // BNF: <directive> ::= '!' <directiveType> | '!' <directiveType> '(' <directiveParams> ')'
     // Note: The '!' is already parsed here.
@@ -618,6 +725,7 @@ protected:
       printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "an identifier", name->spelling);
       return {};
     }
+    trace.amend(name->spelling);
 
     lexer.pushMarker();
     auto t = lexer.next();
@@ -639,78 +747,140 @@ protected:
   }
 
 
-  std::vector<PipelineExprPtr> parsePipelineExprs() {
+  std::vector<PipelineOpPtr> parsePipelineOps() {
 
-    MarkerConsistencyChecker checker(lexer, "parsePipelineExprs");
+    MarkerConsistencyChecker checker(lexer, "parsePipelineOps");
+    ParserTraceRAII ptr(trace, "parsePipelineOps");
 
-    // Note: Assumes that the leading parenthesis has already been parsed.
+    // Note: Assumes that the leading bracket has already been parsed.
 
     LexResult nextToken("placeholder");
-    std::vector<PipelineExprPtr> exprs;
+    std::vector<PipelineOpPtr> ops;
     do {
-      auto expr = parsePipelineExpr();
-      if (!expr) {
+      auto op = parsePipelineOp();
+      if (!op) {
         printErrorMessage("Could not parse pipeline input.");
         return {};
       }
-      exprs.push_back(std::move(expr));
+      ops.push_back(std::move(op));
       nextToken = lexer.next();
       if (!nextToken) {
-        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "',' or ')'");
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "',' or ']'");
         return {};
       }
     } while (nextToken->kind == Token::COMMA);
 
+    trace.amend(std::to_string(ops.size()) + " ops parsed");
+
     // Make sure that the last token was ')'
-    if (nextToken->kind != nextToken->RIGHT_PAREN) {
-      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "')'", nextToken->spelling);
+    if (nextToken->kind != nextToken->RIGHT_BRACKET) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "']'", nextToken->spelling);
       return {};
     }
 
-    return exprs;
+    return ops;
   }
 
-  PipelineExprTuplePtr parsePipelineExprTuple() {
-    MarkerConsistencyChecker checker(lexer, "parsePipelineExprTuple");
+  PipelineOpPtr parsePipelineOp() {
+    MarkerConsistencyChecker checker(lexer, "parsePipelineOp");
+    ParserTraceRAII ptr(trace, "parsePipelineOp");
 
-    // BNF: <pipelineExprTuple> ::= <pipelineExpr> | '(' <pipelineExprs> ')'
+    // BNF: <pipelineOp> ::= <pipelineOp> ('|' | '&' | '-') <pipelineExpr>
+    //                     | <pipelineExpr>
+    // Parsed as: <pipelineOp>  ::= <pipelineExpr> <pipelineOp'>
+    //            <pipelineOp'> ::= ('|' | '&' | '-') <pipelineExpr> <pipelineOp'> | eps
+
+    PipelineExprPtr lhsExpr = parsePipelineExpr();
+    if (!lhsExpr) {
+      return nullptr;
+    }
     lexer.pushMarker();
     auto t = lexer.next();
     if (!t) {
-      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a tuple of pipeline expressions");
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline definition");
       return {};
     }
-    std::vector<PipelineExprPtr> inputs;
-    if (t->kind == Token::LEFT_PAREN) {
-      std::cout << "Tuple consists of multiple exprs\n";
-      lexer.discardMarker();
-      inputs = parsePipelineExprs();
-    } else {
-      lexer.backtrack();
-      inputs.push_back(parsePipelineExpr());
+    PipelineOpPtr lhs = std::make_unique<PipelineOp>(std::move(lhsExpr));
+
+    while (t->isSetOperator()) {
+      auto rhs = parsePipelineExpr();
+      if (!rhs) {
+        return nullptr;
+      }
+      auto opType = getOperator(t.get());
+      assert(opType && "Must be an operator");
+      trace.amend("operator " + getOperatorName(opType.value()) + " ");
+      lhs = std::make_unique<PipelineOp>(std::move(lhs), std::move(rhs), opType.value());
+      lexer.moveMarker();
+      t = lexer.next();
+      logInfo() << "Next op token is: " << t->spelling << "\n";
     }
-    return std::make_unique<PipelineExprTuple>(std::move(inputs));
+    // Last token wasn't an operator, so backtrack
+    lexer.backtrack();
+    return lhs;
   }
+
+  TermPtr parseTerm() {
+    MarkerConsistencyChecker checker(lexer, "parseTerm");
+    ParserTraceRAII ptr(trace, "parseTerm");
+    lexer.pushMarker();
+    auto t = lexer.next();
+    if (!t) {
+      printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline term");
+      return {};
+    }
+    if (t->kind == Token::PERCENT) {
+      lexer.backtrack();
+      auto ref = parsePipelineRef();
+      if (!ref) {
+        printErrorMessage("Could not parse pipeline ref");
+        return nullptr;
+      }
+      trace.amend("%"+ref->getIdentifier());
+      return  std::make_unique<Term>(std::move(ref));
+    } else if (t->kind == Token::LEFT_PAREN) {
+      lexer.discardMarker();
+      trace.amend("'(' <expr> ')'");
+      auto op = parsePipelineOp();
+      if (!op) {
+        printErrorMessage("Could not parse pipeline operation");
+        return nullptr;
+      }
+      t = lexer.next();
+      if (t->kind != Token::RIGHT_PAREN) {
+        printErrorPosition("Expected closing parenthesis", lexer.getPos());
+        return nullptr;
+      }
+      return std::make_unique<Term>(std::move(op));
+    } else if (t->kind == Token::LEFT_BRACKET) {
+      trace.amend("tuple");
+      lexer.discardMarker();
+      auto inputs = parsePipelineOps();
+      if (inputs.empty()) {
+        printErrorMessage("Tuple cannot be empty");
+        return nullptr;
+      }
+      return std::make_unique<Term>(std::make_unique<ExprTuple>(std::move(inputs)));
+    }
+    lexer.backtrack();
+    printErrorMessage("Expected a pipeline ref, an expression enclosed in parentheses or an expression tuple");
+    printErrorPosition(lexer.getInput(), lexer.getPos());
+    return nullptr;
+  }
+
 
 
   PipelineExprPtr parsePipelineExpr() {
     MarkerConsistencyChecker checker(lexer, "parsePipelineExpr");
+    ParserTraceRAII ptr(trace, "parsePipelineExpr");
 
-    // BNF: <pipelineExpr> ::= <pipelineRef>
-    //                     | <pipelineExprTuple> '|' <pipedDefs>
-    //                     | <pipelineExpr> '+' <pipelineExpr>
-    //                     | <pipelineExpr> '-' <pipelineExpr>
+    // BNF: <pipelineExpr>     ::= <term> | <selectorDef> | <pipelineExpr> '|>' <selectorDef>
+    // Parsed as: <pipelineExpr>  ::= <term> <pipelineExpr'>
+    //            <pipelineExpr'> ::= '|>' <selectorDef> <pipelineExpr'> | eps
 
-    // Find out if the expression is a single ref
-    //  (1) Check if there is a leading '%'
-    //  (2) If yes, go back and parse the ref
-    //  (3) Check if the next token is '|'
-    //  (4) If no, then this is a single ref. If yes, continue parsing the pipeline.
+    bool impliedInput = false;
 
-    std::cout << "Starting to parse expression\n";
-
-    bool firstPipeImplied = false;
-    PipelineExprTuplePtr inputTuple;
+    TermPtr lhsTerm;
     // Saving for error message
     int pipelineStartPos = lexer.getPos();
     lexer.pushMarker();
@@ -719,83 +889,75 @@ protected:
       printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline expression");
       return {};
     }
-    if (t->kind == Token::PERCENT) {
-      lexer.backtrack();
-      auto ref = parseSelectorRef();
-      std::cout << "  Pipeline uses single input: " << ref->getIdentifier() << "\n";
-      lexer.pushMarker();
-      t = lexer.next();
-      if (t->isOperator()) {
-        std::cout << "  Next token is an operator " << t->spelling << "\n";
-        // This expression is a full pipeline with selectors
-        std::vector<PipelineExprPtr> inputExprs;
-        inputExprs.push_back(std::make_unique<PipelineExpr>(std::move(ref)));
-        inputTuple = std::make_unique<PipelineExprTuple>(std::move(inputExprs));
-        lexer.backtrack();
-      } else {
-        // This expression is a single ref
-        std::cout << "  Expression is a single ref\n";
-        lexer.backtrack();
-        return std::make_unique<PipelineExpr>(std::move(ref));
-      }
-    } else if (t->kind == Token::IDENTIFIER) {
-      std::cout << "Token is identifier\n";
+
+    if (t->kind == Token::IDENTIFIER) {
+      trace.amend("%% is implied");
       // No ref given - %% is implied as input
       lexer.backtrack();
-      std::vector<PipelineExprPtr> inputExprs;
-      inputExprs.push_back(std::make_unique<PipelineExpr>(std::make_unique<PipelineRef>("%")));
-      inputTuple = std::make_unique<PipelineExprTuple>(std::move(inputExprs));
-      firstPipeImplied = true;
+      auto inputRef = std::make_unique<PipelineRef>("%");
+      lhsTerm = std::make_unique<Term>(std::move(inputRef));
+      impliedInput = true;
     } else {
-        lexer.backtrack();
+      lexer.backtrack();
+      lhsTerm = parseTerm();
     }
 
-    // Parse the input tuple if not already done
-    if (!inputTuple) {
-      std::cout << "  Starting to parse expr tuple\n";
-      inputTuple = parsePipelineExprTuple();
-      if (!inputTuple) {
-        return nullptr;
-      }
-    }
-
-    if (!firstPipeImplied) {
-      t = lexer.next();
-      if (!t) {
-        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a selector pipeline");
-        return {};
-      }
-    }
-    lexer.pushMarker();
-    std::vector<SelectorDefPtr> defs;
-    while (firstPipeImplied || t->kind == Token::PIPE) {
-      firstPipeImplied = false;
-      auto def = parseSelectorDef();
-      if (!def) {
-        printErrorMessage("Could not parse selector definition");
-        return {};
-      }
-      defs.push_back(std::move(def));
-      lexer.discardMarker();
-      lexer.pushMarker();
-      t = lexer.next();
-    }
-    lexer.backtrack();
-
-    // Pipelines must have a single output.
-    // Example: 'a = (%b, %c)' is valid syntax but not allowed.
-    if (defs.empty() && inputTuple->getNumChildren() > 1) {
-      logError() << "Pipeline is invalid: all pipelines must have a single output\n";
-      printErrorPosition(lexer.getInput(), pipelineStartPos);
+    if (!lhsTerm) {
+      printErrorMessage("Could not parse term");
       return nullptr;
     }
 
-    return std::make_unique<PipelineExpr>(std::move(inputTuple), std::move(defs));
+    // If input is not implied, parse first pipe (if there is one)
+    if (!impliedInput) {
+      lexer.pushMarker();
+      t = lexer.next();
+      if (!t) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline expression");
+        return {};
+      }
+      if (t->kind == Token::PIPE) {
+        lexer.discardMarker();
+      } else {
+        // Simple term without pipe operator
+        lexer.backtrack();
+        // Pipelines must have a single output.
+        // Example: 'a = [%b, %c]' is valid syntax but not allowed.
+        if (lhsTerm->isTuple()) {
+          logError() << "Pipeline is invalid: all pipelines must have a single output\n";
+          printErrorPosition(lexer.getInput(), pipelineStartPos);
+          return nullptr;
+        }
+        return std::make_unique<PipelineExpr>(std::move(lhsTerm));
+      }
+    }
+
+
+    PipelineExprPtr pipelineExpr = std::make_unique<PipelineExpr>(std::move(lhsTerm));
+    lexer.pushMarker();
+    do {
+      auto selDef = parseSelectorDef();
+      if (!selDef) {
+        printErrorMessage("Could not parse selector");
+        return nullptr;
+      }
+      pipelineExpr = std::make_unique<PipelineExpr>(std::move(pipelineExpr), std::move(selDef));
+      lexer.moveMarker();
+      t = lexer.next();
+      if (!t) {
+        printErrorMessageExpected(lexer.getPos(), lexer.getInput(), "a pipeline expression");
+        return {};
+      }
+    } while(t->kind == Token::PIPE);
+    // The last token was not a pipe operator -> backtrack
+    lexer.backtrack();
+    return pipelineExpr;
   }
+
 
   PipelineDeclPtr parsePipelineDecl() {
 
     MarkerConsistencyChecker checker(lexer, "parsePipelineDecl");
+    ParserTraceRAII ptr(trace, "parsePipelineDecl");
 
     // BNF: selectorDecl := selectorName '=' selectorPipeline | selectorPipeline
 
@@ -826,9 +988,9 @@ protected:
       lexer.backtrack();
     }
 
-    std::cout << "Starting to parse decl: " << pipelineId << "\n";
+    trace.amend(pipelineId);
 
-    auto pipeline = parsePipelineExpr();
+    auto pipeline = parsePipelineOp();
     if (!pipeline) {
       printErrorMessage("Failed to parse pipeline definition.\n");
       return nullptr;

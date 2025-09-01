@@ -45,39 +45,6 @@ class PipelineNode {
 
   size_t getSize() { return selectors.size(); }
 };
-//
-//class SelectorNode {
-//  std::string name;
-//  SelectorPtr selector;
-//  std::vector<std::string> inputs;
-//public:
-//
-//  SelectorNode(std::string name, SelectorPtr selector) : name(name), selector(std::move(selector)) {
-//
-//  }
-//
-//  std::string getName() const {
-//    return name;
-//  }
-//
-//  void setName(const std::string& name) {
-//    this->name = name;
-//  }
-//
-//  Selector* getSelector() {
-//    return selector.get();
-//  }
-//
-//  void addInputDependency(std::string dep) {
-//    inputs.push_back(std::move(dep));
-//  }
-//
-//  std::vector<std::string>& getInputDependencies() {
-//    return inputs;
-//  }
-//
-//
-//};
 
 using PipelineNodePtr = std::unique_ptr<PipelineNode>;
 
@@ -114,16 +81,37 @@ public:
     return nodes[name].get();
   }
 
-//  bool renameNode(const std::string& oldName, const std::string newName) {
-//    auto it = nodes.find(oldName);
-//    if (it == nodes.end()) {
-//      return false;
-//    }
-//    it->second->setName(newName);
-//    nodes[newName] = std::move(it->second);
-//    nodes.erase(it);
-//    return true;
-//  }
+  void replaceUses(const std::string& original, const std::string& replacement) {
+    for (auto& [id, node]: nodes) {
+      auto& deps = node->getInputDependencies();
+      auto it = deps.begin();
+      while ((it = std::find(it, deps.end(), original)) != deps.end()) {
+        *it = replacement;
+        ++it;
+      }
+    }
+  }
+
+  void eraseUnreachable() {
+    std::unordered_set<std::string> reachable;
+    std::unordered_set<std::string> workList;
+    workList.insert(entryNodeNames.begin(), entryNodeNames.end());
+    while (!workList.empty()) {
+      auto& item = *workList.begin();
+      reachable.insert(item);
+      auto* node = getNode(item);
+      for (auto& inputDep : node->getInputDependencies()) {
+        workList.insert(inputDep);
+      }
+      workList.erase(item);
+    }
+    std::erase_if(nodes, [&reachable](auto& item) -> bool {
+      bool erase = std::find(reachable.begin(), reachable.end(), item.first) == reachable.end();
+      if (erase) {
+      }
+      return erase;
+    });
+  }
 
   void addEntryNode(std::string name) {
     entryNodeNames.insert(std::move(name));

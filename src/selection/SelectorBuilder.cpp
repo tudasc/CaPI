@@ -42,11 +42,13 @@ class SelectorEmitter: public ASTVisitor {
   std::string pipelineDeclName;
   std::string lastDeclName;
 
+  PipelineNode* lastPipelineEmitted;
+
   NameGen nameGen;
 
 public:
 
-  SelectorEmitter(QueryAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), nameGen("anon_") {
+  SelectorEmitter(QueryAST& ast, SelectorGraph& graph, bool lastDeclIsEntry) : ast(ast), graph(graph), lastDeclIsEntry(lastDeclIsEntry), lastPipelineEmitted(nullptr), nameGen("anon_") {
 //    selectorDeclName = "";
     std::vector<SelectorPtr> s;
     s.push_back(std::make_unique<EverythingSelector>());
@@ -104,13 +106,13 @@ public:
       return success;
     }
 
-    bool finalizePipeline(SelectorGraph& graph) {
+    PipelineNode* finalizePipeline(SelectorGraph& graph) {
       assert(!stack.empty() && "No current selector builder");
       auto builder = std::move(stack.back());
       stack.pop_back();
       if (graph.hasNode(builder.name)) {
         logError() << "Another pipeline with name " << builder.name <<  " already exists.\n";
-        return false;
+        return nullptr;
       }
       auto node = graph.createNode(builder.name, std::move(builder.selectors));
       for (auto& ref: builder.refs) {
@@ -120,7 +122,7 @@ public:
       if (!stack.empty()) {
         addRef(builder.name);
       }
-      return true;
+      return node;
     }
 
     bool empty() const {
@@ -168,10 +170,48 @@ public:
     std::string pipelineName = builderStack.empty() ? pipelineDeclName : nameGen.next();;
     builderStack.beginPipeline(pipelineName);
     visitChildren(pipeline);
-    builderStack.finalizePipeline(graph);
+    lastPipelineEmitted = builderStack.finalizePipeline(graph);
   }
 
-  void visitDef(SelectorDef &def) override {
+  void visitPipelineOp(PipelineOp& op) override {
+    if (op.getOperatorType() != OperatorType::ID) {
+      std::string pipelineName = builderStack.empty() ? pipelineDeclName : nameGen.next();
+      builderStack.beginPipeline(pipelineName);
+      visitChild(op, 0);
+      if (!lastPipelineEmitted) {
+        logError() << "Could not apply operator - there is not input pipeline\n";
+        encounteredError = true;
+        return;
+      }
+      auto* operand1 = lastPipelineEmitted;
+      visitChild(op, 1);
+      if (!lastPipelineEmitted) {
+        logError() << "Could not apply operator - there is not input pipeline\n";
+        encounteredError = true;
+        return;
+      }
+      auto* operand2 = lastPipelineEmitted;
+
+      switch (op.getOperatorType()) {
+        case OperatorType::INTERSECT:
+          builderStack.emitSelector("intersect");
+          break;
+        case OperatorType::DIFF:
+          builderStack.emitSelector("subtract");
+          break;
+        case OperatorType::UNION:
+          builderStack.emitSelector("join");
+          break;
+        default:
+          assert(false && "Unhandled operator case");
+      }
+      builderStack.finalizePipeline(graph);
+    } else {
+      visitChildren(op);
+    }
+  }
+
+  void visitSelectorDef(SelectorDef &def) override {
     visitChildren(def);
 
     bool success = builderStack.emitSelector(def.getType());
@@ -215,12 +255,34 @@ public:
 
 };
 
+void simplifyGraph(SelectorGraph& graph) {
+  bool changed = false;
+  do {
+    changed = false;
+    for (auto& [id, node]: graph.getNodes()) {
+      if (node->getSize() == 0) {
+        const auto& input = node->getInputDependencies();
+        if (input.size() != 1) {
+          std::cout << id << " has inputs: " << input.front() << ", " << input[1] << "\n";
+        }
+//        assert(input.size() == 1 && "pipeline with no selector must have exactly one input");
+        const auto& replacementId = input.front();
+        graph.replaceUses(id, replacementId);
+        graph.eraseUnreachable();
+        changed = true;
+        break;
+      }
+    }
+  } while(changed);
+}
+
 SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry) {
   auto graph = std::make_unique<SelectorGraph>();
   SelectorEmitter emitter(ast, *graph, lastDeclIsEntry);
   emitter.visitAST(ast);
   if (emitter.hasEncounteredError())
     return {};
+  simplifyGraph(*graph);
   return graph;
 }
 
