@@ -14,8 +14,7 @@
 #include <CgNode.h>
 
 #include <flip/FLIP_counts.hpp>
-
-#include <queue>
+#include <vector>
 
 namespace capi {
 
@@ -145,22 +144,19 @@ public:
 
     // helper type to represent a set of functions that we might want to add to the instrumentation
     struct Candidate {
-      FunctionSet functions;
+      std::vector<const metacg::CgNode*> functions;
       counter_t weight;
       counter_t value;
 
       inline double valueDensity() const {
         return static_cast<double>(value) / static_cast<double>(weight);
       }
-
-      inline bool operator<(const Candidate& other) const {
-          return valueDensity() < other.valueDensity(); 
-      }
     };
     
     // keep iterating until we run out of functions (or bail out with the break; below)
     while (!notInstrumentedFunctions.empty()) {
-      std::priority_queue<Candidate> candidates;
+      Candidate bestCandidate;
+      bool foundACandidateThatFits = false;
       
       for(const metacg::CgNode* fct : notInstrumentedFunctions) {
         const FlipFunctionCounts* counts = fct->get<FlipFunctionCounts>();
@@ -169,8 +165,8 @@ public:
 
         // to prevent gaps in the instrumentation: walk up potential call paths and add all functions to candidate
         for (const metacg::CgNode* ancestor : helper->get(fct).findAllAncestors()) {
-          if (notInstrumentedFunctions.contains(ancestor) && !candidate.functions.contains(ancestor)) {
-            candidate.functions.insert(ancestor);
+          if (notInstrumentedFunctions.contains(ancestor)) {
+            candidate.functions.push_back(ancestor);
 
             const FlipFunctionCounts* callerCounts = ancestor->get<FlipFunctionCounts>();
             candidate.weight += callerCounts->getInvocationCount();
@@ -178,22 +174,28 @@ public:
           }
         }
 
-        candidates.push(candidate);
+        if (
+          // does the candidate fit in our budget?
+          candidate.weight + currentlyInstrumentedInvocs <= invocBudget
+          // is is better than the previous best?
+          && (!foundACandidateThatFits || candidate.valueDensity() > bestCandidate.valueDensity())
+        ) {
+          bestCandidate = candidate;
+          foundACandidateThatFits = true;
+        }
       }
 
-      // find best candidate that still fits in the budget
-      while (!candidates.empty() && candidates.top().weight + currentlyInstrumentedInvocs > invocBudget) {
-        candidates.pop();
-      }
-      if (!candidates.empty()) {
-        const Candidate& best = candidates.top();
-
+      if (foundACandidateThatFits) {
         // instrument all functions from the best candidate
-        toBeInstrumented.insert(best.functions.begin(), best.functions.end());
-        for (const metacg::CgNode* node : best.functions) {
+        toBeInstrumented.insert(bestCandidate.functions.begin(), bestCandidate.functions.end());
+        
+        // remove newly instrumented functions from the pool
+        for (const metacg::CgNode* node : bestCandidate.functions) {
           notInstrumentedFunctions.erase(node);
         }
-        currentlyInstrumentedInvocs += best.weight;
+
+        // update already spent budget
+        currentlyInstrumentedInvocs += bestCandidate.weight;
       } else {
         // there is no longer a candidate that fits in our budget
         break;
@@ -207,8 +209,6 @@ public:
       )
       + (_setupOverhead / overallCounts->getRuntime())
     );
-
-
     logInfo() << "Expected overhead: " << expectedOverhead << ".\n";
 
     return toBeInstrumented;
