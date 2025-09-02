@@ -238,7 +238,7 @@ struct TraversalHelper {
     }
 
     while (!worklist.empty()) {
-      const metacg::CgNode* node = worklist.front();
+      const metacg::CgNode* node = worklist.back();
       worklist.pop_back();
       
       // Skip if this node was already processed
