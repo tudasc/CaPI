@@ -17,12 +17,11 @@
 <expr>             ::= <pipelineOp>
 
 <pipelineOp>       ::= <pipelineExpr>
-                  | <pipelineOp> ('|' | '&' | '-') <pipelineExpr>
-
+                     | <pipelineOp> ('|' | '&' | '-') <pipelineExpr>
 
 <pipelineExpr>     ::= <term>
                      | <selectorDef>
-                     | <pipelineExpr> '|>' <selectorDef> #<pipedDefs>
+                     | <pipelineExpr> '|>' <selectorDef>
 
 <term>             ::= <ref>
                      | '(' <expr> ')'
@@ -31,38 +30,11 @@
  <exprList>         ::= <expr>
                       | <exprList> ',' <expr>
 
-
----------------- OLD ------------------------------------
-<pipelineDecl>     ::= <selectorName> '=' <pipelineExpr>
-                     | <pipelineExpr>
-
-#<pipelineDef>      ::= <pipelineOp> | <pipelineExpr>
-
-<pipelineExpr>     ::= <pipelineLhs> | <pipelineLhs> '|>' <pipedDefs>
-
-#<pipelineLhs>      ::= <pipelineRef> | <pipelineOpTuple>
-<pipelineLhs>      ::= <pipelineRef> | <pipelineOpTuple>
-
-<pipelineOp>       ::= <pipelineOp> ('|' | '&' | '-') <pipelineOperand>
-                     | <pipelineOperand>
-
-<pipelineOperand> ::= <pipelineRef> | <pipelineExpr>
-
-<pipelineOps>     ::= <pipelineOp>
-                     | <pipelineOp> ',' <pipelineOps>
-
-<pipelineOpTuple> ::= <pipelineOp> | '[' <pipelineOps> ']'
-
-----------------+++++++------------------------------------
-
-<pipedDefs>        ::= <selectorDef>
-                     | <selectorDef> '|>' <pipedDefs>
-
 <selectorDef>      ::= <selectorType> '(' <params> ')'
                      | <selectorType> '(' ')'
                      | <selectorType>
 
-<ref>      ::= '%' <selectorName> | '%%'
+<ref>              ::= '%' <identifier> | '%%'
 
 <selectorType>     ::= <identifier>
 
@@ -70,8 +42,6 @@
                      | <params> ',' <param>
 
 <param>            ::= <string> | <int> | <float> | <bool>
-
-<selectorName>     ::= <identifier>
 
 #################################################
 # Lexical / helper rules
@@ -100,8 +70,3 @@
 <neg_float> ::= '-' <pos_float>
 
 <pos_float> ::= <digit>* '.' <digit>+
-
-
-
-MPI Example:
-mpi=onCallPathTo(by_name(\"MPI_.*\", %%)) exclude=join(byPath(\"excludethis\", %%), inlineSpecified(%%)) subtract(%mpi, %exclude)
