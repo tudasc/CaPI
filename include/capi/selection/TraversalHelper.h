@@ -7,6 +7,10 @@
 
 #include "Callgraph.h"
 #include "capi/support/IteratorUtils.h"
+#include <CgNode.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace capi {
 
@@ -209,6 +213,102 @@ struct TraversalHelper {
         leaves.push_back(node.get());
     }
     return leaves;
+  }
+
+  std::unordered_map<const metacg::CgNode*, ConstCgNodePtrSet> globalAncestorComputation() {
+    // result map
+    std::unordered_map<const metacg::CgNode*, ConstCgNodePtrSet> res;
+
+    // Queue of nodes to be processed
+    std::vector<const metacg::CgNode*> worklist;
+
+    // When "descending" into a node's parent, this tracks the "call stack" to handle
+    // cycles in the call graph
+    std::vector<const metacg::CgNode*> stack;
+
+    // Temporary vector holding all parents of a node that have not been processed yet
+    std::vector<const metacg::CgNode*> missingParents;
+
+    // Temporary vector holding the ancestors of all parents that have already been processed
+    std::vector<ConstCgNodePtrSet*> parentAncestorsCollection;
+
+    // Put all leaves into the worklist
+    for (auto node : findLeaves()) {
+      worklist.push_back(node);
+    }
+
+    while (!worklist.empty()) {
+      const metacg::CgNode* node = worklist.front();
+      worklist.pop_back();
+      
+      // Skip if this node was already processed
+      if (res.contains(node)) {
+        continue;
+      }
+      
+      // Fresh temporary vectors
+      missingParents.clear();
+      parentAncestorsCollection.clear();
+      
+      NodeTraversalInfo& nti = this->get(node);
+      auto parents = nti.findAllCallers();
+
+      // iterate over all parents to popolate `missingParents` and `parentAncestorsCollection`
+      for (const metacg::CgNode* parent : parents) {
+        auto parent_res = res.find(parent);
+
+        if (parent_res == res.end()) {
+          // parent has not been processed yet
+          if (std::find(stack.begin(), stack.end(), parent) == stack.end()) {
+            // if the parent is not in the stack, put it into `missingParents`
+            missingParents.push_back(parent);
+          }
+        } else {
+          // parent has already been processed -> save its ancestors
+          parentAncestorsCollection.push_back(&(parent_res->second));
+        }
+      }
+
+      // check whether all parents have already been processed
+      if (!missingParents.empty()) {
+        // there are still parents which have not yet been processed
+
+        // push this node on the stack to prevent cycles
+        stack.push_back(node);
+
+        // re-visit this node after all parents have been visited
+        // (thus push it onto the worklist first)
+        worklist.push_back(node);
+
+        // push all missing parents onto the worklist
+        for (const metacg::CgNode* parent : missingParents) {
+          worklist.push_back(parent);
+        }
+      } else {
+        // all parents have already been processed \o/
+
+        // remove this node from the stack if it is on top
+        if (!stack.empty() && stack.back() == node) {
+          stack.pop_back();
+        }
+
+        // collect this node's ancestors (i.e., its parents and its parent's ancestors)
+        ConstCgNodePtrSet ancestors;
+        for (const metacg::CgNode* parent : parents) {
+          ancestors.insert(parent);
+        }
+        for (ConstCgNodePtrSet* parentAncestors : parentAncestorsCollection) {
+          for (const metacg::CgNode* parentAncestor : *parentAncestors) {
+            ancestors.insert(parentAncestor);
+          }
+        }
+
+        // save into result map
+        res[node] = ancestors;
+      }
+    }
+
+    return res;
   }
 
   bool shouldTraverseVirtualDtors() const {
