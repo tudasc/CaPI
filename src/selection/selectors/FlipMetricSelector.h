@@ -8,12 +8,15 @@
 
 #include "BasicSelectors.h"
 #include "capi/selection/Selector.h"
+#include "capi/selection/TraversalHelper.h"
 #include "capi/support/Logging.h"
 
 #include <Callgraph.h>
 #include <CgNode.h>
 
 #include <flip/FLIP_counts.hpp>
+
+#include <unordered_map>
 #include <vector>
 
 namespace capi {
@@ -152,6 +155,9 @@ public:
         return static_cast<double>(value) / static_cast<double>(weight);
       }
     };
+
+    // compute ancestors for each node of the graph
+    std::unordered_map<const metacg::CgNode*, ConstCgNodePtrSet> ancestorMap = helper->globalAncestorComputation();
     
     // keep iterating until we run out of functions (or bail out with the break; below)
     while (!notInstrumentedFunctions.empty()) {
@@ -164,7 +170,7 @@ public:
         Candidate candidate{{fct}, counts->getInvocationCount(), counts->getCycleCount()};
 
         // to prevent gaps in the instrumentation: walk up potential call paths and add all functions to candidate
-        for (const metacg::CgNode* ancestor : helper->get(fct).findAllAncestors()) {
+        for (const metacg::CgNode* ancestor : ancestorMap[fct]) {
           if (notInstrumentedFunctions.contains(ancestor)) {
             candidate.functions.push_back(ancestor);
 
