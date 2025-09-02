@@ -163,7 +163,7 @@ public:
   T getValue() const { return val; }
 
   void dump(std::ostream &os) override {
-    os << "<Literal> value='" << val << "'";
+    os << "<Literal> {value='" << val << "'}";
   }
 
   std::string getTypeName() const override {
@@ -239,7 +239,7 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visitRef(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SelectorRef> selector=%" << identifier;
+    os << "<SelectorRef> {selector=%" << identifier << "}";
   }
   std::string getTypeName() const override {
     return "PipelineRef";
@@ -271,8 +271,9 @@ public:
   }
 
   void dump(std::ostream &os) override {
-    os << "<Directive> type=" << name << ", params=";
+    os << "<Directive> {type=" << name << ", params=";
     dumpChildren(os);
+    os << "}";
   }
 };
 
@@ -300,8 +301,9 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visitSelectorDef(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SelectorDef> selector=" << selectorType << ", params=";
+    os << "<SelectorDef> {selector=" << selectorType << ", params=";
     dumpChildren(os);
+    os << "}";
   }
 };
 
@@ -316,8 +318,9 @@ class ExprTuple : public ASTNode {
   }
 
   void dump(std::ostream &os) override {
-    os << "<ExprTuple> tuple=";
+    os << "<ExprTuple> {tuple=";
     dumpChildren(os);
+    os << "}";
   }
 
   std::string getTypeName() const override {
@@ -364,12 +367,13 @@ class PipelineExpr : public ASTNode {
   void accept(ASTVisitor &visitor) override { visitor.visitPipelineExpr(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<PipelineExpr> input=";
+    os << "<PipelineExpr> {input=";
     dumpChild(os, 0);
     if (definesSelectors) {
       os << ", def=";
       dumpChild(os, 1);
     }
+    os << "}";
   }
 
   std::string getTypeName() const override {
@@ -398,13 +402,14 @@ class PipelineOp : public ASTNode {
   void accept(ASTVisitor &visitor) override { visitor.visitPipelineOp(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<PipelineOp op=" << getOperatorName(type);
+    os << "<PipelineOp> {op=" << getOperatorName(type);
     os << ", lhs=";
     dumpChild(os, 0);
     if (type != OperatorType::ID) {
       os << ", rhs=";
       dumpChild(os, 1 );
     }
+    os << "}";
   }
 
   std::string getTypeName() const override {
@@ -503,8 +508,9 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visitPipelineDecl(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<SelectorDecl> name=" << identifier << ", def=";
+    os << "<SelectorDecl> {name=" << identifier << ", def=";
     dumpChild(os, 0);
+    os << "}";
   }
 
   std::string getTypeName() const override {
@@ -521,8 +527,9 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visitAST(*this); }
 
   void dump(std::ostream &os) override {
-    os << "<QueryAST> stmts=";
+    os << "<QueryAST> {stmts=";
     dumpChildren(os);
+    os << "}";
   }
 
   bool insertStmt(NodePtr stmt, ASTNode* insertAfter) {
