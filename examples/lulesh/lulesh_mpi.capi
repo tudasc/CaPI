@@ -1,3 +1,3 @@
 !import("mpi.capi")
-callpaths = onCallPathTo(%mpi_reduced)
+callpaths = %mpi_reduced |> on_call_path_to
 
