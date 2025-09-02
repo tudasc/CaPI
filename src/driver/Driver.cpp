@@ -324,11 +324,22 @@ int main(int argc, char **argv) {
     ast.dump(std::cout);
     std::cout << "\n";
     std::cout << "------------------\n";
+    std::cout << "Building selector pipeline...\n";
     return true;
   });
 
+
+  int numNodes = 0;
   // Print pipeline before running
-  runner.onSelectorGraphBuilt([](SelectorGraph& graph) {
+  runner.onSelectorGraphBuilt([&numNodes](SelectorGraph& graph) {
+    numNodes = graph.getNodes().size();
+    std::cout << "Optimizing selector pipeline...\n";
+    return true;
+  });
+
+  // Print optimized pipeline before running
+  runner.onSelectorGraphOptimized([&numNodes](SelectorGraph& graph) {
+    std::cout << " -> " << (numNodes - graph.getNodes().size()) << " nodes eliminated\n";
     std::cout << "Selector pipeline:\n";
     std::cout << "------------------\n";
     dumpSelectorGraph(std::cout, graph);

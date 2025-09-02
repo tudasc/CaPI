@@ -347,6 +347,7 @@ inline std::string getOperatorName(OperatorType op) {
 
 class PipelineExpr : public ASTNode {
   bool definesSelectors;
+  bool pipelineIsAlias;
  public:
   explicit PipelineExpr(TermPtr term);
 
@@ -354,6 +355,10 @@ class PipelineExpr : public ASTNode {
 
   bool doesDefineSelectors() const {
     return definesSelectors;
+  }
+
+  bool isAlias() const {
+    return pipelineIsAlias;
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitPipelineExpr(*this); }
@@ -411,21 +416,29 @@ class PipelineOp : public ASTNode {
 
 class Term : public ASTNode {
 
-  bool termIsTuple;
+  enum TermKind {
+    TUPLE, REF, EXPR
+  };
+
+  TermKind kind;
 
  public:
-  explicit Term(PipelineRefPtr ref) : termIsTuple(false) {
+  explicit Term(PipelineRefPtr ref) : kind(REF) {
     addChild(std::move(ref));
   }
-  explicit Term(PipelineOpPtr op) : termIsTuple(false)  {
+  explicit Term(PipelineOpPtr op) : kind(EXPR)  {
     addChild(std::move(op));
   }
-  explicit Term(ExprTuplePtr tuple) : termIsTuple(true) {
+  explicit Term(ExprTuplePtr tuple) : kind(TUPLE) {
     addChild(std::move(tuple));
   }
 
   bool isTuple() const {
-    return termIsTuple;
+    return kind == TUPLE;
+  }
+
+  bool isRef() const {
+    return kind == REF;
   }
 
   void accept(ASTVisitor &visitor) override { visitor.visitTerm(*this); }

@@ -90,6 +90,11 @@ public:
         ++it;
       }
     }
+    // Replace in entry node set
+    if (entryNodeNames.contains(original)) {
+      entryNodeNames.erase(original);
+      entryNodeNames.insert(replacement);
+    }
   }
 
   void eraseUnreachable() {
@@ -126,6 +131,10 @@ public:
       }
     }
     return entryNodes;
+  }
+
+  bool isEntryNode(const std::string& name) const {
+    return entryNodeNames.contains(name);
   }
 
   bool hasNode(const std::string& name) {

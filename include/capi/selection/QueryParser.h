@@ -813,7 +813,6 @@ protected:
       lhs = std::make_unique<PipelineOp>(std::move(lhs), std::move(rhs), opType.value());
       lexer.moveMarker();
       t = lexer.next();
-      logInfo() << "Next op token is: " << t->spelling << "\n";
     }
     // Last token wasn't an operator, so backtrack
     lexer.backtrack();

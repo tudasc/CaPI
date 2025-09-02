@@ -13,6 +13,8 @@
 
 namespace capi {
 
+void simplifyGraph(SelectorGraph& graph);
+
 SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry);
 
 }

@@ -166,11 +166,18 @@ public:
   }
 
   void visitPipelineExpr(PipelineExpr& pipeline) override {
-    // Use the name of the current decl, or generate one
-    std::string pipelineName = builderStack.empty() ? pipelineDeclName : nameGen.next();;
-    builderStack.beginPipeline(pipelineName);
+    // We emit a pipeline node if the pipeline defines selectors, or it is a simple alias for another pipeline.
+    if (pipeline.doesDefineSelectors() || pipeline.isAlias()) {
+      // Use the name of the current decl, or generate one
+      std::string pipelineName = builderStack.empty() ? pipelineDeclName : nameGen.next();;
+      builderStack.beginPipeline(pipelineName);
+      visitChildren(pipeline);
+      lastPipelineEmitted = builderStack.finalizePipeline(graph);
+      return;
+    }
+
+    // This expression is either a tuple or another nested expression/operation
     visitChildren(pipeline);
-    lastPipelineEmitted = builderStack.finalizePipeline(graph);
   }
 
   void visitPipelineOp(PipelineOp& op) override {
@@ -260,12 +267,9 @@ void simplifyGraph(SelectorGraph& graph) {
   do {
     changed = false;
     for (auto& [id, node]: graph.getNodes()) {
-      if (node->getSize() == 0) {
+      if (node->getSize() == 0 && !graph.isEntryNode(id)) {
         const auto& input = node->getInputDependencies();
-        if (input.size() != 1) {
-          std::cout << id << " has inputs: " << input.front() << ", " << input[1] << "\n";
-        }
-//        assert(input.size() == 1 && "pipeline with no selector must have exactly one input");
+        assert(input.size() == 1 && "pipeline with no selector must have exactly one input");
         const auto& replacementId = input.front();
         graph.replaceUses(id, replacementId);
         graph.eraseUnreachable();
@@ -282,7 +286,6 @@ SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry) {
   emitter.visitAST(ast);
   if (emitter.hasEncounteredError())
     return {};
-  simplifyGraph(*graph);
   return graph;
 }
 

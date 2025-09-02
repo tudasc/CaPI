@@ -6,11 +6,11 @@
 
 namespace capi {
 
-PipelineExpr::PipelineExpr(TermPtr term) : definesSelectors(false) {
+PipelineExpr::PipelineExpr(TermPtr term) : definesSelectors(false), pipelineIsAlias(term->isRef()) {
   addChild(std::move(term));
 }
 
-PipelineExpr::PipelineExpr(PipelineExprPtr inputPipeline, SelectorDefPtr selectorDef) : definesSelectors(true) {
+PipelineExpr::PipelineExpr(PipelineExprPtr inputPipeline, SelectorDefPtr selectorDef) : definesSelectors(true), pipelineIsAlias(false) {
   addChild(std::move(inputPipeline));
   addChild(std::move(selectorDef));
 }

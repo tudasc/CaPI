@@ -253,6 +253,14 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
     }
   }
 
+  simplifyGraph(*selectorGraph);
+
+  for (auto& cb : selectorGraphOptimizedCBs) {
+    if (!cb(*selectorGraph)) {
+      return std::unexpected("Aborted by callback");
+    }
+  }
+
   auto result = runSelectorPipeline(*selectorGraph, helper, debugMode);
 
   MeasurementConfig mc;
