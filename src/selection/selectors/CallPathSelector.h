@@ -32,8 +32,9 @@ public:
 };
 
 /**
- * Traverses the call graph, calling the given visit function on each node.
- * @tparam TraverseFn Function that takes a metacg::CgNode& argument and returns the next
+ * Traverses the call chain downwards, calling the given visit function on each
+ * node.
+ * @tparam VisitFn Function that takes a metacg::CgNode& argument and returns the next
  * nodes to traverse.
  * @tparam VisitFn Function that takes a metacg::CgNode& argument.
  * @param node
@@ -44,7 +45,7 @@ template <typename TraverseFn, typename VisitFn>
 int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
                       VisitFn &&visit) {
   std::vector<const metacg::CgNode *> workingSet;
-  std::unordered_set<const metacg::CgNode *> alreadyVisited;
+  std::vector<const metacg::CgNode *> alreadyVisited;
 
   workingSet.push_back(&node);
 
@@ -53,10 +54,12 @@ int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
     workingSet.pop_back();
     //        std::cout << "Visiting caller " << currentNode->getName() << "\n";
     visit(*currentNode);
-    alreadyVisited.insert(currentNode);
+    alreadyVisited.push_back(currentNode);
     for (auto &nextNode : selectNextNodes(*currentNode)) {
-      if (!alreadyVisited.contains(nextNode)
-          && std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode) == alreadyVisited.end()) {
+      if (std::find(workingSet.begin(), workingSet.end(), nextNode) ==
+          workingSet.end() &&
+          std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode) ==
+          alreadyVisited.end()) {
         workingSet.push_back(nextNode);
       }
     }
