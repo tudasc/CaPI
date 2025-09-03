@@ -92,42 +92,4 @@ void NodeTraversalInfo::updateAllCalleesCache() {
   calleesComputed = true;
 }
 
-void NodeTraversalInfo::updateAllAncestorsCache() {
-  if (ancestorsComputed) {
-    return;
-  }
-
-  allAncestors.clear();
-  traverseCallGraph(
-    *node,
-    [this] (const metacg::CgNode& node) -> auto {
-      return this->helper->get(&node).getCallers();
-    },
-    [this] (const metacg::CgNode& node) -> void {
-      allAncestors.insert(&node);
-    }
-  );
-
-  ancestorsComputed = true;
-}
-
-void NodeTraversalInfo::updateAllDescendantsCache() {
-  if (descendantsComputed) {
-    return;
-  }
-
-  allDescendants.clear();
-  traverseCallGraph(
-    *node,
-    [this] (const metacg::CgNode& node) -> auto {
-      return this->helper->get(&node).getCallees();
-    },
-    [this] (const metacg::CgNode& node) -> void {
-      allDescendants.insert(&node);
-    }
-  );
-
-  descendantsComputed = true;
-}
-
 }

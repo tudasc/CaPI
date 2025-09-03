@@ -9,15 +9,11 @@
 #include "BasicSelectors.h"
 #include "capi/selection/Selector.h"
 #include "capi/selection/TraversalHelper.h"
-#include "capi/support/Logging.h"
 
 #include <Callgraph.h>
 #include <CgNode.h>
 
 #include <flip/FLIP_counts.hpp>
-
-#include <unordered_map>
-#include <vector>
 
 namespace capi {
 
@@ -86,141 +82,13 @@ public:
     _instrumentationCost(instrumentationCost),
     _setupOverhead(setupOverhead) {}
 
-  void init(TraversalHelper& helper) override {
+  inline void init(TraversalHelper& helper) override {
     this->helper = &helper;
   }
 
-  FunctionSet apply(const FunctionSetList &input) override {
-    assert(helper);
+  FunctionSet apply(const FunctionSetList &input) override;
 
-    if (input.size() != 1) {
-      logError() << "Expected exactly one input set, got " << input.size() << " instead.\n";
-      return {};
-    }
-    
-    FunctionSet notInstrumentedFunctions = input.front();
-    const size_t totalNumberOfFunctions = notInstrumentedFunctions.size();
-    
-    // make sure that global counts are available
-    const FlipGlobalCounts* overallCounts = helper->cg.get<FlipGlobalCounts>();
-    if(overallCounts == nullptr) {
-      logError() << "Expected callgraph to have FLIP_counts as global metadata.\n";
-      return {};
-    }
-
-    // make sure that all functions have FLIP counts
-    for(const metacg::CgNode* fct : notInstrumentedFunctions) {
-      if (!fct->has<FlipFunctionCounts>()) {
-        logError() << "Function was " << fct->getFunctionName() << " passed to FlipKnapsackSelector, but does not have FLIP counts.\n";
-        return {};
-      }
-    }
-
-    // compute budget
-    // net overhead budget = overhead budget after deducting static setup overhead
-    const double overallRuntime = overallCounts->getRuntime();
-    logInfo() << "Runtime (single rank) as measured by FLIP: " << overallRuntime << "\n";
-    logInfo() << "Configured overhead budget: " << _overheadBudget << "\n";
-    logInfo() << "Configured setup overhead: " << _setupOverhead << "\n";
-    double netOverheadBudget = std::max(
-      1.0,
-      (_overheadBudget * overallRuntime - _setupOverhead) / overallRuntime
-    );
-
-    logInfo() << "Net overhead budget: " << netOverheadBudget << "\n";
-
-    const double runtimeBudget = (
-      (
-        overallCounts->getRuntime()
-        * static_cast<double>(overallCounts->getInvocationCount())
-        * (netOverheadBudget - 1.0)
-      )
-    );
-
-    
-    logInfo() << "Runtime (all ranks) budget: " << runtimeBudget << "\n";
-    const counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
-    logInfo() << "Invocation budget: " << invocBudget << "\n";
-
-    FunctionSet toBeInstrumented;
-    counter_t currentlyInstrumentedInvocs = 0;
-
-    // helper type to represent a set of functions that we might want to add to the instrumentation
-    struct Candidate {
-      std::vector<const metacg::CgNode*> functions;
-      counter_t weight;
-      counter_t value;
-
-      inline double valueDensity() const {
-        return static_cast<double>(value) / static_cast<double>(weight);
-      }
-    };
-
-    // compute ancestors for each node of the graph
-    std::unordered_map<const metacg::CgNode*, ConstCgNodePtrSet> ancestorMap = helper->globalAncestorComputation();
-    
-    // keep iterating until we run out of functions (or bail out with the break; below)
-    while (!notInstrumentedFunctions.empty()) {
-      Candidate bestCandidate;
-      bool foundACandidateThatFits = false;
-      
-      for(const metacg::CgNode* fct : notInstrumentedFunctions) {
-        const FlipFunctionCounts* counts = fct->get<FlipFunctionCounts>();
-
-        Candidate candidate{{fct}, counts->getInvocationCount(), counts->getCycleCount()};
-
-        // to prevent gaps in the instrumentation: walk up potential call paths and add all functions to candidate
-        for (const metacg::CgNode* ancestor : ancestorMap[fct]) {
-          if (notInstrumentedFunctions.contains(ancestor)) {
-            candidate.functions.push_back(ancestor);
-
-            const FlipFunctionCounts* callerCounts = ancestor->get<FlipFunctionCounts>();
-            candidate.weight += callerCounts->getInvocationCount();
-            candidate.value += callerCounts->getCycleCount();
-          }
-        }
-
-        if (
-          // does the candidate fit in our budget?
-          candidate.weight + currentlyInstrumentedInvocs <= invocBudget
-          // is is better than the previous best?
-          && (!foundACandidateThatFits || candidate.valueDensity() > bestCandidate.valueDensity())
-        ) {
-          bestCandidate = candidate;
-          foundACandidateThatFits = true;
-        }
-      }
-
-      if (foundACandidateThatFits) {
-        // instrument all functions from the best candidate
-        toBeInstrumented.insert(bestCandidate.functions.begin(), bestCandidate.functions.end());
-        
-        // remove newly instrumented functions from the pool
-        for (const metacg::CgNode* node : bestCandidate.functions) {
-          notInstrumentedFunctions.erase(node);
-        }
-
-        // update already spent budget
-        currentlyInstrumentedInvocs += bestCandidate.weight;
-      } else {
-        // there is no longer a candidate that fits in our budget
-        break;
-      }
-    }
-
-    const double expectedOverhead = 1.0 + (
-      (
-        (static_cast<double>(currentlyInstrumentedInvocs) / static_cast<double>(invocBudget))
-        * (static_cast<double>(netOverheadBudget) - 1.0)
-      )
-      + (_setupOverhead / overallCounts->getRuntime())
-    );
-    logInfo() << "Expected overhead: " << expectedOverhead << ".\n";
-
-    return toBeInstrumented;
-  }
-
-  std::string getName() override {
+  inline std::string getName() override {
     return "FlipKnapsackSelector";
   }
 
@@ -230,7 +98,6 @@ private:
   float _setupOverhead;
   TraversalHelper *helper;
 };
-
 }
 
 #endif  // CAPI_FLIPSELECTOR_H
