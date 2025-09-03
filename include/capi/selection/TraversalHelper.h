@@ -7,48 +7,9 @@
 
 #include "Callgraph.h"
 #include "capi/support/IteratorUtils.h"
-#include <CgNode.h>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 namespace capi {
 
-
-/**
- * Traverses the call graph, calling the given visit function on each node.
- * @tparam TraverseFn Function that takes a metacg::CgNode& argument and returns the next
- * nodes to traverse.
- * @tparam VisitFn Function that takes a metacg::CgNode& argument.
- * @param node
- * @param visit
- * @returns The number of visited functions.
- */
-template <typename TraverseFn, typename VisitFn>
-int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
-                      VisitFn &&visit) {
-  std::vector<const metacg::CgNode *> workingSet;
-  std::unordered_set<const metacg::CgNode *> alreadyVisited;
-
-  workingSet.push_back(&node);
-
-  do {
-    auto currentNode = workingSet.back();
-    workingSet.pop_back();
-    //        std::cout << "Visiting caller " << currentNode->getName() << "\n";
-    visit(*currentNode);
-    alreadyVisited.insert(currentNode);
-    for (auto &nextNode : selectNextNodes(*currentNode)) {
-      if (!alreadyVisited.contains(nextNode)
-          && std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode) == alreadyVisited.end()) {
-        workingSet.push_back(nextNode);
-      }
-    }
-
-  } while (!workingSet.empty());
-
-  return alreadyVisited.size();
-}
 
 inline bool isNodeDestructor(const metacg::CgNode& node) {
   auto name = node.getFunctionName();
