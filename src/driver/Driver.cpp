@@ -242,6 +242,15 @@ int main(int argc, char **argv) {
 
   std::cout << "Loaded CG with " << cg->size() << " nodes\n";
 
+  std::cout << "Running consistency check on CG...\n";
+  bool consistencyCheckSucceeded = runConsistencyCheck(*cg);
+  if (consistencyCheckSucceeded) {
+    std::cout << "Success!\n";
+  } else {
+    std::cout << "Consistency check failed!\n";
+    std::cout << "The resulting analysis may be faulty.\n";
+  }
+
   // Create selection runner
   SelectionRunner runner(*cg, opts.traverseVirtualDtors);
 
