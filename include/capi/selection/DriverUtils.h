@@ -18,6 +18,8 @@
 
 namespace capi {
 
+bool runConsistencyCheck(const metacg::Callgraph& cg);
+
 ASTPtr parseSelectionQuery(const std::string&);
 
 std::string loadFromFile(std::string_view filename);

@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_set>
 
+#include "metadata/OverrideMD.h"
+
 #include "capi/selection/Demangle.h"
 #include "capi/selection/DriverUtils.h"
 #include "capi/selection/FunctionFilter.h"
@@ -23,6 +25,50 @@
 #include "capi/symbol_retriever/SymbolRetriever.h"
 
 namespace capi {
+
+bool runConsistencyCheck(const metacg::Callgraph& cg) {
+  bool success = true;
+  for (auto& node : cg.getNodes()) {
+    if (auto* overrideMD = node->get<metacg::OverrideMD>(); overrideMD) {
+      for (auto id : overrideMD->overrides) {
+        auto* baseFunction = cg.getNode(id);
+        if (!baseFunction) {
+          logError() << "Overridden base function of node " << node->id << " (" << node->getFunctionName() << ") does not exist.\n";
+          success = false;
+          continue;
+        }
+        if (auto* baseMD = baseFunction->get<metacg::OverrideMD>(); baseMD) {
+          if (std::find(baseMD->overriddenBy.begin(), baseMD->overriddenBy.end(), node->id) == baseMD->overriddenBy.end()) {
+            logError() << "Overridden base function " << baseFunction->id << " (" << baseFunction->getFunctionName() << ") does not list overriding function " << node->id << " (" << node->getFunctionName() << ") in metadata.\n";
+            success = false;
+          }
+        } else {
+          logError() << "Overridden base function " << baseFunction->id << " (" << baseFunction->getFunctionName() << ") of node " << node->id << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          success = false;
+        }
+      }
+
+      for (auto id : overrideMD->overriddenBy) {
+        auto* overridingFunction = cg.getNode(id);
+        if (!overridingFunction) {
+          logError() << "Overriding function of node " << node->id << " (" << node->getFunctionName() << ") does not exist.\n";
+          success = false;
+          continue;
+        }
+        if (auto* overridingMD = overridingFunction->get<metacg::OverrideMD>(); overridingMD) {
+          if (std::find(overridingMD->overrides.begin(), overridingMD->overrides.end(), node->id) == overridingMD->overrides.end()) {
+            logError() << "Overriding function " << overridingFunction->id << " (" << node->getFunctionName() << ") does not list base function " << node->id << " (" << node->getFunctionName() << ") in metadata.\n";
+            success = false;
+          }
+        } else {
+          logError() << "Overriding function "  << overridingFunction->id << " (" << overridingFunction->getFunctionName() << ") of node " << node->id << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          success = false;
+        }
+      }
+    }
+  }
+  return success;
+}
 
 ASTPtr parseSelectionQuery(const std::string& query) {
   auto stripped = stripComments(query);
