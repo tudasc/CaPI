@@ -65,7 +65,7 @@ void NodeTraversalInfo::updateAllCallersCache() {
   }
   allCallers.clear();
   allCallers.insert(callers.begin(), callers.end());
-  if (helper->shouldTraverseVirtualDtors() || !isDestructor) {
+  if (helper->shouldTraverseVirtualDtors() && !isDestructor) {
     for(auto& overrides: findAllOverrides()) {
       auto overridesCache = helper->get(overrides);
       allCallers.insert(overridesCache.virtualCalledBy.begin(), overridesCache.virtualCalledBy.end());
@@ -82,7 +82,7 @@ void NodeTraversalInfo::updateAllCalleesCache() {
   allCallees.insert(callees.begin(), callees.end());
   for (auto* callee: virtualCalls) {
     auto& calleeCache = helper->get(callee);
-    if (!helper->shouldTraverseVirtualDtors() && calleeCache.isDestructor) {
+    if (!helper->shouldTraverseVirtualDtors() || calleeCache.isDestructor) {
       continue;
     }
     auto allOverriddenBy = calleeCache.findAllOverriddenBy();
