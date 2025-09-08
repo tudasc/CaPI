@@ -6,6 +6,14 @@
 
 #include "capi/selection/SCC.h"
 #include "capi/selection/Selector.h"
+#include "capi/selection/TraversalHelper.h"
+#include "capi/support/Logging.h"
+
+#include <Callgraph.h>
+#include <CgNode.h>
+#include <memory>
+#include <unordered_set>
+#include <vector>
 
 using namespace capi;
 
@@ -16,14 +24,15 @@ struct KnapsackNumbers {
   counter_t value;
 
   inline double valueDensity() const {
-    double value = static_cast<double>(value);
-    double weight = static_cast<double>(weight);
-    if (value == 0.0) {
+    
+    if (value == 0) {
       return 0.0;
-    } else if (weight == 0.0) {
+    } else if (weight == 0) {
       return std::numeric_limits<double>::infinity();
     } else {
-      return value / weight;
+      double v = static_cast<double>(value);
+      double w = static_cast<double>(weight);
+      return v / w;
     }
   }
 
@@ -35,7 +44,7 @@ struct KnapsackNumbers {
 
 // helper type to represent a set of functions that we might want to add to the instrumentation
 struct Candidate {
-  std::vector<const SCCNode*> members;
+  const SCCNode* node;
   KnapsackNumbers numbers;
 };
 
@@ -46,11 +55,12 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
     return {};
   }
 
+  metacg::Callgraph& cg = helper->cg;
   FunctionSet inputFunctions = input.front();
   const size_t totalNumberOfFunctions = inputFunctions.size();
 
   // make sure that global counts are available
-  const FlipGlobalCounts* overallCounts = helper->cg.get<FlipGlobalCounts>();
+  const FlipGlobalCounts* overallCounts = cg.get<FlipGlobalCounts>();
   if (overallCounts == nullptr) {
     logError() << "Expected callgraph to have FLIP_counts as global metadata.\n";
     return {};
@@ -82,13 +92,55 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
   const counter_t invocBudget = static_cast<counter_t>(runtimeBudget / _instrumentationCost);
   logInfo() << "Invocation budget: " << invocBudget << "\n";
 
+  // prune callgraph
+  std::vector<const metacg::CgNode*> nodes;
+  nodes.reserve(cg.getNodeCount());
+  for (const std::unique_ptr<metacg::CgNode>& node : cg.getNodes()) {
+    nodes.push_back(node.get());
+  }
+
+  // unsigned i = 0;
+  for (const metacg::CgNode* node : nodes) {
+    // std::cout << ++i << "\n";
+    if (!inputFunctions.contains(node)) {
+      
+      // auto parents = helper->get(node).findAllCallers();
+      // auto children = helper->get(node).findAllCallees();
+      auto parents = cg.getCallers(*node);
+      auto children = cg.getCallees(*node);
+
+      for (auto parent : parents) {
+        for (auto child : children) {
+          assert(parent != nullptr);
+          assert(child != nullptr);
+
+          if (parent != child && !cg.existsEdge(*parent, *child)) {
+            cg.addEdge(*parent, *child);
+          }
+        }
+      }
+
+      cg.erase(node->getId());
+    }
+  }
+
+  logInfo() << "Pruned call graph down to " << cg.getNodeCount() << " nodes.\n";
+
+  // create new TraversalHelper
+  TraversalHelper prunedTravesalHelper(cg, false);
+
   // compute graph of strongly-connected components (SCCs)
-  SCCAnalysisResults sccResults = computeSCCs(*helper, true);
+  SCCAnalysisResults sccResults = computeSCCs(prunedTravesalHelper, false);
   // std::cout << "Finished SCC computation" << std::endl;
+
+  std::unordered_set<const SCCNode*> inputSCCs;
+  for (const metacg::CgNode* fct : inputFunctions) {
+    inputSCCs.insert(sccResults.getSCC(*fct));
+  }
 
   // compute ancestor list for each SCC
   std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> sccAncestors =
-      sccResults.globalAncestorComputation(*helper);
+      sccResults.globalAncestorComputation(inputSCCs, prunedTravesalHelper);
   // std::cout << "Finished SCC ancestor computation" << std::endl;
 
   
@@ -130,14 +182,14 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
     bool foundACandidateThatFits = false;
 
     for (auto& [scc, values] : sccs) {
-      Candidate candidate{{scc}, values.weight, values.value};
+      Candidate candidate{scc, values.weight, values.value};
 
       // to prevent gaps in the instrumentation: walk up potential call paths and add all functions to candidate
       for (const SCCNode* ancestor : sccAncestors[scc]) {
-        candidate.members.push_back(ancestor);
-
-        const KnapsackNumbers& ancestorValues = sccs[ancestor];
-        candidate.numbers += ancestorValues;
+        if (sccs.contains(ancestor)) {
+          const KnapsackNumbers& ancestorValues = sccs[ancestor];
+          candidate.numbers += ancestorValues;
+        }
       }
 
       if (
@@ -151,24 +203,29 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
     }
 
     if (foundACandidateThatFits && bestCandidate.numbers.valueDensity() > 0.0) {
-      // unsigned newlyInstrumented = 0;
-      for (const SCCNode* memberSCC : bestCandidate.members) {
-        // instrument all functions from the best candidate
-        for (const metacg::CgNode* memberNode : memberSCC->nodes) {
-          if (inputFunctions.contains(memberNode)) {
-            toBeInstrumented.insert(memberNode);
-            //  newlyInstrumented++;
-          }
+      // instrument all functions from the best candiate
+      for (const metacg::CgNode* memberNode : bestCandidate.node->nodes) {
+        if (inputFunctions.contains(memberNode)) {
+          toBeInstrumented.insert(memberNode);
         }
-
-        // remove newly instrumented SCCs from the pool
-        sccs.erase(memberSCC);
       }
-      // std::cout << "Instrumenting: " << newlyInstrumented << std::endl;
+      sccs.erase(bestCandidate.node);
+      for (const SCCNode* ancestorSCC : sccAncestors[bestCandidate.node]) {
+        if (sccs.contains(ancestorSCC)) {
+          // instrument all functions from the best candidate ancestors
+          for (const metacg::CgNode* memberNode : ancestorSCC->nodes) {
+            if (inputFunctions.contains(memberNode)) {
+              toBeInstrumented.insert(memberNode);
+            }
+          }
+  
+          // remove newly instrumented SCCs from the pool
+          sccs.erase(ancestorSCC);
+        }
+      }
 
       // update already spent budget
       currentlyInstrumentedInvocs += bestCandidate.numbers.weight;
-      // std::cout << "currentlyInstrumentedInvocs: " << currentlyInstrumentedInvocs << std::endl;
     } else {
       // there is no longer a candidate that fits in our budget
       break;

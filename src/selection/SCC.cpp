@@ -69,7 +69,7 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
   return SCCAnalysisResults(sccs);
 }
 
-std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResults::globalAncestorComputation(TraversalHelper& helper) {
+std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResults::globalAncestorComputation(const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper) {
   // std::cout << "Total number of SCC nodes: " << sccs.size() << "\n";
   // unsigned processed = 0;
 
@@ -86,9 +86,7 @@ std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResul
   std::vector<std::vector<const SCCNode*>> parentAncestorsCollection;
 
   // Put all leaf SCCs into the worklist
-  for (const metacg::CgNode* node : helper.findLeaves()) {
-    worklist.push_back(getSCC(*node));
-  }
+  worklist.insert(worklist.end(), leafes.begin(), leafes.end());
 
   while (!worklist.empty()) {
     const SCCNode* node = worklist.back();
@@ -148,6 +146,7 @@ std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResul
 
       // save into result map
       res[node] = ancestors;
+      // res[node] = {};
       // std::cout << "Processed " << ++processed << " (worklist size: " << worklist.size() << ")\n";
     }
   }
