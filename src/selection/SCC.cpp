@@ -56,6 +56,9 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
   int index = 0;
 
   for (const auto& node : helper.cg.getNodes()) {
+    if (node.get() == nullptr) {
+      continue;
+    } 
     auto& nodeData = sccMap[node.get()];
     if (nodeData.undefined()) {
       nodeData.node = node.get();
