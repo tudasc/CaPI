@@ -33,17 +33,17 @@ bool runConsistencyCheck(const metacg::Callgraph& cg) {
       for (auto id : overrideMD->overrides) {
         auto* baseFunction = cg.getNode(id);
         if (!baseFunction) {
-          logError() << "Overridden base function of node " << node->id << " (" << node->getFunctionName() << ") does not exist.\n";
+          logError() << "Overridden base function of node " << node->getId() << " (" << node->getFunctionName() << ") does not exist.\n";
           success = false;
           continue;
         }
         if (auto* baseMD = baseFunction->get<metacg::OverrideMD>(); baseMD) {
-          if (std::find(baseMD->overriddenBy.begin(), baseMD->overriddenBy.end(), node->id) == baseMD->overriddenBy.end()) {
-            logError() << "Overridden base function " << baseFunction->id << " (" << baseFunction->getFunctionName() << ") does not list overriding function " << node->id << " (" << node->getFunctionName() << ") in metadata.\n";
+          if (std::find(baseMD->overriddenBy.begin(), baseMD->overriddenBy.end(), node->getId()) == baseMD->overriddenBy.end()) {
+            logError() << "Overridden base function " << baseFunction->getId() << " (" << baseFunction->getFunctionName() << ") does not list overriding function " << node->getId() << " (" << node->getFunctionName() << ") in metadata.\n";
             success = false;
           }
         } else {
-          logError() << "Overridden base function " << baseFunction->id << " (" << baseFunction->getFunctionName() << ") of node " << node->id << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          logError() << "Overridden base function " << baseFunction->getId() << " (" << baseFunction->getFunctionName() << ") of node " << node->getId() << " (" << node->getFunctionName() << ") does not define override metadata.\n";
           success = false;
         }
       }
@@ -51,17 +51,17 @@ bool runConsistencyCheck(const metacg::Callgraph& cg) {
       for (auto id : overrideMD->overriddenBy) {
         auto* overridingFunction = cg.getNode(id);
         if (!overridingFunction) {
-          logError() << "Overriding function of node " << node->id << " (" << node->getFunctionName() << ") does not exist.\n";
+          logError() << "Overriding function of node " << node->getId() << " (" << node->getFunctionName() << ") does not exist.\n";
           success = false;
           continue;
         }
         if (auto* overridingMD = overridingFunction->get<metacg::OverrideMD>(); overridingMD) {
-          if (std::find(overridingMD->overrides.begin(), overridingMD->overrides.end(), node->id) == overridingMD->overrides.end()) {
-            logError() << "Overriding function " << overridingFunction->id << " (" << node->getFunctionName() << ") does not list base function " << node->id << " (" << node->getFunctionName() << ") in metadata.\n";
+          if (std::find(overridingMD->overrides.begin(), overridingMD->overrides.end(), node->getId()) == overridingMD->overrides.end()) {
+            logError() << "Overriding function " << overridingFunction->getId() << " (" << node->getFunctionName() << ") does not list base function " << node->getId() << " (" << node->getFunctionName() << ") in metadata.\n";
             success = false;
           }
         } else {
-          logError() << "Overriding function "  << overridingFunction->id << " (" << overridingFunction->getFunctionName() << ") of node " << node->id << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          logError() << "Overriding function "  << overridingFunction->getId() << " (" << overridingFunction->getFunctionName() << ") of node " << node->getId() << " (" << node->getFunctionName() << ") does not define override metadata.\n";
           success = false;
         }
       }
