@@ -9,9 +9,9 @@
 #include <functional>
 #include <fstream>
 
-#include "capi/selection/InstrumentationAction.h"
-#include "capi/selection/SpecParser.h"
 #include "SelectorRegistry.h"
+#include "capi/selection/InstrumentationAction.h"
+#include "capi/selection/QueryParser.h"
 
 namespace capi {
 
@@ -29,11 +29,11 @@ struct DirectiveHandler {
 
   virtual void consumeParameter(Param p) = 0;
 
-  virtual void consumeRef(const SelectorRef&) = 0;
+  virtual void consumeRef(const PipelineRef&) = 0;
 
   virtual bool finalize(InstrumentationActionCollector&) = 0;
 
-  virtual DirectiveReplacement transform(Directive &directive, SpecAST &ast) = 0;
+  virtual DirectiveReplacement transform(Directive &directive, QueryAST&ast) = 0;
 };
 
 using HandlerPtr = std::unique_ptr<DirectiveHandler>;
@@ -95,7 +95,7 @@ struct InstrumentActionHandler : public DirectiveHandler {
     this->activeInvocations[lvl] = invocations;
   }
 
-  void consumeRef(const SelectorRef& ref) override {
+  void consumeRef(const PipelineRef& ref) override {
     this->refName = ref.getIdentifier();
   }
 
@@ -107,7 +107,7 @@ struct InstrumentActionHandler : public DirectiveHandler {
     return true;
   }
 
-  DirectiveReplacement transform(Directive& directive, SpecAST &ast) override {
+  DirectiveReplacement transform(Directive& directive, QueryAST&ast) override {
     return {&directive, nullptr, false};
   }
 
@@ -119,7 +119,7 @@ private:
 
 struct ImportHandler : public DirectiveHandler{
 
-  void consumeRef(const SelectorRef&) override {
+  void consumeRef(const PipelineRef&) override {
   }
 
   void consumeParameter(Param p) override {
@@ -145,7 +145,7 @@ struct ImportHandler : public DirectiveHandler{
   }
 
 
-  DirectiveReplacement transform(Directive& directive, SpecAST &ast) override {
+  DirectiveReplacement transform(Directive& directive, QueryAST&ast) override {
     assert((complete && !error) && "Can't transform invalid import directive.");
     auto parent = findParent(ast, directive);
     // Directive must always be direct child of root AST node.
@@ -161,16 +161,16 @@ struct ImportHandler : public DirectiveHandler{
 
     std::ifstream in(filename);
 
-    std::string specStr;
+    std::string queryStr;
 
     std::string line;
     while (std::getline(in, line)) {
-      specStr += line;
+      queryStr += line;
     }
 
     std::ifstream fin(filename);
 
-    SpecParser parser(specStr);
+    QueryParser parser(queryStr);
     auto subAST = parser.parse();
 
     if (!subAST) {
@@ -211,7 +211,7 @@ public:
 
   explicit DirectiveProcessor(InstrumentationActions& instActions) : instActions(instActions) {}
 
-  void visitAST(SpecAST &ast) override {
+  void visitAST(QueryAST&ast) override {
     this->ast = &ast;
     ASTVisitor::visitAST(ast);
   }
@@ -221,9 +221,9 @@ public:
       logError() << "Cannot consume directive. Another directive handler is still active.\n";
       return;
     }
-    handler = createHandler(directive.getName());
+    handler = createHandler(directive.getDirectiveName());
     if (!handler) {
-      logError() << "Unknown directive '" << directive.getName() << "'. Skipping.\n";
+      logError() << "Unknown directive '" << directive.getDirectiveName() << "'. Skipping.\n";
       return;
     }
     visitChildren(directive);
@@ -237,14 +237,14 @@ public:
     handler.reset();
   }
 
-  void visitRef(SelectorRef &ref) override {
+  void visitRef(PipelineRef&ref) override {
     if (!handler) {
       return;
     }
     handler->consumeRef(ref);
   }
 
-  void visitDecl(SelectorDecl &decl) override {
+  void visitPipelineDecl(PipelineDecl&decl) override {
     // Decls can be skipped completely
   }
 
@@ -316,7 +316,7 @@ public:
   }
 
 private:
-  SpecAST* ast;
+ QueryAST* ast;
   std::unique_ptr<DirectiveHandler> handler;
 
   std::vector<DirectiveReplacement> replacements;
@@ -324,7 +324,7 @@ private:
 
 };
 
-bool preprocessAST(SpecAST &ast, InstrumentationActions& instActions) {
+bool preprocessAST(QueryAST&ast, InstrumentationActions& instActions) {
   DirectiveProcessor dp(instActions);
   dp.visitAST(ast);
 

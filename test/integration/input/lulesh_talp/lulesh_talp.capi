@@ -1,11 +1,11 @@
 # TEST trace_cfg: --path-sensitive
 
-talp_fns = has_talp_metrics(%%)
-bad_par_eff = talp_mpi_parallel_efficiency("<", 0.3, %talp_fns)
-filtered = talp_dyn_filtered(%talp_fns)
-leapfrog = by_name("LagrangeLeapFrog", %%)
+talp_fns = has_talp_metrics()
+bad_par_eff = %talp_fns |> talp_mpi_parallel_efficiency("<", 0.3)
+filtered = %talp_fns |> talp_dyn_filtered()
+leapfrog = by_name("LagrangeLeapFrog")
 
-final_set = join(%leapfrog, subtract(%bad_par_eff, %filtered))
+final_set = %leapfrog | (%bad_par_eff - %filtered)
 
 # Fully instrument
 !instrument(%final_set, "basic")

@@ -22,10 +22,11 @@ This project is currently in a pre-release state, frequent changes to the code a
 
 - CMake >=3.15
 - LLVM >=10 (>=20 for XRay shared library instrumentation)
-- ScoreP 7 (optional)
-- DLB 3.5 (optional, other versions may work)
-- Extrae 3.8.3 (optional, other versions may work)
-- LLVM-Lit (testing only)
+- MetaCG
+- ScoreP 7.x (optional)
+- DLB 3.5 (optional, other versions _may_ work)
+- Extrae 3.8.3 (optional, other versions _may_ work)
+- LLVM-Lit (for testing only)
 
 ## Build
 CaPI is built as follows ([Ninja](https://github.com/ninja-build/ninja) is not required and can be substituted with `make`).
@@ -45,6 +46,7 @@ CMake Options
 - `ENABLE_TESTING=ON/OFF`: Enable/Disable testing. Requires MetaCG and LLVM-Lit.
   - Set `metacg_DIR` to MetaCG installation directory.
 
+<!-- The container does currently not work
 ## Container
 The easiest way to try out CaPI is to install the [apptainer](https://apptainer.org/) provided in the `container` directory.
 The container provides installations of CaPI and all dependencies. 
@@ -57,6 +59,7 @@ Afterwards, you may open a shell into the sandbox as follow:
 apptainer shell --writable --fakeroot --cleanenv capi
 ```
 Refer to the apptainer documentation for further options.
+-->
 
 ## Examples
 To verify your build, you may test out the instrumentation of proxy applications LULESH and AMG in the `example` folder (located in your current build directory).
@@ -83,7 +86,7 @@ This is an overview of the current command line interface.
 - `-v <verbosity>`     Set verbosity level (0-3, default is 2). Passing `-v` without argument sets it to 3.
 - `--write-dot <file>`  Write a dotfile of the selected call-graph subset.
 - `--replace-inlined <binary>`  Replaces inlined functions with parents. Requires passing the executable.
-- `--output-format <output_format>`  Set the file format. Options are `scorep` (default), `json` and `simple`
+- `--output-format <output_format>`  Set the file format. Options are `scorep`, `json` (default) and `simple`
 - `--debug`  Enable debugging mode.
 - `--print-scc-stats`  Prints information about the strongly connected components (SCCs) of this call graph.
 - `--traverse-virtual-dtors` Enable traversal of virtual destructors (may lead to over-approximation of destructor inheritance).
@@ -98,73 +101,140 @@ capi -i '<selection_query>' callgraph.ipcg
 ```
 Alternatively, `-f <file>` instructs CaPI to load the query from the given file.
 
-The query consists of a sequence of selector definitions, which can be named or anonymous.
-Each definition takes a list of parameters.
-Available parameter types are strings (enclosed in double quotes), booleans (true/false),  integers and floating point numbers.
-In addition, most selectors expect another selector definition as input.
-These can be either in-place definitions or references to other named selectors, marked with `%`.
-The selector `%%` is pre-defined and refers to an instance of the `EverythingSelector`, which selects every function in the CG.
+#### Basic Query Usage
 
-The last definition in the sequence is used as the entry point for the selection pipeline.
+The query consists of a pipeline of selector instances, which can be named or anonymous.
+Selectors types are pre-defined but can be customized via parameters.
+Valid parameter types are strings (enclosed in double quotes), booleans (true/false), integers and floating point numbers.
 
-For example, the following selector, named `mpi`, finds all functions starting with `MPI_`.
-```
-mpi = by_name("MPI_.*", %%)
-```
+Selectors can be combined using the pipe operator `&>`.
+Most of the available selectors types take at least one pipeline definition as input.
+These can be either in-place definitions or references to other named pipeline definitions, prefixed with `%`.
 
-This can be used to find all functions that are on a callpath to a MPI call:
+For example, the following selector pipeline, named `mpi`, uses the `by_name` selector to find all functions starting with `MPI_`.
+```
+mpi = %% &> by_name("MPI_.*")
+```
+The pipeline `%` is pre-defined and refers to an instance of the `EverythingSelector`, which selects every function in the call graph.
+If no input is explicitly given, `%%` is added implicitly. 
 
+The previous example can, thus, be simplified as follows:
 ```
-mpi          = by_name("MPI_.*", %%)
-mpi_callpath = on_call_path_to(%mpi)
-```
-
-To reduce overhead, it is typically sensible to exclude functions that are marked as `inline`.
-Adding this to the previous spec, the result might look like this:
-
-```
-mpi          = by_name("MPI_.*", %%)
-mpi_callpath = on_call_path_to(%mpi)
-final        = subtract(%mpi_callpath, inline_specified(%%))
-```
-or shortened:
-```
-subtract(onCallPathTo(by_name("MPI_.*", %%)),inline_specified(%%))
+mpi = by_name("MPI_.*")
 ```
 
-Recently, support for loading pre-defined selection modules via the `!import` statement was added.
-This allows to build and re-use selectors that are useful across multiple applications.
-For example, the `mpi_callpath` selector from the previous example could be moved to a separate file:
+To extend this example, we can look at functions that are on a call path to MPI communication:
+
+```
+mpi          = by_name("MPI_.*")
+mpi_callpath = %mpi &> on_call_path_to
+```
+
+Another way to reduce overhead is to exclude functions that are marked as `inline`.
+To achieve this, we need the `inline_specified` selector and combine the results using the `subtract` selector.
+Note that `subtract` takes two input pipelines, which are specified as a tuple enclosed in square brackets `[A, B]`.
+Adding this to the previous query, we get the following query:
+
+```
+mpi          = by_name("MPI_.*")
+mpi_callpath = %mpi &> on_call_path_to
+final        = [%mpi_callpath, inline_specified] &> subtract
+```
+
+To simplify the use of set operations like `subtract`, they can also be expressed as binary operators: 
+
+| Set Operation | Selector    | Equivalent Operator |
+|---------------|-------------|---------------------|
+| union         | `join`      | `\|`                |
+| intersection  | `intersect` | `&`                 |
+| difference     | `subtract`   | `-`               |
+
+
+Using the operator notation the query can be rewritten as
+```
+mpi          = by_name("MPI_.*")
+mpi_callpath = %mpi &> on_call_path_to
+final        = %mpi_callpath - inline_specified()
+```
+or in a single line:
+```
+final        = (by_name("MPI_.*") &> on_call_path_to) - inline_specified
+```
+
+### Directives
+
+Directives start with `!` and are used to control the parsing and selection process.
+CaPI currently supports two types of directives: `!import` and `!instrument`. 
+
+The `import` directive is used for loading existing selection modules.
+This allows to build and re-use selection pipelines that are useful across multiple applications.
+For example, the `mpi_callpath` selector from the previous example could be moved to a separate file `mpi.capi`:
 ```
 !include "mpi.capi"
-subtract(%mpi_callpath, inline_specified(%%))
+final = %mpi_callpath - inline_specified
 ```
 
-List of available selectors:
+The `instrument` directives gives explicit control over the created instrumentation configuration.
+It allows the user to specify custom instrumentation levels and associated invocation ranges that are reflected in the
+created instrumentation configuration file. 
+```
+# Instrument result of "A" with level "basic" 
+!instrument(%A, "basic")
 
-| Name                                                               | Parameters          | Selector inputs | Example                                                    | Explanation                                                                                                    |
-|--------------------------------------------------------------------|---------------------|-----------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| by_name                                                            | regex string        | 1               | `by_name("foo.*", %%)`                                     | Selects functions with names starting with "foo".                                                              |
-| by_path                                                            | regex string        | 1               | `byPath("foo/.*", %%)`                                     | Selects functions contained in directory "foo".                                                                |
-| inline_specified                                                   | -                   | 1               | `inline_specified(%%)`                                     | Selects functions marked as `inline`.                                                                          |
-| on_call_path_to                                                    | -                   | 1               | `on_call_path_to(by_name("foo", %%))`                      | Selects functions in the call chain to function "foo".                                                         |
-| on_call_path_from                                                  | -                   | 1               | `on_call_path_from(by_name("foo", %%))`                    | Selects functions in the call chain from function "foo".                                                       |
-| in_system_header                                                   | -                   | 1               | `in_system_header(%%)`                                     | Selects functions defined in system headers.                                                                   |
-| contains_unresolved_calls                                          | -                   | 1               | `contains_unresolved_calls(%%)`                            | Selects functions containing calls to unknown target functions.                                                |
-| join                                                               | -                   | 2               | `join(%A, %B)`                                             | Union of the two input sets.                                                                                   |
-| intersect                                                          | -                   | 2               | `intersect(%A, %B)`                                        | Intersection of the two input sets.                                                                            |
-| subtract                                                           | -                   | 2               | `subtract(%A, %B)`                                         | Complement of the two input sets.                                                                              |
-| coarse                                                             | -                   | 1 or 2          | `coarse(%A, %B)`                                           | Filter out functions that have a single caller and callee, unless they are included in B.                      |
-| min_call_depth                                                     | comp. operator, threshold | 1               | `min_call_depth("<=", 3, %A)`                              | Selects functions that are at most 3 calls away from a root node.                                              |
-| flops                                                              | comp. operator, threshold | 1               | `flops(">=", 10, %A)`                                      | Selects functions with at least 10 floating point operations.                                                  |
-| loop_depth                                                         | comp. operator, threshold | 1               | `loop_depth("=", 2, %A)`                                   | Selects functions containing loop nests of depth 2.                                                            |
-| common_caller<br/>common_caller_distinct<br/>common_caller_partial | heuristic parameter | 2               | `common_caller(1, by_name("foo", %%), by_name("bar", %%))` | Common caller selection with max. LCA-Dist 1 (details [here](#common-caller-selection-for-trace-augmentation)) |
+# Instrument result of "B" to record invocations 1-10 and 100 in "detail" level, invocations 11-99 in "basic" level.
+!instrument(%B, "detail:1-10,100", "basic:11-99")
+```
+Note that only the custom `json` output format supports these features.
+For other formats, only information about the set of instrumented functions is recorded.
+If no `instrument` directive is specified, the result of the last pipeline definition is used. 
 
-### Common caller selection for trace augmentation
-The `common_caller` selectors are specialized heuristics for augmenting MPI based traces. 
+
+### List of available selectors
+
+| Name                                                               | Parameters                  | Selector inputs | Example                                                 | Explanation                                                                                                    |
+|--------------------------------------------------------------------|-----------------------------|-----------------|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| by_name                                                            | regex string                | 1               | `by_name("foo.*")`                                      | Selects functions with names starting with "foo".                                                              |
+| by_path                                                            | regex string                | 1               | `byPath("foo/.*")`                                      | Selects functions contained in directory "foo".                                                                |
+| inline_specified                                                   | -                           | 1               | `inline_specified`                                      | Selects functions marked as `inline`.                                                                          |
+| on_call_path_to                                                    | -                           | 1               | `by_name("foo") \|> on_call_path_to`                    | Selects functions in the call chain to function "foo".                                                         |
+| on_call_path_from                                                  | -                           | 1               | `by_name("foo") \|> on_call_path_from`                  | Selects functions in the call chain from function "foo".                                                       |
+| in_system_header                                                   | -                           | 1               | `in_system_header`                                      | Selects functions defined in system headers.                                                                   |
+| contains_unresolved_calls                                          | -                           | 1               | `contains_unresolved_calls`                             | Selects functions containing calls to unknown target functions.                                                |
+| join                                                               | -                           | 2               | `[%A, %B] \|> join` or `%A \| %B`                       | Union of the two input sets.                                                                                   |
+| intersect                                                          | -                           | 2               | `[%A, %B] \|> intersect` or `%A & %B`                   | Intersection of the two input sets.                                                                            |
+| subtract                                                           | -                           | 2               | `[%A, %B] \|> subtract` or `%A - %B`                    | Difference of the two input sets.                                                                              |
+| coarse                                                             | -                           | 1 or 2          | `[%A, %B] \|> coarse`                                   | Filter out functions that have a single caller and callee, unless they are included in B.                      |
+| min_call_depth                                                     | comp. operator, threshold   | 1               | `%A \|> min_call_depth("<=", 3)`                        | Selects functions that are at most 3 calls away from a root node.                                              |
+| flops/memops                                                       | comp. operator, threshold   | 1               | `%A \|> flops(">=", 10)`                                | Selects functions with at least 10 floating point operations.                                                  |
+| loop_depth                                                         | comp. operator, threshold   | 1               | `%A \|> loop_depth("=", 2)`                             | Selects functions containing loop nests of depth 2.                                                            |
+| inclusive_statement_count                                          | comp. operator, threshold   | 1               | `%A \|> inclusive_statement_count(">", 100)`            | Selects functions with an inclusive statement count (statements in reachable sub-graph) > 100.                 |
+| common_caller<br/>common_caller_distinct<br/>common_caller_partial | heuristic parameter         | 2               | `[by_name("foo"), by_name("bar")] \|> common_caller(1)` | Common caller selection with max. LCA-Dist 1 (details [here](#common-caller-selection-for-trace-augmentation)) |
+
+#### Common caller selection for trace augmentation
+The `common_caller` selectors are specialized heuristics for augmenting MPI based traces [[3]](https://doi.org/10.1007/978-3-031-73716-9_3).
 To instrument a region in the trace, the surrounding MPI calls X and Y are determined.
 Passing the name of the direct callers of X and Y to the `common_caller` query, CaPI selects relevant calls path leading to these calls.
 Details will be made available in an upcoming publication.
+
+#### TALP selectors
+If CaPI is built with TALP support, the following selectors, based on TALP efficiency metrics attached to the call graph as function metadata, are available.
+
+| Name                            | Parameters | Selector inputs | Example                                       | Explanation                                                             |
+|----------------------------------|-------------|-----------------|-----------------------------------------------|-------------------------------------------------------------------------|
+| has_talp_metrics                 | -           | 1               | `has_talp_metrics`                            | Selects the subset of functions that has TALP metrics attached.         |
+| talp_cycles                      | 1           | 1               | `talp_cycles(">", 1000)`                      | Selection based on number of elapsed cycles.                            |
+| talp_instructions                | 1           | 1               | `talp_instructions(">", 500000)`              | Selection based on number of executed instructions.                     |
+| talp_measurements                | 1           | 1               | `talp_measurements(">", 5)`                   | Selection based on number of performance measurements.                  |
+| talp_elapsed_time                | 1           | 1               | `talp_elapsed_time("<", 2.0e6)`               | Selection based on total elapsed time in nanoseconds.                   |
+| talp_mpi_calls                   | 1           | 1               | `talp_mpi_calls(">=", 10)`                    | Selection based on number of MPI calls.                                 |
+| talp_parallel_efficiency         | 1           | 1               | `talp_parallel_efficiency("<", 0.8)`          | Selection based on overall parallel efficiency (ratio between 0 and 1). |
+| talp_mpi_parallel_efficiency     | 1           | 1               | `talp_mpi_parallel_efficiency("<", 0.9)`      | Selection based on MPI parallel efficiency (ratio between 0 and 1).     |
+| talp_mpi_comm_efficiency         | 1           | 1               | `talp_mpi_comm_efficiency("<", 0.85)`         | Selection based on MPI communication efficiency.                        |
+| talp_mpi_load_balance            | 1           | 1               | `talp_mpi_load_balance("<", 0.95)`            | Selection based on MPI load balance efficiency.                         |
+| talp_mpi_load_balance_in         | 1           | 1               | `talp_mpi_load_balance_in("<", 0.9)`          | Selection based on MPI intra-node load balance.                         |
+| talp_mpi_load_balance_out        | 1           | 1               | `talp_mpi_load_balance_out("<", 0.9)`         | Selection based on MPI inter-node load balance.                         |
+| talp_dyn_filtered                | -           | 1               | `talp_dyn_filtered`                           | Selects functions filtered dynamically during TALP run.                 |
+
 
 ### Inline compensation
 LLVM-XRay currently does not support the instrumentation of inlined functions.
@@ -189,7 +259,7 @@ You will need to pass the corresponding build flags yourself.
 Passing `--output-format scorep` to CaPI generates a filter file compatible with Score-P.
 This enables directly instrumenting with the Score-P instrumenter.
 To do this, simply build with `scorep-g++` and set `SCOREP_WRAPPER_INSTRUMENTER_FLAGS="--instrument-filter=<filter-file>"`.
-To enable measuring functions in shared libraries, use the [Score-P Symbol Injector](https://github.com/sebastiankreutzer/scorep-symbol-injector) library.
+To enable measuring functions in shared libraries, use the [Score-P Symbol Injector](https://github.com/sebastiankreutzer/scorep-symbol-injector) library (Note: as of Score-P 8, this is no longer necessary).
 
 ### Dynamic Instrumentation with LLVM XRay
 CaPI now provides a runtime library compatible with [LLVM XRay](https://llvm.org/docs/XRay.html).
@@ -229,7 +299,8 @@ This work is currently in development and will be made public in the near future
 -->
 
 ## Publications
-Kreutzer, S., Iwainsky, C., Lehr, JP., Bischof, C. (2022). Compiler-Assisted Instrumentation Selection for Large-Scale C++ Codes. In: Anzt, H., Bienz, A., Luszczek, P., Baboulin, M. (eds) High Performance Computing. ISC High Performance 2022 International Workshops. ISC High Performance 2022. Lecture Notes in Computer Science, vol 13387. Springer, Cham. https://doi.org/10.1007/978-3-031-23220-6_1
+[1] Kreutzer, S., Iwainsky, C., Lehr, JP., Bischof, C. (2022). Compiler-Assisted Instrumentation Selection for Large-Scale C++ Codes. In: Anzt, H., Bienz, A., Luszczek, P., Baboulin, M. (eds) High Performance Computing. ISC High Performance 2022 International Workshops. ISC High Performance 2022. Lecture Notes in Computer Science, vol 13387. Springer, Cham. https://doi.org/10.1007/978-3-031-23220-6_1
 
-S. Kreutzer, C. Iwainsky, M. Garcia-Gasulla, V. Lopez and C. Bischof, "Runtime-Adaptable Selective Performance Instrumentation," 2023 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW), St. Petersburg, FL, USA, 2023, pp. 423-432, doi: 10.1109/IPDPSW59300.2023.00073.
+[2] S. Kreutzer, C. Iwainsky, M. Garcia-Gasulla, V. Lopez and C. Bischof, "Runtime-Adaptable Selective Performance Instrumentation," 2023 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW), St. Petersburg, FL, USA, 2023, pp. 423-432, doi: 10.1109/IPDPSW59300.2023.00073.
 
+[3] Kreutzer, S., Serra, J.P., Iwainsky, C., Gasulla, M.G., Bischof, C. (2025). Augmentation of MPI Traces Using Selective Instrumentation. In: Weiland, M., Neuwirth, S., Kruse, C., Weinzierl, T. (eds) High Performance Computing. ISC High Performance 2024 International Workshops. ISC High Performance 2023. Lecture Notes in Computer Science, vol 15058. Springer, Cham. https://doi.org/10.1007/978-3-031-73716-9_3

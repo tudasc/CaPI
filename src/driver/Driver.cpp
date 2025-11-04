@@ -13,13 +13,14 @@
 #include "capi/selection/DriverUtils.h"
 #include "capi/selection/FunctionFilter.h"
 #include "capi/selection/MeasurementConfigIO.h"
+#include "capi/selection/QueryParser.h"
 #include "capi/selection/SCC.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "capi/selection/SelectorGraph.h"
-#include "capi/selection/SpecParser.h"
 #include "capi/selection/StatementCountAnalysis.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/support/Logging.h"
+#include "capi/support/ASTDotExporter.h"
 #include "capi/support/Timer.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 #include "capi_version.h"
@@ -40,6 +41,8 @@ enum class OutputFormat { JSON, SIMPLE, SCOREP, LEGACY_JSON};
 struct Options {
   bool shouldWriteDOT{false};
   std::string dotFile;
+  bool exportAST{false};
+  std::string astFile;
   bool pathSensitive{false};
   bool replaceInlined{false};
   bool traverseVirtualDtors{false};
@@ -63,6 +66,7 @@ void printHelp() {
   std::cout << " -o <file>      The output IC file.\n";
   std::cout << " -v <verbosity>     Set verbosity level (0-3, default is 2). "
                "Passing -v without argument sets it to 3.\n";
+  std::cout << " --export-ast <file> Write AST to dotfile\n";
   std::cout << " --write-dot <file>  Write a dotfile of the selected "
                "call-graph subset.\n";
   std::cout << " --replace-inlined <binary>  Replaces inlined functions with "
@@ -100,6 +104,14 @@ bool parseOptions(int argc, char** argv, Options& opts) {
             return false;
           }
           opts.dotFile = argv[i];
+        } if (option == "export-ast") {
+          opts.exportAST = true;
+          if (++i >= argc) {
+            std::cerr << "Need to pass a name for the output AST file. \n";
+            printHelp();
+            return false;
+          }
+          opts.astFile = argv[i];
         } else if (option == "debug") {
           opts.debugMode = true;
         } else if (option == "replace-inlined") {
@@ -287,27 +299,47 @@ int main(int argc, char **argv) {
   }
 
   // Print AST after parsing
-  runner.onASTParsed([&queryStr](SpecAST& ast) {
+  runner.onASTParsed([&queryStr, &opts](QueryAST& ast) {
     std::cout << "AST for " << stripComments(queryStr) << ":\n";
     std::cout << "------------------\n";
     ast.dump(std::cout);
     std::cout << "\n";
     std::cout << "------------------\n";
+    if (opts.exportAST) {
+      std::ofstream of(opts.astFile);
+      if (of.bad()) {
+        logError() << "Failed to write AST to file " << opts.astFile << "\n";
+        return true;
+      }
+      ASTDotExporter astExporter(of);
+      astExporter.exportAST(ast);
+    }
     return true;
   });
 
   // Print AST after pre-processing
-  runner.onASTPostProcessed([&queryStr](SpecAST& ast) {
+  runner.onASTPostProcessed([&queryStr](QueryAST& ast) {
     std::cout << "AST after pre-processing:\n";
     std::cout << "------------------\n";
     ast.dump(std::cout);
     std::cout << "\n";
     std::cout << "------------------\n";
+    std::cout << "Building selector pipeline...\n";
     return true;
   });
 
+
+  int numNodes = 0;
   // Print pipeline before running
-  runner.onSelectorGraphBuilt([](SelectorGraph& graph) {
+  runner.onSelectorGraphBuilt([&numNodes](SelectorGraph& graph) {
+    numNodes = graph.getNodes().size();
+    std::cout << "Optimizing selector pipeline...\n";
+    return true;
+  });
+
+  // Print optimized pipeline before running
+  runner.onSelectorGraphOptimized([&numNodes](SelectorGraph& graph) {
+    std::cout << " -> " << (numNodes - graph.getNodes().size()) << " nodes eliminated\n";
     std::cout << "Selector pipeline:\n";
     std::cout << "------------------\n";
     dumpSelectorGraph(std::cout, graph);

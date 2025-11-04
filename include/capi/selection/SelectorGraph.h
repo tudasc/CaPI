@@ -9,25 +9,30 @@
 #include "Selector.h"
 
 #include <unordered_map>
+#include <utility>
 
 namespace capi {
 
-class SelectorNode {
+class PipelineNode {
   std::string name;
-  SelectorPtr selector;
+  std::vector<SelectorPtr> selectors;
   std::vector<std::string> inputs;
-public:
+ public:
 
-  SelectorNode(std::string name, SelectorPtr selector) : name(name), selector(std::move(selector)) {
+  PipelineNode(std::string name, std::vector<SelectorPtr> selectors) : name(std::move(name)), selectors(std::move(selectors)) {
 
   }
 
-  std::string getName() const {
+  const std::string& getName() const {
     return name;
   }
 
-  Selector* getSelector() {
-    return selector.get();
+  void setName(const std::string& name) {
+    this->name = name;
+  }
+
+  std::vector<SelectorPtr>& getSelectors() {
+    return selectors;
   }
 
   void addInputDependency(std::string dep) {
@@ -38,24 +43,24 @@ public:
     return inputs;
   }
 
-
+  size_t getSize() { return selectors.size(); }
 };
 
-using SelectorNodePtr = std::unique_ptr<SelectorNode>;
+using PipelineNodePtr = std::unique_ptr<PipelineNode>;
 
 using SelectionResults = std::unordered_map<std::string, FunctionSet>;
 
 
 class SelectorGraph {
 
-  std::unordered_map<std::string, SelectorNodePtr> nodes;
+  std::unordered_map<std::string, PipelineNodePtr> nodes;
 
   std::unordered_set<std::string> entryNodeNames;
 
 public:
   SelectorGraph() = default;
 
-  SelectorNode* getNode(const std::string& name) {
+  PipelineNode* getNode(const std::string& name) {
     auto it = nodes.find(name);
     if (it != nodes.end()) {
       return it->second.get();
@@ -63,7 +68,7 @@ public:
     return nullptr;
   }
 
-  const SelectorNode* getNode(const std::string& name) const {
+  const PipelineNode* getNode(const std::string& name) const {
     auto it = nodes.find(name);
     if (it != nodes.end()) {
       return it->second.get();
@@ -71,17 +76,54 @@ public:
     return nullptr;
   }
 
-  SelectorNode* createNode(const std::string& name, SelectorPtr selector) {
-    nodes[name] = std::make_unique<SelectorNode>(name, std::move(selector));
+  PipelineNode* createNode(const std::string& name, std::vector<SelectorPtr> selectors) {
+    nodes[name] = std::make_unique<PipelineNode>(name, std::move(selectors));
     return nodes[name].get();
+  }
+
+  void replaceUses(const std::string& original, const std::string& replacement) {
+    for (auto& [id, node]: nodes) {
+      auto& deps = node->getInputDependencies();
+      auto it = deps.begin();
+      while ((it = std::find(it, deps.end(), original)) != deps.end()) {
+        *it = replacement;
+        ++it;
+      }
+    }
+    // Replace in entry node set
+    if (entryNodeNames.contains(original)) {
+      entryNodeNames.erase(original);
+      entryNodeNames.insert(replacement);
+    }
+  }
+
+  void eraseUnreachable() {
+    std::unordered_set<std::string> reachable;
+    std::unordered_set<std::string> workList;
+    workList.insert(entryNodeNames.begin(), entryNodeNames.end());
+    while (!workList.empty()) {
+      auto& item = *workList.begin();
+      reachable.insert(item);
+      auto* node = getNode(item);
+      for (auto& inputDep : node->getInputDependencies()) {
+        workList.insert(inputDep);
+      }
+      workList.erase(item);
+    }
+    std::erase_if(nodes, [&reachable](auto& item) -> bool {
+      bool erase = std::find(reachable.begin(), reachable.end(), item.first) == reachable.end();
+      if (erase) {
+      }
+      return erase;
+    });
   }
 
   void addEntryNode(std::string name) {
     entryNodeNames.insert(std::move(name));
   }
 
-  std::vector<SelectorNode*> getEntryNodes()  {
-    std::vector<SelectorNode*> entryNodes;
+  std::vector<PipelineNode*> getEntryNodes()  {
+    std::vector<PipelineNode*> entryNodes;
     for (auto& name : entryNodeNames) {
       auto n = getNode(name);
       if (n) {
@@ -89,6 +131,10 @@ public:
       }
     }
     return entryNodes;
+  }
+
+  bool isEntryNode(const std::string& name) const {
+    return entryNodeNames.contains(name);
   }
 
   bool hasNode(const std::string& name) {

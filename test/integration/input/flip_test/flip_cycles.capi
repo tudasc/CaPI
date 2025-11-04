@@ -1,7 +1,7 @@
 # TEST cycles: 
 
-flip_fns = has_flip_metrics(%%)
-high_cycles = flip_cycles(">", 1000, %flip_fns)
+flip_fns = has_flip_metrics
+high_cycles = %flip_fns |> flip_cycles(">", 1000)
 
 !instrument(%high_cycles)
 

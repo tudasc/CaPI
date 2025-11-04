@@ -1,6 +1,6 @@
 # TEST compute:
 
-compute = flops(">=", 10, loop_depth(">=", 1, %%))
-callpaths = on_call_path_to(%compute)
+compute = loop_depth(">=", 1) |> flops(">=", 10)
+callpaths = %compute |> on_call_path_to()
 
 # capi -f lulesh_compute.capi --output-format json -o /dev/stdout lulesh_full.mcg

@@ -1,5 +1,5 @@
-application_fns = subtract(%%, in_system_header(%%))
-isc_filtered = inclusive_statement_count(">=", 10, %application_fns)
-callpaths = on_call_path_to(%isc_filtered)
+application_fns = %% - in_system_header()
+isc_filtered = %application_fns |> inclusive_statement_count(">=", 10)
+callpaths = %isc_filtered |> on_call_path_to()
 
 # capi -f lulesh_isc.capi --output-format json -o /dev/stdout lulesh_isc.mcg

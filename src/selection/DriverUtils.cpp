@@ -16,9 +16,9 @@
 #include "capi/selection/MeasurementConfig.h"
 #include "capi/support/Logging.h"
 
+#include "capi/selection/QueryParser.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "capi/selection/SelectorGraph.h"
-#include "capi/selection/SpecParser.h"
 #include "capi/selection/StatementCountAnalysis.h"
 #include "capi/selection/TraversalHelper.h"
 #include "capi/selection/metadata//CaPIMD.h"
@@ -72,7 +72,7 @@ bool runConsistencyCheck(const metacg::Callgraph& cg) {
 
 ASTPtr parseSelectionQuery(const std::string& query) {
   auto stripped = stripComments(query);
-  SpecParser parser(stripped);
+  QueryParser parser(stripped);
   auto ast = parser.parse();
   return ast;
 }
@@ -248,6 +248,14 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
   }
 
   for (auto& cb : selectorGraphBuiltCBs) {
+    if (!cb(*selectorGraph)) {
+      return std::unexpected("Aborted by callback");
+    }
+  }
+
+  simplifyGraph(*selectorGraph);
+
+  for (auto& cb : selectorGraphOptimizedCBs) {
     if (!cb(*selectorGraph)) {
       return std::unexpected("Aborted by callback");
     }

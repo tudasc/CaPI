@@ -5,7 +5,7 @@
 #ifndef CAPI_SELECTORBUILDER_H
 #define CAPI_SELECTORBUILDER_H
 
-#include "SelectionSpecAST.h"
+#include "SelectionQueryAST.h"
 #include "SelectorGraph.h"
 #include <cassert>
 #include <variant>
@@ -13,7 +13,9 @@
 
 namespace capi {
 
-SelectorGraphPtr buildSelectorGraph(SpecAST& ast, bool lastDeclIsEntry);
+void simplifyGraph(SelectorGraph& graph);
+
+SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry);
 
 }
 

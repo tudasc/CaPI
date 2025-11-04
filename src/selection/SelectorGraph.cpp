@@ -12,22 +12,45 @@
 namespace capi {
 
 namespace {
-  void processNode(SelectorNode *node, TraversalHelper &helper, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
+  void processNode(PipelineNode *node, TraversalHelper &helper, std::unordered_map<std::string, FunctionSet>& resultsMap, bool debugMode) {
     if (resultsMap.find(node->getName()) != resultsMap.end()) {
       // Already run
       return;
     }
-    auto& selector = *node->getSelector();
-    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << " ...\n";
-    selector.init(helper);
     FunctionSetList inputList;
     for (auto&& inputName : node->getInputDependencies()) {
       auto resultIt = resultsMap.find(inputName);
-      assert(resultIt != resultsMap.end() && "Invalid selector execution order");
+      assert(resultIt != resultsMap.end() && "Invalid pipeline execution order");
       inputList.push_back(resultIt->second);
     }
-    auto output = selector.apply(inputList);
-    logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
+    // By default, output = input
+    FunctionSet output;
+    if (!inputList.empty()) {
+     output = inputList.front();
+    }
+    logInfo() << "Running pipeline '" << node->getName() << "' with " << node->getSize() << " selectors...\n";
+    for (auto& selector : node->getSelectors()) {
+      logInfo() << "Running selector of type " << selector->getName() << " ...\n";
+      selector->init(helper);
+      output = selector->apply(inputList);
+      logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
+      // Output of this selector is input of the next
+      inputList.clear();
+      inputList.push_back(output);
+    }
+
+
+//    auto& selector = *node->getSelector();
+//    logInfo() << "Running selector '" << node->getName() << "' of type " << selector.getName() << " ...\n";
+//    selector.init(helper);
+//    FunctionSetList inputList;
+//    for (auto&& inputName : node->getInputDependencies()) {
+//      auto resultIt = resultsMap.find(inputName);
+//      assert(resultIt != resultsMap.end() && "Invalid selector execution order");
+//      inputList.push_back(resultIt->second);
+//    }
+//    auto output = selector.apply(inputList);
+//    logInfo() << "Selector '" << node->getName() << "' selected " << output.size() << " functions.\n";
 
     if (debugMode) {
       std::string setOutFile = node->getName() + ".txt";
@@ -60,7 +83,7 @@ namespace {
   }
 }
 
-static bool dfsSort(SelectorNode* node, SelectorGraph& graph, std::vector<SelectorNode*>& execOrder, std::vector<SelectorNode*>& visited) {
+static bool dfsSort(PipelineNode* node, SelectorGraph& graph, std::vector<PipelineNode*>& execOrder, std::vector<PipelineNode*>& visited) {
   visited.push_back(node);
   for (auto&& inputName : node->getInputDependencies()) {
     auto input = graph.getNode(inputName);
@@ -90,8 +113,8 @@ SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, TraversalHelp
 
   for (auto& entry : entries) {
 
-    std::vector<SelectorNode *> executionOrder;
-    std::vector<SelectorNode *> visited;
+    std::vector<PipelineNode *> executionOrder;
+    std::vector<PipelineNode *> visited;
 
     bool success = dfsSort(entry, selectorGraph, executionOrder, visited);
 
@@ -127,7 +150,6 @@ SelectionResults runSelectorPipeline(SelectorGraph &selectorGraph, TraversalHelp
             for (int i = 0; i < executionOrder.size(); i++) {
               auto node = executionOrder[i];
               auto &deps = node->getInputDependencies();
-
 #pragma omp task depend(iterator(j = 0 : deps.size()), in : executionOrder[nodeOrderMap.at(deps[j])]) depend(out : executionOrder[i]) shared(resultsMap, cg, executionOrder)
               processNode(node, helper, resultsMap, false);
             }
@@ -145,13 +167,26 @@ void dumpSelectorGraph(std::ostream& os, SelectorGraph& graph) {
   for (auto&& [name, nodePtr] : graph.getNodes()) {
     auto& deps = nodePtr->getInputDependencies();
     os << name;
+    int numSelectors = nodePtr->getSize();
+    if (numSelectors > 0) {
+      os << " (";
+      int idx = 0;
+      for (auto& selector : nodePtr->getSelectors()) {
+        if (idx > 0) {
+          os << ", ";
+        }
+        os << selector->getName();
+        idx++;
+      }
+      os << ")";
+    }
+    if (std::find(entries.begin(), entries.end(), nodePtr.get()) != entries.end()) {
+      os << " [Entry]";
+    }
     if (!deps.empty())
       os << " <- ";
     for (auto it = deps.begin(); it != deps.end(); ++it) {
       os << *it << (it+1 == deps.end() ? "" : ", ");
-    }
-    if (std::find(entries.begin(), entries.end(), nodePtr.get()) != entries.end()) {
-      os << " [Entry]";
     }
     os << "\n";
   }

@@ -1,0 +1,72 @@
+#################################################
+# Core grammar / pipeline rules
+#################################################
+
+<query>            ::= <stmt> | <query> <stmt>
+
+<stmt>             ::= <pipelineDecl> | <directive>
+
+<directive>        ::= '!' <directiveType>
+                     | '!' <directiveType> '(' <directiveParams> ')'
+
+<directiveType>    ::= 'import' | 'instrument'
+
+<pipelineDecl>     ::= <identifier> '=' <expr>
+                     | <expr>
+
+<expr>             ::= <pipelineOp>
+
+<pipelineOp>       ::= <pipelineExpr>
+                     | <pipelineOp> ('|' | '&' | '-') <pipelineExpr>
+
+<pipelineExpr>     ::= <term>
+                     | <selectorDef>
+                     | <pipelineExpr> '|>' <selectorDef>
+
+<term>             ::= <ref>
+                     | '(' <expr> ')'
+                     | '[' <exprList> ']'
+
+ <exprList>         ::= <expr>
+                      | <exprList> ',' <expr>
+
+<selectorDef>      ::= <selectorType> '(' <params> ')'
+                     | <selectorType> '(' ')'
+                     | <selectorType>
+
+<ref>              ::= '%' <identifier> | '%%'
+
+<selectorType>     ::= <identifier>
+
+<params>           ::= <param>
+                     | <params> ',' <param>
+
+<param>            ::= <string> | <int> | <float> | <bool>
+
+#################################################
+# Lexical / helper rules
+#################################################
+
+<identifier>       ::= <letter> | <letter> <idRest>
+
+<idRest>           ::= <idChar> | <idChar> <idRest>
+
+<idChar>           ::= '_' | <letter> | <digit>
+
+<letter>           ::= [a-z] | [A-Z]
+
+<char>             ::= any character
+
+<string>           ::= '"' <char>+ '"'
+
+<bool>             ::= 'true' | 'false'
+
+<digit>            ::= [0-9]
+
+<int>              ::= '-' <digit>+ | <digit>+
+
+<float>            ::= <neg_float> | <pos_float>
+
+<neg_float> ::= '-' <pos_float>
+
+<pos_float> ::= <digit>* '.' <digit>+

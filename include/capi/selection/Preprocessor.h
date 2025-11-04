@@ -6,11 +6,11 @@
 #define CAPI_PREPROCESSOR_H
 
 #include "capi/selection/InstrumentationAction.h"
-#include "capi/selection/SelectionSpecAST.h"
+#include "capi/selection/SelectionQueryAST.h"
 
 namespace capi {
 
-bool preprocessAST(SpecAST &ast, InstrumentationActions& instHints);
+bool preprocessAST(QueryAST&ast, InstrumentationActions& instHints);
 
 }
 

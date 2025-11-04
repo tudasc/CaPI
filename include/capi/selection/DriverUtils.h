@@ -10,7 +10,7 @@
 #include "Selector.h"
 #include "capi/selection/MeasurementConfig.h"
 #include "capi/selection/Preprocessor.h"
-#include "capi/selection/SelectionSpecAST.h"
+#include "capi/selection/SelectionQueryAST.h"
 #include "capi/selection/SelectorGraph.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 
@@ -29,7 +29,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                                     TraversalHelper &helper);
 
 class SelectionRunner {
-  using AstCB = std::function<bool(SpecAST&)>;
+  using AstCB = std::function<bool(QueryAST&)>;
   using SelectorGraphCB = std::function<bool(SelectorGraph&)>;
   using SelectionResultCB = std::function<bool(InstrumentationAction&, FunctionSet&)>;
 
@@ -54,6 +54,10 @@ class SelectionRunner {
     selectorGraphBuiltCBs.push_back(cb);
   }
 
+  void onSelectorGraphOptimized(SelectorGraphCB cb) {
+    selectorGraphOptimizedCBs.push_back(cb);
+  }
+
   void onSelectionResult(SelectionResultCB cb) {
     selectionResultCBs.push_back(cb);
   }
@@ -65,6 +69,7 @@ class SelectionRunner {
   std::vector<AstCB> astParsedCBs;
   std::vector<AstCB> astProcessedCBs;
   std::vector<SelectorGraphCB> selectorGraphBuiltCBs;
+  std::vector<SelectorGraphCB> selectorGraphOptimizedCBs;
   std::vector<SelectionResultCB> selectionResultCBs;
 };
 

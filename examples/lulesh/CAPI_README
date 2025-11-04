@@ -6,12 +6,12 @@ OpenMPI is required to build it.
 A MetaCG call graph for LULESH is already included in `lulesh_full.mcg`.
 
 ## Build
-Run `make lulesh2.0` to build lulesh with XRay instrumentation and automatically link the required CaPI and Score-P libraries.
+Run `make VARIANT=scorep` to build lulesh with XRay instrumentation and automatically link the required CaPI and Score-P libraries.
 
 ## Generate an instrumentation configuration with CaPI
 
 A simple CaPI spec for selecting functions on call-paths with loops is saved in `lulesh_compute.capi`.
-To run CaPI and build the filter file, run `../../lib/selection/capi --replace-inlined ./lulesh2.0 -f lulesh_compute.capi -o lulesh_compute.filt lulesh_full.mcg` in this directory.
+To run CaPI and build the filter file, run `../../src/driver/capi --replace-inlined ./lulesh2.0_scorep -f lulesh_compute.capi --output-format scorep -o lulesh_compute.filt lulesh_full.mcg` in this directory.
 
 ## Run LULESH
 
