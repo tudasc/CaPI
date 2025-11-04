@@ -2,7 +2,7 @@
 
 flip_fns = has_flip_metrics
 high_cycles_per_invoc = %flip_fns |> flip_cycles_per_invocation(">", 50)
-above = %high_cycles_per_invoc | on_call_path_to
+above = %high_cycles_per_invoc |> on_call_path_to
 
 !instrument(%above)
 
