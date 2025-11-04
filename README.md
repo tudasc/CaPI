@@ -22,10 +22,11 @@ This project is currently in a pre-release state, frequent changes to the code a
 
 - CMake >=3.15
 - LLVM >=10 (>=20 for XRay shared library instrumentation)
-- ScoreP 7 (optional)
-- DLB 3.5 (optional, other versions may work)
-- Extrae 3.8.3 (optional, other versions may work)
-- LLVM-Lit (testing only)
+- MetaCG
+- ScoreP 7.x (optional)
+- DLB 3.5 (optional, other versions _may_ work)
+- Extrae 3.8.3 (optional, other versions _may_ work)
+- LLVM-Lit (for testing only)
 
 ## Build
 CaPI is built as follows ([Ninja](https://github.com/ninja-build/ninja) is not required and can be substituted with `make`).
@@ -45,6 +46,7 @@ CMake Options
 - `ENABLE_TESTING=ON/OFF`: Enable/Disable testing. Requires MetaCG and LLVM-Lit.
   - Set `metacg_DIR` to MetaCG installation directory.
 
+<!-- The container does currently not work
 ## Container
 The easiest way to try out CaPI is to install the [apptainer](https://apptainer.org/) provided in the `container` directory.
 The container provides installations of CaPI and all dependencies. 
@@ -57,6 +59,7 @@ Afterwards, you may open a shell into the sandbox as follow:
 apptainer shell --writable --fakeroot --cleanenv capi
 ```
 Refer to the apptainer documentation for further options.
+-->
 
 ## Examples
 To verify your build, you may test out the instrumentation of proxy applications LULESH and AMG in the `example` folder (located in your current build directory).
@@ -120,14 +123,14 @@ The previous example can, thus, be simplified as follows:
 mpi = by_name("MPI_.*")
 ```
 
-This example can now be extended to find all functions that are on a callpath to a MPI call:
+To extend this example, we can look at functions that are on a call path to MPI communication:
 
 ```
 mpi          = by_name("MPI_.*")
 mpi_callpath = %mpi &> on_call_path_to
 ```
 
-A possible way to reduce overhead is to exclude functions that are marked as `inline`.
+Another way to reduce overhead is to exclude functions that are marked as `inline`.
 To achieve this, we need the `inline_specified` selector and combine the results using the `subtract` selector.
 Note that `subtract` takes two input pipelines, which are specified as a tuple enclosed in square brackets `[A, B]`.
 Adding this to the previous query, we get the following query:
@@ -160,7 +163,7 @@ final        = (by_name("MPI_.*") &> on_call_path_to) - inline_specified
 
 ### Directives
 
-Directives start with `!` and are used to influence the parsing and selection process.
+Directives start with `!` and are used to control the parsing and selection process.
 CaPI currently supports two types of directives: `!import` and `!instrument`. 
 
 The `import` directive is used for loading existing selection modules.
@@ -188,29 +191,50 @@ If no `instrument` directive is specified, the result of the last pipeline defin
 
 ### List of available selectors
 
-| Name                                                               | Parameters          | Selector inputs | Example                                                 | Explanation                                                                                                   |
-|--------------------------------------------------------------------|---------------------|-----------------|---------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| by_name                                                            | regex string        | 1               | `by_name("foo.*")`                                      | Selects functions with names starting with "foo".                                                             |
-| by_path                                                            | regex string        | 1               | `byPath("foo/.*")`                                      | Selects functions contained in directory "foo".                                                               |
-| inline_specified                                                   | -                   | 1               | `inline_specified`                                      | Selects functions marked as `inline`.                                                                         |
-| on_call_path_to                                                    | -                   | 1               | `by_name("foo") \|> on_call_path_to`                    | Selects functions in the call chain to function "foo".                                                        |
-| on_call_path_from                                                  | -                   | 1               | `by_name("foo") \|> on_call_path_from`                  | Selects functions in the call chain from function "foo".                                                      |
-| in_system_header                                                   | -                   | 1               | `in_system_header`                                      | Selects functions defined in system headers.                                                                  |
-| contains_unresolved_calls                                          | -                   | 1               | `contains_unresolved_calls`                             | Selects functions containing calls to unknown target functions.                                               |
-| join                                                               | -                   | 2               | `[%A, %B] \|> join` or `%A \| %B`                       | Union of the two input sets.                                                                                  |
-| intersect                                                          | -                   | 2               | `[%A, %B] \|> intersect` or `%A & %B`                   | Intersection of the two input sets.                                                                           |
-| subtract                                                           | -                   | 2               | `[%A, %B] \|> subtract` or `%A - %B`                    | Difference of the two input sets.                                                                             |
-| coarse                                                             | -                   | 1 or 2          | `[%A, %B] \|> coarse`                                   | Filter out functions that have a single caller and callee, unless they are included in B.                     |
-| min_call_depth                                                     | comp. operator, threshold | 1               | `%A \|> min_call_depth("<=", 3)`                        | Selects functions that are at most 3 calls away from a root node.                                             |
-| flops                                                              | comp. operator, threshold | 1               | `%A \|> flops(">=", 10)`                                | Selects functions with at least 10 floating point operations.                                                 |
-| loop_depth                                                         | comp. operator, threshold | 1               | `%A \|> loop_depth("=", 2)`                             | Selects functions containing loop nests of depth 2.                                                            |
-| common_caller<br/>common_caller_distinct<br/>common_caller_partial | heuristic parameter | 2               | `[by_name("foo"), by_name("bar")] \|> common_caller(1)` | Common caller selection with max. LCA-Dist 1 (details [here](#common-caller-selection-for-trace-augmentation)) |
+| Name                                                               | Parameters                  | Selector inputs | Example                                                 | Explanation                                                                                                    |
+|--------------------------------------------------------------------|-----------------------------|-----------------|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| by_name                                                            | regex string                | 1               | `by_name("foo.*")`                                      | Selects functions with names starting with "foo".                                                              |
+| by_path                                                            | regex string                | 1               | `byPath("foo/.*")`                                      | Selects functions contained in directory "foo".                                                                |
+| inline_specified                                                   | -                           | 1               | `inline_specified`                                      | Selects functions marked as `inline`.                                                                          |
+| on_call_path_to                                                    | -                           | 1               | `by_name("foo") \|> on_call_path_to`                    | Selects functions in the call chain to function "foo".                                                         |
+| on_call_path_from                                                  | -                           | 1               | `by_name("foo") \|> on_call_path_from`                  | Selects functions in the call chain from function "foo".                                                       |
+| in_system_header                                                   | -                           | 1               | `in_system_header`                                      | Selects functions defined in system headers.                                                                   |
+| contains_unresolved_calls                                          | -                           | 1               | `contains_unresolved_calls`                             | Selects functions containing calls to unknown target functions.                                                |
+| join                                                               | -                           | 2               | `[%A, %B] \|> join` or `%A \| %B`                       | Union of the two input sets.                                                                                   |
+| intersect                                                          | -                           | 2               | `[%A, %B] \|> intersect` or `%A & %B`                   | Intersection of the two input sets.                                                                            |
+| subtract                                                           | -                           | 2               | `[%A, %B] \|> subtract` or `%A - %B`                    | Difference of the two input sets.                                                                              |
+| coarse                                                             | -                           | 1 or 2          | `[%A, %B] \|> coarse`                                   | Filter out functions that have a single caller and callee, unless they are included in B.                      |
+| min_call_depth                                                     | comp. operator, threshold   | 1               | `%A \|> min_call_depth("<=", 3)`                        | Selects functions that are at most 3 calls away from a root node.                                              |
+| flops/memops                                                       | comp. operator, threshold   | 1               | `%A \|> flops(">=", 10)`                                | Selects functions with at least 10 floating point operations.                                                  |
+| loop_depth                                                         | comp. operator, threshold   | 1               | `%A \|> loop_depth("=", 2)`                             | Selects functions containing loop nests of depth 2.                                                            |
+| inclusive_statement_count                                          | comp. operator, threshold   | 1               | `%A \|> inclusive_statement_count(">", 100)`            | Selects functions with an inclusive statement count (statements in reachable sub-graph) > 100.                 |
+| common_caller<br/>common_caller_distinct<br/>common_caller_partial | heuristic parameter         | 2               | `[by_name("foo"), by_name("bar")] \|> common_caller(1)` | Common caller selection with max. LCA-Dist 1 (details [here](#common-caller-selection-for-trace-augmentation)) |
 
-### Common caller selection for trace augmentation
-The `common_caller` selectors are specialized heuristics for augmenting MPI based traces [[3]](https://doi.org/10.1007/978-3-031-73716-9_3). 
+#### Common caller selection for trace augmentation
+The `common_caller` selectors are specialized heuristics for augmenting MPI based traces [[3]](https://doi.org/10.1007/978-3-031-73716-9_3).
 To instrument a region in the trace, the surrounding MPI calls X and Y are determined.
 Passing the name of the direct callers of X and Y to the `common_caller` query, CaPI selects relevant calls path leading to these calls.
 Details will be made available in an upcoming publication.
+
+#### TALP selectors
+If CaPI is built with TALP support, the following selectors, based on TALP efficiency metrics attached to the call graph as function metadata, are available.
+
+| Name                            | Parameters | Selector inputs | Example                                       | Explanation                                                             |
+|----------------------------------|-------------|-----------------|-----------------------------------------------|-------------------------------------------------------------------------|
+| has_talp_metrics                 | -           | 1               | `has_talp_metrics`                            | Selects the subset of functions that has TALP metrics attached.         |
+| talp_cycles                      | 1           | 1               | `talp_cycles(">", 1000)`                      | Selection based on number of elapsed cycles.                            |
+| talp_instructions                | 1           | 1               | `talp_instructions(">", 500000)`              | Selection based on number of executed instructions.                     |
+| talp_measurements                | 1           | 1               | `talp_measurements(">", 5)`                   | Selection based on number of performance measurements.                  |
+| talp_elapsed_time                | 1           | 1               | `talp_elapsed_time("<", 2.0e6)`               | Selection based on total elapsed time in nanoseconds.                   |
+| talp_mpi_calls                   | 1           | 1               | `talp_mpi_calls(">=", 10)`                    | Selection based on number of MPI calls.                                 |
+| talp_parallel_efficiency         | 1           | 1               | `talp_parallel_efficiency("<", 0.8)`          | Selection based on overall parallel efficiency (ratio between 0 and 1). |
+| talp_mpi_parallel_efficiency     | 1           | 1               | `talp_mpi_parallel_efficiency("<", 0.9)`      | Selection based on MPI parallel efficiency (ratio between 0 and 1).     |
+| talp_mpi_comm_efficiency         | 1           | 1               | `talp_mpi_comm_efficiency("<", 0.85)`         | Selection based on MPI communication efficiency.                        |
+| talp_mpi_load_balance            | 1           | 1               | `talp_mpi_load_balance("<", 0.95)`            | Selection based on MPI load balance efficiency.                         |
+| talp_mpi_load_balance_in         | 1           | 1               | `talp_mpi_load_balance_in("<", 0.9)`          | Selection based on MPI intra-node load balance.                         |
+| talp_mpi_load_balance_out        | 1           | 1               | `talp_mpi_load_balance_out("<", 0.9)`         | Selection based on MPI inter-node load balance.                         |
+| talp_dyn_filtered                | -           | 1               | `talp_dyn_filtered`                           | Selects functions filtered dynamically during TALP run.                 |
+
 
 ### Inline compensation
 LLVM-XRay currently does not support the instrumentation of inlined functions.
