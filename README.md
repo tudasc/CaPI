@@ -170,7 +170,7 @@ The `import` directive is used for loading existing selection modules.
 This allows to build and re-use selection pipelines that are useful across multiple applications.
 For example, the `mpi_callpath` selector from the previous example could be moved to a separate file `mpi.capi`:
 ```
-!include "mpi.capi"
+!import("mpi.capi")
 final = %mpi_callpath - inline_specified
 ```
 
