@@ -107,13 +107,13 @@ The query consists of a pipeline of selector instances, which can be named or an
 Selectors types are pre-defined but can be customized via parameters.
 Valid parameter types are strings (enclosed in double quotes), booleans (true/false), integers and floating point numbers.
 
-Selectors can be combined using the pipe operator `&>`.
+Selectors can be combined using the pipe operator `|>`.
 Most of the available selectors types take at least one pipeline definition as input.
 These can be either in-place definitions or references to other named pipeline definitions, prefixed with `%`.
 
 For example, the following selector pipeline, named `mpi`, uses the `by_name` selector to find all functions starting with `MPI_`.
 ```
-mpi = %% &> by_name("MPI_.*")
+mpi = %% |> by_name("MPI_.*")
 ```
 The pipeline `%` is pre-defined and refers to an instance of the `EverythingSelector`, which selects every function in the call graph.
 If no input is explicitly given, `%%` is added implicitly. 
@@ -127,7 +127,7 @@ To extend this example, we can look at functions that are on a call path to MPI 
 
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
+mpi_callpath = %mpi |> on_call_path_to
 ```
 
 Another way to reduce overhead is to exclude functions that are marked as `inline`.
@@ -137,8 +137,8 @@ Adding this to the previous query, we get the following query:
 
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
-final        = [%mpi_callpath, inline_specified] &> subtract
+mpi_callpath = %mpi |> on_call_path_to
+final        = [%mpi_callpath, inline_specified] |> subtract
 ```
 
 To simplify the use of set operations like `subtract`, they can also be expressed as binary operators: 
@@ -153,12 +153,12 @@ To simplify the use of set operations like `subtract`, they can also be expresse
 Using the operator notation the query can be rewritten as
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
-final        = %mpi_callpath - inline_specified()
+mpi_callpath = %mpi |> on_call_path_to
+final        = %mpi_callpath - inline_specified
 ```
 or in a single line:
 ```
-final        = (by_name("MPI_.*") &> on_call_path_to) - inline_specified
+final        = (by_name("MPI_.*") |> on_call_path_to) - inline_specified
 ```
 
 ### Directives
