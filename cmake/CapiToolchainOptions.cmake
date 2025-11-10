@@ -9,7 +9,7 @@ message(STATUS "Found MPI ${MPI_C_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
-option(ENABLE_INST_PASSES "Enable instrumentation passes (deprecated, do not work with up-to-date LLVM)" OFF)
+option(ENABLE_INST_PASSES "Enable instrumentation passes" ON)
 option(ENABLE_TESTING "Enable testing (requires lit)" ON)
 
 include(FetchContent)
