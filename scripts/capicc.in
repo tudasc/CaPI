@@ -16,6 +16,8 @@ DLB_LIB="@DLB_LIBRARY@"
 
 XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
 
+INST_PASSES_AVAILABLE="@INST_PASSES_AVAILABLE@"
+
 CAPI_INST_PASS=@CAPI_INST_PASS_DIR@/capi_inst.so
 TALP_PASS=@CAPI_TALP_PASS_DIR@/talp_inst.so
 NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
@@ -104,6 +106,14 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+# -------------------------------
+# Checking for inconsistencies
+# -------------------------------
+if [[ "$RUN_INST_PASS" -eq 1 ]] && [[ "$INST_PASSES_AVAILABLE" -eq 0 ]]; then
+    echo "Instrumentation plugins not available. Build CaPI with ENABLE_INST_PASSES=ON or disable LLVM instrumentation plugins by passing --no-instrument to this wrapper."
+    exit 1
+fi
 
 # set first argument as compiler
 COMPILER=$1

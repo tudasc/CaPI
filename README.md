@@ -274,15 +274,16 @@ A corresponding wrapper is generated in the install tree as well.
 To use it, simply prepend your existing compiler invocation with this wrapper.
 For example, Makefile-based projects can be compiled with `make CC='capicc clang' CXX='capicc clang++'`.
 
-There are currently four different tool interfaces implemented in the following CaPI runtime libraries:
-- `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and ``__cyg_profile_func_exit` on exit.
+There are currently five different tool interfaces implemented in the following CaPI runtime libraries:
+- `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and `__cyg_profile_func_exit` on exit.
 - `libcapixray_scorep.a`: Compatible with the GNU interface of Score-P.
 - `libcapixray_talp.a`: Interface for the TALP tool.
 - `libcapixray_extrae.a`: Interface for the Extrae tool.
+- `libcapixray_nesmik.a`: Interface for NeSmiK.
 
-The tool interface is selected in the wrapper by passing `--capi-interface=<gnu/scorep/talp/extrae>`.
+The tool interface is selected in the wrapper by passing `--capi-interface=<gnu/scorep/talp/extrae/nesmik>`.
 
-To instrument the program at program start, set the environment variable `CAPI_FILTERING_FILE=<ic_file>`.
+To instrument the program at startup, set the environment variable `CAPI_FILTERING_FILE=<ic_file>`.
 
 As an alternative to the wrappers, it is also possible to pass the required flags manually.
 When building the target application, you will need to use the Clang compiler and pass the flag `-fxray-instrument`.
