@@ -14,43 +14,27 @@ namespace capi {
 
 using FlipCounts = flip::runtime::output::FLIPCounts;
 
-template <typename ValT>
-class FlipMetric {
+struct FlipInvocations : public SimpleMDMetric<FlipInvocations, FlipCounts, unsigned> {
 public:
-  using ValueType = ValT;
-  virtual ValueType readMetric(FlipCounts& md) = 0;
-};
-
-struct FlipInvocations : FlipMetric<unsigned> {
-public:
-  virtual unsigned readMetric(FlipCounts& md) override final {
+ static constexpr std::string_view Name = "FlipInvocations";
+  static unsigned readMDVal(FlipCounts& md) {
     return md.getInvocationCount();
   }
 };
 
-struct FlipCycles : FlipMetric<unsigned> {
-public:
-  virtual unsigned readMetric(FlipCounts& md) override final {
+struct FlipCycles : public SimpleMDMetric<FlipCycles, FlipCounts, unsigned> {
+ public:
+  static constexpr std::string_view Name = "FlipCycles";
+  static unsigned readMDVal(FlipCounts& md) {
     return md.getCycleCount();
   }
 };
 
-struct FlipCyclesPerInvoc : FlipMetric<float> {
-public:
-  virtual float readMetric(FlipCounts& md) override final {
+struct FlipCyclesPerInvoc : public SimpleMDMetric<FlipCyclesPerInvoc, FlipCounts, unsigned> {
+ public:
+  static constexpr std::string_view Name = "FlipCyclesPerInvoc";
+  static unsigned readMDVal(FlipCounts& md) {
     return static_cast<float>(md.getCycleCount()) / static_cast<float>(md.getInvocationCount());
-  }
-};
-
-template <typename MetricT>
-class FlipMetricSelector : public MetricSelector<FlipMetricSelector<MetricT>, FlipCounts, typename MetricT::ValueType> {
-  friend class MetricSelector<FlipMetricSelector, FlipCounts, typename MetricT::ValueType>;
-  FlipMetricSelector(CmpOp op, Param val) 
-  : MetricSelector<FlipMetricSelector, FlipCounts, typename MetricT::ValueType>("FlipMetricsSelector", op, val) {}
-public:
-  typename MetricT::ValueType readMetric(FlipCounts& md) override {
-    MetricT metric;
-    return metric.readMetric(md);
   }
 };
 

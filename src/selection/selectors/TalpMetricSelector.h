@@ -84,11 +84,11 @@ double lookupMetric(const TalpMetrics& metrics) {
 }
 
 template <TalpMetricKind MetricT, typename ValT>
-class TalpMetricSelector : public MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT> {
-  friend class MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>;
-  TalpMetricSelector(CmpOp op, Param val) : MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>("TalpMetricsSelector", op, val) {}
+class TalpMetric : public SimpleMDMetric<TalpMetric<MetricT, ValT>, TalpMD, ValT> {
+
  public:
-  ValT readMetric(TalpMD& md) override {
+  static constexpr std::string_view Name = "TALPMetric";
+  static ValT readMDVal(TalpMD& md) {
     std::vector<std::string> path; // TODO: Refactor
     auto metrics = md.findMetrics(path);
     if (!metrics) {
@@ -98,6 +98,22 @@ class TalpMetricSelector : public MetricSelector<TalpMetricSelector<MetricT, Val
     return lookupMetric<MetricT>(*metrics);
   }
 };
+
+//template <typename T1, typename T2, typename ValT, typename Op>
+//class DerivedMetricSelector : public MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT> {
+//  friend class MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>;
+//  TalpMetricSelector(CmpOp op, Param val) : MetricSelector<TalpMetricSelector<MetricT, ValT>, TalpMD, ValT>("TalpMetricsSelector", op, val) {}
+// public:
+//  ValT readMetric(TalpMD& md) override {
+//    std::vector<std::string> path; // TODO: Refactor
+//    auto metrics = md.findMetrics(path);
+//    if (!metrics) {
+//      logError() << "unable to find metrics for path\n";
+//      return 0;
+//    }
+//    return lookupMetric<MetricT>(*metrics);
+//  }
+//};
 
 class HasTalpMetricsSelector: public FilterSelector {
  public:
