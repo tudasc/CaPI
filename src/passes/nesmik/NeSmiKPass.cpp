@@ -145,8 +145,14 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
         }
         auto Name = Callee->getName();
         if (isMPIInit(Name)) {
-          assert(I.getNextNode() && "Insertion point is null");
-          instrument(I.getNextNode(), EventType::INIT);
+          Instruction* InsertPt = I.getNextNode();
+          if (!InsertPt) {
+            if (auto II = dyn_cast<InvokeInst>(CI); II) {
+              InsertPt = &(*II->getNormalDest()->getFirstInsertionPt());
+            }
+            assert(InsertPt && "Could not find insertion point after call");
+          }
+          instrument(InsertPt, EventType::INIT);
           DidInstrument = true;
           llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
         } else if (isMPIFinalize(Name)) {

@@ -107,13 +107,13 @@ The query consists of a pipeline of selector instances, which can be named or an
 Selectors types are pre-defined but can be customized via parameters.
 Valid parameter types are strings (enclosed in double quotes), booleans (true/false), integers and floating point numbers.
 
-Selectors can be combined using the pipe operator `&>`.
+Selectors can be combined using the pipe operator `|>`.
 Most of the available selectors types take at least one pipeline definition as input.
 These can be either in-place definitions or references to other named pipeline definitions, prefixed with `%`.
 
 For example, the following selector pipeline, named `mpi`, uses the `by_name` selector to find all functions starting with `MPI_`.
 ```
-mpi = %% &> by_name("MPI_.*")
+mpi = %% |> by_name("MPI_.*")
 ```
 The pipeline `%` is pre-defined and refers to an instance of the `EverythingSelector`, which selects every function in the call graph.
 If no input is explicitly given, `%%` is added implicitly. 
@@ -127,7 +127,7 @@ To extend this example, we can look at functions that are on a call path to MPI 
 
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
+mpi_callpath = %mpi |> on_call_path_to
 ```
 
 Another way to reduce overhead is to exclude functions that are marked as `inline`.
@@ -137,8 +137,8 @@ Adding this to the previous query, we get the following query:
 
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
-final        = [%mpi_callpath, inline_specified] &> subtract
+mpi_callpath = %mpi |> on_call_path_to
+final        = [%mpi_callpath, inline_specified] |> subtract
 ```
 
 To simplify the use of set operations like `subtract`, they can also be expressed as binary operators: 
@@ -153,12 +153,12 @@ To simplify the use of set operations like `subtract`, they can also be expresse
 Using the operator notation the query can be rewritten as
 ```
 mpi          = by_name("MPI_.*")
-mpi_callpath = %mpi &> on_call_path_to
-final        = %mpi_callpath - inline_specified()
+mpi_callpath = %mpi |> on_call_path_to
+final        = %mpi_callpath - inline_specified
 ```
 or in a single line:
 ```
-final        = (by_name("MPI_.*") &> on_call_path_to) - inline_specified
+final        = (by_name("MPI_.*") |> on_call_path_to) - inline_specified
 ```
 
 ### Directives
@@ -170,7 +170,7 @@ The `import` directive is used for loading existing selection modules.
 This allows to build and re-use selection pipelines that are useful across multiple applications.
 For example, the `mpi_callpath` selector from the previous example could be moved to a separate file `mpi.capi`:
 ```
-!include "mpi.capi"
+!import("mpi.capi")
 final = %mpi_callpath - inline_specified
 ```
 
@@ -274,15 +274,16 @@ A corresponding wrapper is generated in the install tree as well.
 To use it, simply prepend your existing compiler invocation with this wrapper.
 For example, Makefile-based projects can be compiled with `make CC='capicc clang' CXX='capicc clang++'`.
 
-There are currently four different tool interfaces implemented in the following CaPI runtime libraries:
-- `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and ``__cyg_profile_func_exit` on exit.
+There are currently five different tool interfaces implemented in the following CaPI runtime libraries:
+- `libcapixray_gnu.a`: Compatible with `-finstrument-functions`. Calls `__cyg_profile_func_enter` on enter and `__cyg_profile_func_exit` on exit.
 - `libcapixray_scorep.a`: Compatible with the GNU interface of Score-P.
 - `libcapixray_talp.a`: Interface for the TALP tool.
 - `libcapixray_extrae.a`: Interface for the Extrae tool.
+- `libcapixray_nesmik.a`: Interface for NeSmiK.
 
-The tool interface is selected in the wrapper by passing `--capi-interface=<gnu/scorep/talp/extrae>`.
+The tool interface is selected in the wrapper by passing `--capi-interface=<gnu/scorep/talp/extrae/nesmik>`.
 
-To instrument the program at program start, set the environment variable `CAPI_FILTERING_FILE=<ic_file>`.
+To instrument the program at startup, set the environment variable `CAPI_FILTERING_FILE=<ic_file>`.
 
 As an alternative to the wrappers, it is also possible to pass the required flags manually.
 When building the target application, you will need to use the Clang compiler and pass the flag `-fxray-instrument`.

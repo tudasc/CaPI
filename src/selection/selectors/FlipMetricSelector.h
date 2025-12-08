@@ -21,43 +21,27 @@ using FlipFunctionCounts = flip::runtime::output::FLIPFunctionCounts;
 using FlipGlobalCounts = flip::runtime::output::FLIPGlobalCounts;
 using counter_t = flip::runtime::output::counter_t;
 
-template <typename ValT>
-class FlipMetric {
+struct FlipInvocations : public SimpleMDMetric<FlipInvocations, FlipFunctionCounts, unsigned> {
 public:
-  using ValueType = ValT;
-  virtual ValueType readMetric(FlipFunctionCounts& md) = 0;
-};
-
-struct FlipInvocations : FlipMetric<unsigned> {
-public:
-  virtual unsigned readMetric(FlipFunctionCounts& md) override final {
+ static constexpr std::string_view Name = "FlipInvocations";
+  static unsigned readMDVal(FlipFunctionCounts& md) {
     return md.getInvocationCount();
   }
 };
 
-struct FlipCycles : FlipMetric<unsigned> {
-public:
-  virtual unsigned readMetric(FlipFunctionCounts& md) override final {
+struct FlipCycles : public SimpleMDMetric<FlipCycles, FlipFunctionCounts, unsigned> {
+ public:
+  static constexpr std::string_view Name = "FlipCycles";
+  static unsigned readMDVal(FlipFunctionCounts& md) {
     return md.getCycleCount();
   }
 };
 
-struct FlipCyclesPerInvoc : FlipMetric<float> {
-public:
-  virtual float readMetric(FlipFunctionCounts& md) override final {
+struct FlipCyclesPerInvoc : public SimpleMDMetric<FlipCyclesPerInvoc, FlipFunctionCounts, unsigned> {
+ public:
+  static constexpr std::string_view Name = "FlipCyclesPerInvoc";
+  static unsigned readMDVal(FlipFunctionCounts& md) {
     return static_cast<float>(md.getCycleCount()) / static_cast<float>(md.getInvocationCount());
-  }
-};
-
-template <typename MetricT>
-class FlipMetricSelector : public MetricSelector<FlipMetricSelector<MetricT>, FlipFunctionCounts, typename MetricT::ValueType> {
-  friend class MetricSelector<FlipMetricSelector, FlipFunctionCounts, typename MetricT::ValueType>;
-  FlipMetricSelector(CmpOp op, Param val) 
-  : MetricSelector<FlipMetricSelector, FlipFunctionCounts, typename MetricT::ValueType>("FlipMetricsSelector", op, val) {}
-public:
-  typename MetricT::ValueType readMetric(FlipFunctionCounts& md) override {
-    MetricT metric;
-    return metric.readMetric(md);
   }
 };
 

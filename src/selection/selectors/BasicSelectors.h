@@ -188,30 +188,75 @@ inline bool evalCmpOp(CmpOp op, T val1, T val2, T eps = 0) {
   }
 }
 
-template<typename DerivedT, typename MDType, typename ValT>
+template<typename MetricT, typename MDType, typename ValT>
+class SimpleMDMetric {
+ public:
+
+  using ValType = ValT;
+
+  static std::expected<ValT, std::string> getValue(const metacg::CgNode* fNode) {
+    if (!fNode) {
+      return std::unexpected("Node is null");
+    }
+
+    if (!fNode->has<MDType>()) {
+      return std::unexpected(std::format("Metrics metadata {} not available for function {}.", MDType::key, fNode->getFunctionName()));
+    }
+
+    auto metricsMD = fNode->get<MDType>();
+    assert(metricsMD);
+    return MetricT::readMDVal(*metricsMD);
+  }
+
+};
+
+template<typename MetricT1, typename MetricT2, typename ValT, auto op>
+class DerivedMetric {
+ public:
+
+  using ValType = ValT;
+
+  static constexpr std::string_view Name = "DerivedMetric";
+
+  static std::expected<ValT, std::string> getValue(const metacg::CgNode* fNode) {
+    auto v1 = MetricT1::getValue(fNode);
+    auto v2 = MetricT2::getValue(fNode);
+    if (!v1 || !v2) {
+      return std::unexpected(std::format("Failed to read derived metric: {} {}", v1.error_or(""), v2.error_or("")));
+    }
+    return static_cast<ValT>(op(v1.value(), v2.value()));
+  }
+};
+
+template<typename MetricT>
 class MetricSelector : public FilterSelector {
 public:
 
- static std::expected<DerivedT, std::string> create(CmpOp op, Param val) {
+ using ValType = MetricT::ValType;
+
+ static std::expected<MetricSelector, std::string> create(const std::string& selectorName, CmpOp op, Param val) {
    if (!isCompatible(val)) {
      return std::unexpected(std::format("Incompatible parameter of type {}", val.kindNames[val.kind]));
    }
-   return DerivedT(op, val);
+   return MetricSelector(selectorName, op, val);
  }
 
-  MetricSelector(std::string selectorName, CmpOp op, Param param) : selectorName(std::move(selectorName)), cmpOp(op), param(param) {}
+ static std::expected<MetricSelector, std::string> create(CmpOp op, Param val) {
+   std::string name = std::format("{}Selector", MetricT::Name);
+   return create(name, op, val);
+ }
+
+  MetricSelector(const std::string& selectorName, CmpOp op, Param param) : selectorName(selectorName), cmpOp(op), param(param) {}
 
   static constexpr bool isCompatible(Param param) {
-    if (std::is_same_v<ValT, bool>) {
+    if (std::is_same_v<ValType, bool>) {
       return param.kind == Param::BOOL;
     }
-    if (std::is_integral_v<ValT> || std::is_floating_point_v<ValT>) {
+    if (std::is_integral_v<ValType> || std::is_floating_point_v<ValType>) {
       return param.kind != Param::STRING;
     }
     return false;
   }
-
-  virtual ValT readMetric(MDType& md) = 0;
 
   bool accept(const metacg::CgNode* fNode) override;
 
@@ -219,35 +264,20 @@ public:
     return selectorName;
   }
 
- //  std::string getFieldsAsString() const {
-//    std::stringstream ss;
-//    for (auto& f : fieldName) {
-//      ss << f << ", ";
-//    }
-//    return ss.str();
-//  }
-
 private:
   std::string selectorName;
   CmpOp cmpOp;
   Param param;
 };
 
-template<typename DerivedT, typename MDType, typename ValT>
-bool MetricSelector<DerivedT,MDType,ValT>::accept(const metacg::CgNode* fNode) {
-  if (!fNode) {
+template<typename MetricT>
+bool MetricSelector<MetricT>::accept(const metacg::CgNode* fNode) {
+  auto valOrErr = MetricT::getValue(fNode);
+  if (!valOrErr) {
+    logError() << valOrErr.error() << "\n";
     return false;
   }
-
-  if (!fNode->has<MDType>()) {
-    logError() << "Metrics metadata " << MDType::key << " not available for function " << fNode->getFunctionName() << ".\n";
-    return false;
-  }
-
-  auto metricsMD = fNode->get<MDType>();
-  assert(metricsMD);
-
-  ValT fnVal = readMetric(*metricsMD);
+  ValType fnVal = valOrErr.value();
 
   // We want to compare as the type given by the input parameter
   switch(param.kind) {
@@ -264,52 +294,24 @@ bool MetricSelector<DerivedT,MDType,ValT>::accept(const metacg::CgNode* fNode) {
   return false;
 }
 
-class FlopSelector : public MetricSelector<FlopSelector,metacg::NumOperationsMD, int> {
-  friend class MetricSelector;
-  FlopSelector(CmpOp op, Param val) : MetricSelector("FlopSelector", op, val) {
-  }
-public:
-
-// static std::expected<FlopSelector, std::string> create(CmpOp op, Param val) {
-//   if (!isCompatible(val)) {
-//     return std::unexpected(std::format("Incompatible parameter of type {}", val.kindNames[val.kind]));
-//   }
-//   return FlopSelector(op, val);
-// }
-
-  int readMetric(metacg::NumOperationsMD& md) override {
-    return md.numberOfFloatOps;
-  }
+class FlopMetric : public SimpleMDMetric<FlopMetric, metacg::NumOperationsMD, int> {
+ public:
+  static constexpr std::string_view Name = "FlopMetric";
+  static int readMDVal(const metacg::NumOperationsMD& md) { return md.numberOfFloatOps; }
 };
 
-class MemOpSelector : public MetricSelector<MemOpSelector, metacg::NumOperationsMD, int> {
-  friend class MetricSelector;
-  MemOpSelector(CmpOp op, Param val) : MetricSelector("MemOpSelector", op, val) {
-  }
-public:
-// static std::expected<MemOpSelector, std::string> create(CmpOp op, Param val) {
-//   if (!isCompatible(val)) {
-//     return std::unexpected(std::format("Incompatible parameter of type {}", val.kindNames[val.kind]));
-//   }
-//   return MemOpSelector(op, val);
-// }
-  int readMetric(metacg::NumOperationsMD& md) override {
+class MemOpMetric : public SimpleMDMetric<MemOpMetric, metacg::NumOperationsMD, int> {
+ public:
+  static constexpr std::string_view Name = "MemOpMetric";
+  static int readMDVal(const metacg::NumOperationsMD& md) {
     return md.numberOfMemoryAccesses;
   }
 };
 
-class LoopDepthSelector: public MetricSelector<LoopDepthSelector, metacg::LoopDepthMD, int> {
-  friend class MetricSelector;
-  LoopDepthSelector(CmpOp op, Param val) : MetricSelector("LoopDepthSelector", op, val) {
-  }
-public:
-// static std::expected<LoopDepthSelector, std::string> create(CmpOp op, Param val) {
-//   if (!isCompatible(val)) {
-//     return std::unexpected(std::format("Incompatible parameter of type {}", val.kindNames[val.kind]));
-//   }
-//   return LoopDepthSelector(op, val);
-// }
-  int readMetric(metacg::LoopDepthMD& md) override {
+class LoopDepthMetric: public SimpleMDMetric<LoopDepthMetric, metacg::LoopDepthMD, int> {
+ public:
+  static constexpr std::string_view Name = "LoopDepthMetric";
+  static int readMDVal(const metacg::LoopDepthMD& md) {
     return md.loopDepth;
   }
 };
@@ -352,12 +354,10 @@ public:
   }
 };
 
-class ISCSelector : public MetricSelector<ISCSelector, ISCMD, long> {
-  friend class MetricSelector;
-  ISCSelector(CmpOp op, Param val) : MetricSelector("ISCSelector", op, val) {
-  }
+class ISCMetric : public SimpleMDMetric<ISCMetric, ISCMD, long> {
  public:
-  long readMetric(ISCMD& md) override {
+  static constexpr std::string_view Name = "ISCMetric";
+  static long readMDVal(const ISCMD& md) {
     return md.value;
   }
 };
