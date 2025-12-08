@@ -24,7 +24,6 @@ struct KnapsackNumbers {
   counter_t value;
 
   inline double valueDensity() const {
-    
     if (value == 0) {
       return 0.0;
     } else if (weight == 0) {
@@ -103,7 +102,6 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
   for (const metacg::CgNode* node : nodes) {
     // std::cout << ++i << "\n";
     if (!inputFunctions.contains(node)) {
-      
       // auto parents = helper->get(node).findAllCallers();
       // auto children = helper->get(node).findAllCallees();
       auto parents = cg.getCallers(*node);
@@ -142,8 +140,6 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
   std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> sccAncestors =
       sccResults.globalAncestorComputation(inputSCCs, prunedTravesalHelper);
   // std::cout << "Finished SCC ancestor computation" << std::endl;
-
-  
 
   // container for strongly-connected subgraphs that are not yet instrumented
   std::unordered_map<const SCCNode*, KnapsackNumbers> sccs;
@@ -218,7 +214,7 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
               toBeInstrumented.insert(memberNode);
             }
           }
-  
+
           // remove newly instrumented SCCs from the pool
           sccs.erase(ancestorSCC);
         }

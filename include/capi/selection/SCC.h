@@ -97,8 +97,8 @@ struct SCCAnalysisResults {
   }
 
   // Compute list of ancestors for each SCCNode. Exploits that SCC-graph is a DAG.
-  std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> globalAncestorComputation(const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper);
-
+  std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> globalAncestorComputation(
+      const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper);
 };
 
 // For graph trait

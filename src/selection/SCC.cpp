@@ -58,7 +58,7 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
   for (const auto& node : helper.cg.getNodes()) {
     if (node.get() == nullptr) {
       continue;
-    } 
+    }
     auto& nodeData = sccMap[node.get()];
     if (nodeData.undefined()) {
       nodeData.node = node.get();
@@ -69,7 +69,8 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
   return SCCAnalysisResults(sccs);
 }
 
-std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResults::globalAncestorComputation(const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper) {
+std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResults::globalAncestorComputation(
+    const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper) {
   // std::cout << "Total number of SCC nodes: " << sccs.size() << "\n";
   // unsigned processed = 0;
 
@@ -91,16 +92,16 @@ std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResul
   while (!worklist.empty()) {
     const SCCNode* node = worklist.back();
     worklist.pop_back();
-    
+
     // Skip if this node was already processed
     if (res.contains(node)) {
       continue;
     }
-    
+
     // Fresh temporary vectors
     missingParents.clear();
     parentAncestorsCollection.clear();
-    
+
     auto parents = findAllCallers(node, helper);
 
     // iterate over all parents to popolate `missingParents` and `parentAncestorsCollection`
@@ -153,5 +154,4 @@ std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResul
 
   return res;
 }
-
 }

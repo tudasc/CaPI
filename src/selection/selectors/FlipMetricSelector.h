@@ -22,19 +22,15 @@ using FlipGlobalCounts = flip::runtime::output::FLIPGlobalCounts;
 using counter_t = flip::runtime::output::counter_t;
 
 struct FlipInvocations : public SimpleMDMetric<FlipInvocations, FlipFunctionCounts, unsigned> {
-public:
- static constexpr std::string_view Name = "FlipInvocations";
-  static unsigned readMDVal(FlipFunctionCounts& md) {
-    return md.getInvocationCount();
-  }
+ public:
+  static constexpr std::string_view Name = "FlipInvocations";
+  static unsigned readMDVal(FlipFunctionCounts& md) { return md.getInvocationCount(); }
 };
 
 struct FlipCycles : public SimpleMDMetric<FlipCycles, FlipFunctionCounts, unsigned> {
  public:
   static constexpr std::string_view Name = "FlipCycles";
-  static unsigned readMDVal(FlipFunctionCounts& md) {
-    return md.getCycleCount();
-  }
+  static unsigned readMDVal(FlipFunctionCounts& md) { return md.getCycleCount(); }
 };
 
 struct FlipCyclesPerInvoc : public SimpleMDMetric<FlipCyclesPerInvoc, FlipFunctionCounts, unsigned> {
@@ -49,9 +45,7 @@ class HasFlipMetricsSelector: public FilterSelector {
  public:
   explicit HasFlipMetricsSelector() = default;
 
-  bool accept(const metacg::CgNode* fNode) override {
-    return fNode->has<FlipFunctionCounts>();
-  }
+  bool accept(const metacg::CgNode* fNode) override { return fNode->has<FlipFunctionCounts>(); }
 
   std::string getName() override {
     return "HasFlipMetrics";
@@ -59,28 +53,21 @@ class HasFlipMetricsSelector: public FilterSelector {
 };
 
 class FlipKnapsackSelector : public Selector {
-public:
+ public:
+  FlipKnapsackSelector(float overheadBudget, float instrumentationCost, float setupOverhead)
+      : _overheadBudget(overheadBudget), _instrumentationCost(instrumentationCost), _setupOverhead(setupOverhead) {}
 
-  FlipKnapsackSelector(float overheadBudget, float instrumentationCost, float setupOverhead) 
-  : _overheadBudget(overheadBudget),
-    _instrumentationCost(instrumentationCost),
-    _setupOverhead(setupOverhead) {}
+  inline void init(TraversalHelper& helper) override { this->helper = &helper; }
 
-  inline void init(TraversalHelper& helper) override {
-    this->helper = &helper;
-  }
+  FunctionSet apply(const FunctionSetList& input) override;
 
-  FunctionSet apply(const FunctionSetList &input) override;
+  inline std::string getName() override { return "FlipKnapsackSelector"; }
 
-  inline std::string getName() override {
-    return "FlipKnapsackSelector";
-  }
-
-private:
+ private:
   float _overheadBudget;
   float _instrumentationCost;
   float _setupOverhead;
-  TraversalHelper *helper;
+  TraversalHelper* helper;
 };
 }
 
