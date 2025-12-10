@@ -28,6 +28,8 @@ class NeSmiKPass : public llvm::PassInfoMixin<NeSmiKPass> {
 
   llvm::Value* InitEventStr;
   llvm::Value* ExitEventStr;
+  llvm::Value* ParRegionEnterEventStr;
+  llvm::Value* ParRegionExitEventStr;
 
 };
 

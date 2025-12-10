@@ -23,11 +23,11 @@ using namespace llvm;
 
 static cl::opt<bool>
     ClEmitXRay("emit-xray-events",
-              cl::desc("Emit custom XRay init/finalize events instead of using static instrumentation."),
+              cl::desc("Emit custom XRay events instead of using static instrumentation."),
               cl::Hidden, cl::init(false));
 
 enum class EventType {
-  INIT, FINALIZE
+  INIT, FINALIZE, PAR_REGION_ENTER, PAR_REGION_EXIT
 };
 
 // New PM registration
@@ -50,7 +50,9 @@ static bool isMPIFinalize(StringRef Name) {
   return Name == "MPI_Finalize";
 }
 
-
+static bool isOMPFork(StringRef Name) {
+  return Name == "__kmpc_fork_call"; // TODO: Other calls to instrument?
+}
 
 llvm::PreservedAnalyses NeSmiKPass::run(llvm::Module &M, llvm::ModuleAnalysisManager &) {
 
@@ -58,6 +60,8 @@ llvm::PreservedAnalyses NeSmiKPass::run(llvm::Module &M, llvm::ModuleAnalysisMan
     IRBuilder<> IRB(M.getContext());
     this->InitEventStr = IRB.CreateGlobalString("dyncapi_init", "init.str", 0, &M);
     this->ExitEventStr = IRB.CreateGlobalString("dyncapi_finalize", "finalize.str", 0, &M);
+    this->ParRegionEnterEventStr = IRB.CreateGlobalString("dyncapi_par_region_enter", "par_enter.str", 0, &M);
+    this->ParRegionExitEventStr = IRB.CreateGlobalString("dyncapi_par_region_exit", "par_exit.str", 0, &M);
     llvm::outs() << "Instrumenting with XRay custom events\n";
   }
 
@@ -80,6 +84,8 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
 
   FunctionCallee InitFn = M.getOrInsertFunction("dyncapi_nesmik_init", Type::getVoidTy(C));
   FunctionCallee FinalizeFn = M.getOrInsertFunction("dyncapi_nesmik_finalize", Type::getVoidTy(C));
+  FunctionCallee ParEnterFn = M.getOrInsertFunction("dyncapi_par_region_enter", Type::getVoidTy(C));
+  FunctionCallee ParExitFn = M.getOrInsertFunction("dyncapi_par_region_exit", Type::getVoidTy(C));
 
 //  llvm::Type *CharTy = llvm::Type::getInt8Ty(C);
 //  llvm::PointerType *CharPtrTy = llvm::PointerType::getUnqual(CharTy);
@@ -97,10 +103,15 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
       switch (type) {
         case EventType::INIT:
           EventStr = InitEventStr;
-
           break;
         case EventType::FINALIZE:
           EventStr = ExitEventStr;
+          break;
+        case EventType::PAR_REGION_ENTER:
+          EventStr = ParRegionEnterEventStr;
+          break;
+        case EventType::PAR_REGION_EXIT:
+          EventStr = ParRegionExitEventStr;
           break;
         default:
           llvm_unreachable("Unhandled event type");
@@ -134,6 +145,17 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
     }
   };
 
+  auto getFirstPostCallInsertPt = [](auto& CI) {
+    Instruction* InsertPt = CI->getNextNode();
+    if (!InsertPt) {
+      if (auto II = dyn_cast<InvokeInst>(CI); II) {
+        InsertPt = &(*II->getNormalDest()->getFirstInsertionPt());
+      }
+      assert(InsertPt && "Could not find insertion point after call");
+    }
+    return InsertPt;
+  };
+
   bool DidInstrument = false;
 
   for (auto& BB : F) {
@@ -145,18 +167,17 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
         }
         auto Name = Callee->getName();
         if (isMPIInit(Name)) {
-          Instruction* InsertPt = I.getNextNode();
-          if (!InsertPt) {
-            if (auto II = dyn_cast<InvokeInst>(CI); II) {
-              InsertPt = &(*II->getNormalDest()->getFirstInsertionPt());
-            }
-            assert(InsertPt && "Could not find insertion point after call");
-          }
+          Instruction* InsertPt = getFirstPostCallInsertPt(CI);
           instrument(InsertPt, EventType::INIT);
           DidInstrument = true;
           llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
         } else if (isMPIFinalize(Name)) {
           instrument(&I, EventType::FINALIZE);
+          DidInstrument = true;
+          llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
+        } else if (isOMPFork(Name)) {
+          instrument(&I, EventType::PAR_REGION_ENTER);
+          instrument(getFirstPostCallInsertPt(CI), EventType::PAR_REGION_EXIT);
           DidInstrument = true;
           llvm::outs() << "Instrumented " << Name << " call in " << F.getName() << "\n";
         }

@@ -41,6 +41,8 @@ enum class Mode {
 extern "C" {
   void dyncapi_nesmik_init();
   void dyncapi_nesmik_finalize();
+  void dyncapi_par_region_enter();
+  void dyncapi_par_region_exit();
 }
 
 #endif  // CAPI_NESMIKINTERFACE_H
