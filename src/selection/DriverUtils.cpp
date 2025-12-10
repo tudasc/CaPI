@@ -21,7 +21,7 @@
 #include "capi/selection/SelectorGraph.h"
 #include "capi/selection/StatementCountAnalysis.h"
 #include "capi/selection/TraversalHelper.h"
-#include "capi/selection/metadata//CaPIMD.h"
+#include "capi/selection/metadata/CaPIMD.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 
 namespace capi {
@@ -206,6 +206,18 @@ SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtor
   // TODO: Add some kind of analysis management logic for selectors to request results
   StatementCountAnalysis sca;
   sca.run(helper);
+  // Ensure that CaPIMD ist present
+  bool warned{false};
+  for (auto& node : cg.getNodes()) {
+    if (!node) {
+      continue;
+    }
+    if (!warned && !node->has<CaPIMD>()) {
+      logWarn() << "Found node without CaPI metadata. Make sure to call demangleNames on the input call graph.\n";
+      warned = true;
+    }
+    node->getOrCreate<CaPIMD>();
+  }
 }
 
 std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool pathSensitive, bool debugMode) {
