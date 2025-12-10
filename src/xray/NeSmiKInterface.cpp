@@ -37,7 +37,9 @@ capi::Mode measurementMode{capi::Mode::PROFILE};
 bool dynamicFiltering{false};
 bool initialized{false};
 bool finalized{false};
+bool recordInParallelRegions{false};
 thread_local bool inXRayScope{false};
+thread_local bool inParallelRegion{false};
 
 struct RegionMetrics {
   size_t numInvocations{0};
@@ -124,6 +126,10 @@ void handleCustomXRayEvent(void* data, size_t len) {
     dyncapi_nesmik_init();
   } else if (!strcmp(eventName, "dyncapi_finalize")) {
     dyncapi_nesmik_finalize();
+  } else if (!strcmp(eventName, "dyncapi_par_region_enter")) {
+    dyncapi_par_region_enter();
+  } else if (!strcmp(eventName, "dyncapi_par_region_exit")) {
+    dyncapi_par_region_exit();
   } else {
     logError() << "Received unknown custom XRay event: " << eventName << "\n";
   }
@@ -135,6 +141,10 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   if (!guard) {
    logError() << "Recursive XRay event handling detected (id=" << id << ")!\n";
    return;
+  }
+
+  if (!recordInParallelRegions && inParallelRegion) {
+    return;
   }
 
   if (finalized) {
@@ -191,6 +201,9 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
     }
   }
   dynamicFiltering = shouldFilter;
+
+  // TODO: Make this configurable?
+  recordInParallelRegions = false;
 
   logInfo() << "XRay initialization for neSmiK done.\n";
   logInfo() << "Running in " << (measurementMode == Mode::PROFILE ? "profiling" : "tracing") << " mode.\n";
@@ -310,4 +323,12 @@ void dyncapi_nesmik_finalize() {
 
   }
 
+}
+
+void dyncapi_par_region_enter() {
+  inParallelRegion = true;
+}
+
+void dyncapi_par_region_exit() {
+  inParallelRegion = false;
 }
