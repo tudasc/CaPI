@@ -137,6 +137,12 @@ bool NeSmiKPass::runOnFunction(llvm::Function& F) {
         case EventType::FINALIZE:
           Callee = &FinalizeFn;
           break;
+        case EventType::PAR_REGION_ENTER:
+          Callee = &ParEnterFn;
+          break;
+        case EventType::PAR_REGION_EXIT:
+          Callee = &ParExitFn;
+          break;
         default:
           llvm_unreachable("Unhandled event type");
       }

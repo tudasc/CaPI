@@ -121,7 +121,6 @@ void handleCustomXRayEvent(void* data, size_t len) {
     logError() << "Custom XRay event is not a string!\n";
     return;
   }
-  logInfo() << "Received custom XRay event: " << eventName << "\n";
   if (!strcmp(eventName, "dyncapi_init")) {
     dyncapi_nesmik_init();
   } else if (!strcmp(eventName, "dyncapi_finalize")) {
