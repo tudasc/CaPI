@@ -54,7 +54,7 @@ if (ENABLE_XRAY)
 
   # Optional: print it for debugging
   message(STATUS "Clang internal include directory: ${CLANG_INTERNAL_INCLUDE_DIR}")
-  set(CLANG_INCLUDE_DIR "${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include" CACHE PATH "Path to internal clang headers, needed for XRay runtime")
+  set(CLANG_INCLUDE_DIR "${CLANG_INTERNAL_INCLUDE_DIR}" CACHE PATH "Path to internal clang headers, needed for XRay runtime")
   if (NOT EXISTS "${CLANG_INCLUDE_DIR}/xray/xray_interface.h")
     message(FATAL_ERROR "The XRay headers could not be found in ${CLANG_INCLUDE_DIR}/xray/xray_interface.h. Please specify CLANG_INCLUDE_DIR explicitly, pointing to the directory that contains \"xray/xray_interface.h\".")
   endif()
