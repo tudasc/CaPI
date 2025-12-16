@@ -27,6 +27,7 @@ add_version_include(capi_select)
 if (ENABLE_FLIP)
         target_compile_definitions(capi_select PRIVATE CAPI_ENABLE_FLIP)
         target_link_libraries(capi_select PRIVATE flip::FLIP_counts)
+        target_sources(capi_select PRIVATE selectors/FlipMetricSelector.cpp)
 endif()
 
 

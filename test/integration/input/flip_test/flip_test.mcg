@@ -11,7 +11,7 @@
                 "functionName": "main",
                 "hasBody": false,
                 "meta": {
-                    "FLIP_counts": {
+                    "FLIP_function_counts": {
                         "cycles": 0,
                         "invocations": 1
                     }
@@ -24,7 +24,7 @@
                 "functionName": "foo",
                 "hasBody": false,
                 "meta": {
-                    "FLIP_counts": {
+                    "FLIP_function_counts": {
                         "cycles": 1000,
                         "invocations": 10
                     }
@@ -37,7 +37,7 @@
                 "functionName": "bar",
                 "hasBody": false,
                 "meta": {
-                    "FLIP_counts": {
+                    "FLIP_function_counts": {
                         "cycles": 100,
                         "invocations": 10
                     }
@@ -50,7 +50,7 @@
                 "functionName": "foobar",
                 "hasBody": false,
                 "meta": {
-                    "FLIP_counts": {
+                    "FLIP_function_counts": {
                         "cycles": 100000,
                         "invocations": 100
                     }

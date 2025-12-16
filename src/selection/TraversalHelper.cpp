@@ -88,6 +88,8 @@ void NodeTraversalInfo::updateAllCalleesCache() {
     auto allOverriddenBy = calleeCache.findAllOverriddenBy();
     allCallees.insert(allOverriddenBy.begin(), allOverriddenBy.end());
   }
+
+  calleesComputed = true;
 }
 
 }

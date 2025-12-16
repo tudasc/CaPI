@@ -10,6 +10,7 @@
 
 // MetaCG includes
 #include "Callgraph.h"
+#include <unordered_set>
 
 namespace capi {
 
@@ -95,6 +96,9 @@ struct SCCAnalysisResults {
     return callees;
   }
 
+  // Compute list of ancestors for each SCCNode. Exploits that SCC-graph is a DAG.
+  std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> globalAncestorComputation(
+      const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper);
 };
 
 // For graph trait
