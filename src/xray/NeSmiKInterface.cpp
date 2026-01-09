@@ -40,6 +40,7 @@ bool finalized{false};
 bool recordInParallelRegions{false};
 thread_local bool inXRayScope{false};
 thread_local bool inParallelRegion{false};
+thread_local int functionLastEnteredBeforeInit{-1};
 
 struct RegionMetrics {
   size_t numInvocations{0};
@@ -153,13 +154,20 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 
   if (!initialized) {
+    functionLastEnteredBeforeInit = id;
     static bool failedBefore{false};
     if (!failedBefore) {
       auto& info = capi::globalCaPIData->xrayFuncMap[id];
-      logError() << "Handling XRay event for function " << info.name << " (id=" << id << "): neSmiK interface has not been initialized.\n";
+      logWarn() << "Handling XRay event for function " << info.name << " (id=" << id << "): neSmiK interface has not been initialized.\n";
       failedBefore = true;
     }
     return;
+  }
+
+  // To avoid inconsistencies, we ignore all invocations of the function from which neSmiK was initialized.
+  // Otherwise, if this function is instrumented, the entry event will not be recorded but the exit will be.
+  if (functionLastEnteredBeforeInit == id) {
+      return;
   }
 
   switch (type) {
