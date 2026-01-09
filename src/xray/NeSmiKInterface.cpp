@@ -10,6 +10,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <thread>
 
 #include "capi/support/Logging.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
@@ -38,6 +39,7 @@ bool dynamicFiltering{false};
 bool initialized{false};
 bool finalized{false};
 bool recordInParallelRegions{false};
+bool recordOnlyMainThread{true};
 thread_local bool inXRayScope{false};
 thread_local bool inParallelRegion{false};
 thread_local int functionLastEnteredBeforeInit{-1};
@@ -57,6 +59,28 @@ struct RegionMetrics {
 std::unordered_map<int, RegionMetrics> regionMetricsMap;
 
 thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeStamps;
+
+std::thread::id mainThreadId;
+
+struct ThreadGuard {
+
+    explicit ThreadGuard(std::thread::id mainThread)  {
+        auto thisThread = std::this_thread::get_id();
+        this->isMainThread = thisThread == mainThread;
+    }
+
+    operator bool() const {
+        return check();
+    }
+
+    bool check() const {
+        return isMainThread;
+    }
+
+private:
+    bool isMainThread;
+};
+
 
 }
 
@@ -143,6 +167,13 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
    return;
   }
 
+  if (recordOnlyMainThread) {
+      thread_local ThreadGuard threadGuard(mainThreadId);
+      if (!threadGuard) {
+          return;
+      }
+  }
+
   if (!recordInParallelRegions && inParallelRegion) {
     return;
   }
@@ -185,6 +216,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 }
 
 void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
+  mainThreadId = std::this_thread::get_id();
 
   bool demangle = true;
   auto demangleEnv = std::getenv("CAPI_DEMANGLE");
