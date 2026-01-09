@@ -7,4 +7,4 @@ target_link_libraries(capi PRIVATE capi_select)
 add_json(capi)
 add_version_include(capi)
 
-install(TARGETS capi EXPORT capiTargets RUNTIME DESTINATION bin)
+install(TARGETS capi EXPORT capiTargets RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

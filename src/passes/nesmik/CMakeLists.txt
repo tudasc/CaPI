@@ -14,6 +14,6 @@ make_llvm_module(nesmik_inst
 install(
         TARGETS nesmik_inst
         EXPORT ${TARGETS_EXPORT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

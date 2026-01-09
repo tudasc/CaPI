@@ -27,6 +27,6 @@ make_llvm_module(capi_inst
 install(
         TARGETS capi_inst
         EXPORT ${TARGETS_EXPORT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
