@@ -25,8 +25,12 @@ inline int getMPIRank() {
     int initialized = 0;
     MPI_Initialized(&initialized);
     if (initialized) {
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      cached = true;
+      int finalized = 1;
+      MPI_Finalized(&finalized);
+      if (!finalized) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        cached = true;
+      }
     }
   }
   return rank; // -1 if MPI not initialized yet
