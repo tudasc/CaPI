@@ -24,6 +24,10 @@ NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
 
 VERBOSE=0
 RUN_INST_PASS=1
+SHOWME_COMPILE=0
+SHOWME_LINK=0
+SHOWME_ALL=0
+SHOWME_COMMAND=0
 
 # -------------------------------
 # Helper: instrumentation command
@@ -80,6 +84,36 @@ get_scorep_link_flags() {
           -Wl,-end-group"
 }
 
+get_compile_flags() {
+    get_inst_cmd "$CAPI_INTERFACE"
+}
+
+get_link_flags() {
+    case "$CAPI_INTERFACE" in
+        gnu)
+            echo "$(wrap_whole_archive $CAPI_LIB_GNU) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
+            ;;
+        gnu_static|talp_static)
+            echo ""
+            ;;
+        scorep)
+            echo "$(get_scorep_link_flags) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
+            ;;
+        extrae)
+            echo "$(wrap_whole_archive $CAPI_LIB_EXTRAE) $XRAY_FLAGS $LLVM_LIBS -lstdc++ -lmpi"
+            ;;
+        talp)
+            echo "$(wrap_whole_archive $CAPI_LIB_TALP) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
+            ;;
+        nesmik)
+            echo "$(wrap_whole_archive $CAPI_LIB_NESMIK) \
+                  $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lstdc++ -lmpi"
+            ;;
+        *)
+            ;;
+    esac
+}
+
 # -------------------------------
 # Parse wrapper options
 # -------------------------------
@@ -91,6 +125,22 @@ for arg in "$@"; do
             ;;
         --no-instrument)
             RUN_INST_PASS=0
+            shift
+            ;;
+        --showme:compile)
+            SHOWME_COMPILE=1
+            shift
+            ;;
+        --showme:link)
+            SHOWME_LINK=1
+            shift
+            ;;
+        --showme:all)
+            SHOWME_ALL=1
+            shift
+            ;;
+        --showme:command)
+            SHOWME_COMMAND=1
             shift
             ;;
         -v|--verbose)
@@ -135,39 +185,64 @@ CMD=""
 # Linking case
 # -------------------------------
 if [[ "$linking" == yes ]]; then
+    INST_CMD=""
+    EXTRA_OBJS=""
+
     case "$CAPI_INTERFACE" in
         gnu)
-            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_GNU) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            # no LLVM pass instrumentation, just XRAY flags
+            INST_CMD="$XRAY_FLAGS"
             ;;
         gnu_static|talp_static)
             INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
-            CMD="$COMPILER $INST_CMD $@"
             ;;
         scorep)
             prepare_scorep_init
-            CMD="$COMPILER scorep_init.o $(get_scorep_link_flags) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+            EXTRA_OBJS="scorep_init.o"
+            INST_CMD="$XRAY_FLAGS"
             ;;
-        extrae)
-            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_EXTRAE) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
-            ;;
-        talp)
-            CMD="$COMPILER $(wrap_whole_archive $CAPI_LIB_TALP) $XRAY_FLAGS $LLVM_LIBS -lstdc++ $@"
+        extrae|talp)
+            INST_CMD="$XRAY_FLAGS"
             ;;
         nesmik)
             INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
-            CMD="$COMPILER $INST_CMD $(wrap_whole_archive $CAPI_LIB_NESMIK) \
-                 $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lstdc++ $@"
             ;;
         *)
             exit 1
             ;;
     esac
+
+    CMD="$COMPILER \
+         $INST_CMD \
+         $EXTRA_OBJS \
+         $@ \
+         $(get_link_flags)"
 else
 # -------------------------------
 # Non-linking case
 # -------------------------------
     INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
     CMD="$COMPILER $INST_CMD $@"
+fi
+
+if [[ "$SHOWME_COMPILE" == 1 ]]; then
+    echo "$(get_compile_flags)"
+    exit 0
+fi
+
+if [[ "$SHOWME_LINK" == 1 ]]; then
+    echo "$(get_link_flags)"
+    exit 0
+fi
+
+if [[ "$SHOWME_ALL" == 1 ]]; then
+    echo "$(get_compile_flags) $(get_link_flags)"
+    exit 0
+fi
+
+if [[ "$SHOWME_COMMAND" == 1 ]]; then
+    echo "$CMD"
+    exit 0
 fi
 
 # -------------------------------
