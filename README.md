@@ -224,16 +224,31 @@ If CaPI is built with TALP support, the following selectors, based on TALP effic
 | has_talp_metrics                 | -           | 1               | `has_talp_metrics`                            | Selects the subset of functions that has TALP metrics attached.         |
 | talp_cycles                      | 1           | 1               | `talp_cycles(">", 1000)`                      | Selection based on number of elapsed cycles.                            |
 | talp_instructions                | 1           | 1               | `talp_instructions(">", 500000)`              | Selection based on number of executed instructions.                     |
-| talp_measurements                | 1           | 1               | `talp_measurements(">", 5)`                   | Selection based on number of performance measurements.                  |
-| talp_elapsed_time                | 1           | 1               | `talp_elapsed_time("<", 2.0e6)`               | Selection based on total elapsed time in nanoseconds.                   |
+| talp_measurements                | 1           | 1               | `talp_measurements(">", 5)`                   | Selection based on number of times a node was measured.                 |
 | talp_mpi_calls                   | 1           | 1               | `talp_mpi_calls(">=", 10)`                    | Selection based on number of MPI calls.                                 |
+| talp_omp_parallels               | 1           | 1               | `talp_omp_parallels(">=", 10)`                | Selection based on number of encountered OpenMP parallel regions        |
+| talp_omp_tasks                   | 1           | 1               | `talp_omp_tasks(">=", 10)`                    | Selection based on number of encountered OpenMP tasks                   |
+| talp_gpu_runtime_calls           | 1           | 1               | `talp_gpu_runtime_calls("<",60)`              | Selection based on number of CUDA/HIP runtime calls                     |
+| talp_elapsed_time                | 1           | 1               | `talp_elapsed_time("<", 2.0e6)`               | Selection based on total elapsed time in nanoseconds.                   |
+| talp_useful_time                 | 1           | 1               | `talp_useful_time("<", 2.0e6)`                | Selection based on total useful time in nanoseconds.                    |
 | talp_parallel_efficiency         | 1           | 1               | `talp_parallel_efficiency("<", 0.8)`          | Selection based on overall parallel efficiency (ratio between 0 and 1). |
 | talp_mpi_parallel_efficiency     | 1           | 1               | `talp_mpi_parallel_efficiency("<", 0.9)`      | Selection based on MPI parallel efficiency (ratio between 0 and 1).     |
 | talp_mpi_comm_efficiency         | 1           | 1               | `talp_mpi_comm_efficiency("<", 0.85)`         | Selection based on MPI communication efficiency.                        |
 | talp_mpi_load_balance            | 1           | 1               | `talp_mpi_load_balance("<", 0.95)`            | Selection based on MPI load balance efficiency.                         |
 | talp_mpi_load_balance_in         | 1           | 1               | `talp_mpi_load_balance_in("<", 0.9)`          | Selection based on MPI intra-node load balance.                         |
 | talp_mpi_load_balance_out        | 1           | 1               | `talp_mpi_load_balance_out("<", 0.9)`         | Selection based on MPI inter-node load balance.                         |
+| talp_omp_parallel_efficiency     | 1           | 1               | `talp_omp_parallel_efficiency("<", 0.5)`      | Selection based on OpenMP parallel efficiency (ratio between 0 and 1)   |
+| talp_omp_load_balance            | 1           | 1               | `talp_omp_load_balance("<", 0.5)`             | Selection based on OpenMP load balance                                  |
+| talp_omp_scheduling_efficiency   | 1           | 1               | `talp_omp_scheduling_efficiency("<", 0.5)`    | Selection based on OpenMP scheduling efficiency                         |
+| talp_omp_serialization_efficiency| 1           | 1               | `talp_omp_serialization_efficiency("<", 0.5)` | Selection based on OpenMP serialization efficiency                      |
+| talp_device_offload_efficiency   | 1           | 1               | `talp_device_offload_efficiency("<", 0.5)`    | Selection based on GPU offload efficiency                               |
+| talp_gpu_parallel_efficiency     | 1           | 1               | `talp_gpu_parallel_efficiency("<", 0.5)`      | Selection based on GPU parallel efficiency (ratio between 0 and 1).     |
+| talp_gpu_comm_efficiency         | 1           | 1               | `talp_gpu_comm_efficiency("<", 0.5)`          | Selection based on GPU communication efficiency                         |
+| talp_gpu_orch_efficiency         | 1           | 1               | `talp_gpu_orch_efficiency("<", 0.5)`          | Selection based on GPU orchestration efficiency                         |
 | talp_dyn_filtered                | -           | 1               | `talp_dyn_filtered`                           | Selects functions filtered dynamically during TALP run.                 |
+| talp_avg_region_duration         | 1           | 1               | `talp_avg_region_duration("<", 1e6)`          | Selection based on average elapsed nanoseconds per region invocation    |
+| talp_avg_ipc                     | 1           | 1               | `talp_avg_ipc("<", 0.5)`                      | Selection based on average useful instructions per cycle value          |
+| talp_avg_freq                    | 1           | 1               | `talp_avg_freq("<", 1e9)`                     | Selection based on average useful frequency in Herz                     |
 
 
 ### Inline compensation
