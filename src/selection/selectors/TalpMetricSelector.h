@@ -18,7 +18,9 @@ enum class TalpMetricKind {
   NUM_MPI_CALLS,
   NUM_OMP_PARALLELS,
   NUM_OMP_TASKS,
+  NUM_GPU_RUNTIME_CALLS,
   ELAPSED_TIME,
+  USEFUL_TIME,
   PARALLEL_EFFICIENCY,
   MPI_PARALLEL_EFFICIENCY,
   MPI_COMMUNICATION_EFFICIENCY,
@@ -28,7 +30,17 @@ enum class TalpMetricKind {
   OMP_PARALLEL_EFFICIENCY,
   OMP_LOAD_BALANCE,
   OMP_SCHEDULING_EFFICIENCY,
-  OMP_SERIALIZATION_EFFICIENCY
+  OMP_SERIALIZATION_EFFICIENCY,
+  // GPU metrics
+  DEVICE_OFFLOAD_EFFICIENCY,
+  GPU_PARALLEL_EFFICIENCY,
+  GPU_LOAD_BALANCE,
+  GPU_COMMUNICATION_EFFICIENCY,
+  GPU_ORCHESTRATION_EFFICIENCY,
+  // Derived metrics
+  AVERAGE_REGION_DURATION,
+  AVERAGE_IPC,
+  AVERAGE_FREQ,
 };
 
 /**
@@ -54,8 +66,12 @@ double lookupMetric(const TalpMetrics& metrics) {
       return metrics.num_omp_parallels;
     case TalpMetricKind::NUM_OMP_TASKS:
       return metrics.num_omp_tasks;
+    case TalpMetricKind::NUM_GPU_RUNTIME_CALLS:
+      return metrics.num_gpu_runtime_calls;
     case TalpMetricKind::ELAPSED_TIME:
       return metrics.elapsed_time;
+    case TalpMetricKind::USEFUL_TIME:
+      return metrics.useful_time;
     case TalpMetricKind::PARALLEL_EFFICIENCY:
       return metrics.parallel_efficiency;
     case TalpMetricKind::MPI_PARALLEL_EFFICIENCY:
@@ -76,6 +92,25 @@ double lookupMetric(const TalpMetrics& metrics) {
       return metrics.omp_scheduling_efficiency;
     case TalpMetricKind::OMP_SERIALIZATION_EFFICIENCY:
       return metrics.omp_serialization_efficiency;
+    case TalpMetricKind::DEVICE_OFFLOAD_EFFICIENCY:
+      return metrics.device_offload_efficiency;
+    case TalpMetricKind::GPU_PARALLEL_EFFICIENCY:
+      return metrics.gpu_parallel_efficiency;
+    case TalpMetricKind::GPU_LOAD_BALANCE:
+      return metrics.gpu_load_balance;
+    case TalpMetricKind::GPU_COMMUNICATION_EFFICIENCY:
+      return metrics.gpu_communication_efficiency;
+    case TalpMetricKind::GPU_ORCHESTRATION_EFFICIENCY:
+      return metrics.gpu_orchestration_efficiency;
+    case TalpMetricKind::AVERAGE_REGION_DURATION:
+      if(metrics.num_measurements == 0) return 0.0f;
+      return metrics.elapsed_time / metrics.num_measurements;
+    case TalpMetricKind::AVERAGE_IPC:
+      if (metrics.cycles == 0.0f) return 0.0f;
+      return metrics.instructions / metrics.cycles;
+    case TalpMetricKind::AVERAGE_FREQ:
+      if (metrics.cycles == 0.0f) return 0.0f;
+      return metrics.cycles / metrics.useful_time;
     default:
       break;
   }
