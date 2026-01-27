@@ -106,10 +106,10 @@ double lookupMetric(const TalpMetrics& metrics) {
       if(metrics.num_measurements == 0) return 0.0f;
       return metrics.elapsed_time / metrics.num_measurements;
     case TalpMetricKind::AVERAGE_IPC:
-      if (metrics.cycles == 0.0f) return 0.0f;
+      if (metrics.cycles == 0.0f || metrics.instructions == 0.0f) return 0.0f;
       return metrics.instructions / metrics.cycles;
     case TalpMetricKind::AVERAGE_FREQ:
-      if (metrics.cycles == 0.0f) return 0.0f;
+      if (metrics.cycles == 0.0f || metrics.useful_time == 0.0f) return 0.0f;
       return metrics.cycles / metrics.useful_time;
     default:
       break;
