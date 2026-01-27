@@ -179,19 +179,33 @@ RegisterSelector caSelectorDistinct("common_caller_distinct",
 RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>);
 
 // TALP metrics
-// TODO: OMP metrics not added yet
 RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>);
 RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetric<TalpMetricKind::CYCLES, long>>);
 RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetric<TalpMetricKind::INSTRUCTIONS, long>>);
 RegisterSelector numMeasurements("talp_measurements", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MEASUREMENTS, long>>);
-RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetric<TalpMetricKind::ELAPSED_TIME, long>>);
 RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MPI_CALLS,long>>);
+RegisterSelector numOMPParallelsSelector("talp_omp_parallels", createMetricSelector<TalpMetric<TalpMetricKind::NUM_OMP_PARALLELS,long>>);
+RegisterSelector numOMPTasksSelector("talp_omp_tasks", createMetricSelector<TalpMetric<TalpMetricKind::NUM_OMP_TASKS,long>>);
+RegisterSelector numGPURuntimeCallsSelector("talp_gpu_runtime_calls", createMetricSelector<TalpMetric<TalpMetricKind::NUM_GPU_RUNTIME_CALLS,long>>);
+RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetric<TalpMetricKind::ELAPSED_TIME, double>>);
+RegisterSelector usefulTimeSelector("talp_useful_time", createMetricSelector<TalpMetric<TalpMetricKind::USEFUL_TIME, double>>);
 RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::PARALLEL_EFFICIENCY, float>>);
 RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_PARALLEL_EFFICIENCY, float>>);
 RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY, float>>);
 RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE, float>>);
 RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_IN, float>>);
 RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_OUT, float>>);
+RegisterSelector ompParEffSelector("talp_omp_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::OMP_PARALLEL_EFFICIENCY, float>>);
+RegisterSelector ompLoadBalanceSelector("talp_omp_load_balance", createMetricSelector<TalpMetric<TalpMetricKind::OMP_LOAD_BALANCE, float>>);
+RegisterSelector ompSchedulingSelector("talp_omp_scheduling_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::OMP_SCHEDULING_EFFICIENCY, float>>);
+RegisterSelector ompSerializationSelector("talp_omp_serialization_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::OMP_SERIALIZATION_EFFICIENCY, float>>);
+RegisterSelector deviceOffloadSelector("talp_device_offload_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::DEVICE_OFFLOAD_EFFICIENCY, float>>);
+RegisterSelector gpuParallelEffSelector("talp_gpu_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::GPU_PARALLEL_EFFICIENCY, float>>);
+RegisterSelector gpuCommEffSelector("talp_gpu_comm_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::GPU_COMMUNICATION_EFFICIENCY, float>>);
+RegisterSelector gpuOrchEffSelector("talp_gpu_orch_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::GPU_ORCHESTRATION_EFFICIENCY, float>>);
+RegisterSelector averageRegionDurationSelector("talp_avg_region_duration", createMetricSelector<TalpMetric<TalpMetricKind::AVERAGE_REGION_DURATION, float>>);
+RegisterSelector averageIPCSelector("talp_avg_ipc", createMetricSelector<TalpMetric<TalpMetricKind::AVERAGE_IPC, float>>);
+RegisterSelector averageFREQSelector("talp_avg_freq", createMetricSelector<TalpMetric<TalpMetricKind::AVERAGE_FREQ, float>>);
 RegisterSelector dynFilteredSelector("talp_dyn_filtered", createSimpleSelector<TalpDynFilteredSelector>);
 
 using IPCMetric = DerivedMetric<TalpMetric<capi::TalpMetricKind::INSTRUCTIONS, long>, TalpMetric<capi::TalpMetricKind::CYCLES, long>, double, ddivl>;

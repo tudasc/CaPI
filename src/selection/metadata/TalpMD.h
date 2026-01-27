@@ -30,8 +30,13 @@ struct TalpMetrics {
   unsigned long num_omp_parallels;
   /*! Number of encountered OpenMP tasks combined among all processes */
   unsigned long num_omp_tasks;
+  /*! Number of executed GPU Runtime calls combined among all processes */
+  unsigned long num_gpu_runtime_calls;
   /*! Time (in nanoseconds) of the accumulated elapsed time inside the region */
   double elapsed_time;
+  /*! Time (in nanoseconds) of the accumulated CPU time of useful computation in the application */
+  double useful_time;
+  /*! Efficiency number [0.0 - 1.0] of the impact in the application's parallelization */
   float parallel_efficiency;
   /*! Efficiency number of the impact in the MPI parallelization */
   float mpi_parallel_efficiency;
@@ -51,6 +56,16 @@ struct TalpMetrics {
   float omp_scheduling_efficiency;
   /*! Efficiency lost due to OpenMP threads outside of parallel regions */
   float omp_serialization_efficiency;
+  /*! Efficiency of the Host offloading to the Device */
+  float device_offload_efficiency;
+  /*! TBD */
+  float gpu_parallel_efficiency;
+  /*! TBD */
+  float gpu_load_balance;
+  /*! TBD */
+  float gpu_communication_efficiency;
+  /*! TBD */
+  float gpu_orchestration_efficiency;
 };
 
 void to_json(nlohmann::json& j, const TalpMetrics& m) {
@@ -62,7 +77,9 @@ void to_json(nlohmann::json& j, const TalpMetrics& m) {
       {"numMpiCalls", m.num_mpi_calls},
       {"numOmpParallels", m.num_omp_parallels},
       {"numOmpTasks", m.num_omp_tasks},
+      {"numGpuRuntimeCalls", m.num_gpu_runtime_calls},
       {"elapsedTime", m.elapsed_time},
+      {"usefulTime", m.useful_time},
       {"parallelEfficiency", m.parallel_efficiency},
       {"mpiParallelEfficiency", m.mpi_parallel_efficiency},
       {"mpiCommunicationEfficiency", m.mpi_communication_efficiency},
@@ -73,28 +90,40 @@ void to_json(nlohmann::json& j, const TalpMetrics& m) {
       {"ompLoadBalance", m.omp_load_balance},
       {"ompSchedulingEfficiency", m.omp_scheduling_efficiency},
       {"ompSerializationEfficiency", m.omp_serialization_efficiency},
+      {"deviceOffloadEfficiency", m.device_offload_efficiency},
+      {"gpuParallelEfficiency", m.gpu_parallel_efficiency},
+      {"gpuLoadBalance", m.gpu_load_balance},
+      {"gpuCommunicationEfficiency", m.gpu_communication_efficiency},
+      {"gpuOrchestrationEfficiency", m.gpu_orchestration_efficiency},
   };
 }
 
 void from_json(const nlohmann::json& j, TalpMetrics& m) {
-  j.at("numCpus").get_to(m.num_cpus);
-  j.at("cycles").get_to(m.cycles);
-  j.at("instructions").get_to(m.instructions);
-  j.at("numMeasurements").get_to(m.num_measurements);
-  j.at("numMpiCalls").get_to(m.num_mpi_calls);
-  j.at("numOmpParallels").get_to(m.num_omp_parallels);
-  j.at("numOmpTasks").get_to(m.num_omp_tasks);
-  j.at("elapsedTime").get_to(m.elapsed_time);
-  j.at("parallelEfficiency").get_to(m.parallel_efficiency);
-  j.at("mpiParallelEfficiency").get_to(m.mpi_parallel_efficiency);
-  j.at("mpiCommunicationEfficiency").get_to(m.mpi_communication_efficiency);
-  j.at("mpiLoadBalance").get_to(m.mpi_load_balance);
-  j.at("mpiLoadBalanceIn").get_to(m.mpi_load_balance_in);
-  j.at("mpiLoadBalanceOut").get_to(m.mpi_load_balance_out);
-  j.at("ompParallelEfficiency").get_to(m.omp_parallel_efficiency);
-  j.at("ompLoadBalance").get_to(m.omp_load_balance);
-  j.at("ompSchedulingEfficiency").get_to(m.omp_scheduling_efficiency);
-  j.at("ompSerializationEfficiency").get_to(m.omp_serialization_efficiency);
+  m.num_cpus = j.value("numCpus", 0);
+  m.cycles = j.value("cycles", 0.0);
+  m.instructions = j.value("instructions", 0.0);
+  m.num_measurements = j.value("numMeasurements", 0u);
+  m.num_mpi_calls = j.value("numMpiCalls", 0u);
+  m.num_omp_parallels = j.value("numOmpParallels", 0u);
+  m.num_omp_tasks = j.value("numOmpTasks",0u);
+  m.num_gpu_runtime_calls = j.value("numGpuRuntimeCalls", 0u);
+  m.elapsed_time = j.value("elapsedTime", 0.0f);
+  m.useful_time = j.value("usefulTime", 0.0f);
+  m.parallel_efficiency = j.value("parallelEfficiency", 0.0f);
+  m.mpi_parallel_efficiency = j.value("mpiParallelEfficiency", 0.0f);
+  m.mpi_communication_efficiency = j.value("mpiCommunicationEfficiency", 0.0f);
+  m.mpi_load_balance = j.value("mpiLoadBalance", 0.0f);
+  m.mpi_load_balance_in = j.value("mpiLoadBalanceIn", 0.0f);
+  m.mpi_load_balance_out = j.value("mpiLoadBalanceOut", 0.0f);
+  m.omp_parallel_efficiency = j.value("ompParallelEfficiency", 0.0f);
+  m.omp_load_balance = j.value("ompLoadBalance", 0.0f);
+  m.omp_scheduling_efficiency = j.value("ompSchedulingEfficiency", 0.0f);
+  m.omp_serialization_efficiency = j.value("ompSerializationEfficiency", 0.0f);
+  m.device_offload_efficiency = j.value("deviceOffloadEfficiency", 0.0f);
+  m.gpu_parallel_efficiency = j.value("gpuParallelEfficiency", 0.0f);
+  m.gpu_load_balance = j.value("gpuLoadBalance", 0.0f);
+  m.gpu_communication_efficiency = j.value("gpuCommunicationEfficiency", 0.0f);
+  m.gpu_orchestration_efficiency = j.value("gpuOrchestrationEfficiency", 0.0f);
 }
 
 struct TalpPathMetrics {
