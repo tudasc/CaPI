@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+compiler=$1
+build_dir="@CMAKE_CURRENT_BINARY_DIR@"
+install_dir="@CMAKE_INSTALL_PREFIX@/bin"
+capicc="$install_dir/capicc"
+
+if [ -z $compiler ]; then
+  echo "Expected compiler name (or full path) as input"
+  exit 1
+fi
+
+wrapper_file="$build_dir/capicc-$compiler"
+
+echo "Creating wrapper in ${wrapper_file}..."
+cat << EOF > "$wrapper_file"
+#!/usr/bin/env bash
+"$capicc" \$CAPICC_FLAGS $compiler "\$@"
+EOF
+chmod +x "$wrapper_file"
+
+
+read -p "Install wrapper to $install_dir? [y/N]" -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    cp $wrapper_file $install_dir
+fi
