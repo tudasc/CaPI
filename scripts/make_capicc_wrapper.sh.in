@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+compiler=$1
+install_dir="@CMAKE_INSTALL_PREFIX@/bin"
+capicc="$install_dir/capicc"
+
+if [ -z $compiler ]; then
+  echo "Expected compiler name (or full path) as input"
+  exit 1
+fi
+
+name="capicc-$compiler"
+
+wrapper_file="$install_dir"/"$name"
+
+echo "Installing wrapper to $wrapper_file"
+cat << EOF > "$wrapper_file"
+#!/usr/bin/env bash
+"$capicc" \$CAPICC_FLAGS $compiler "$@"
+EOF
+chmod +x "$wrapper_file"
+

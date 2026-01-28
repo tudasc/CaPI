@@ -54,4 +54,11 @@ install(
         RENAME capicc
 )
 
+# Wrapper generator
+make_executable(make_capicc_wrapper.sh.in make_capicc_wrapper.sh)
+install(
+        PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/make_capicc_wrapper.sh
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
 

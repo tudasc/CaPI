@@ -169,6 +169,14 @@ for arg in "$@"; do
             SHOWME_COMPILE=1
             shift
             ;;
+        --showme:ldflags)
+            SHOWME_LDFLAGS=1
+            shift
+            ;;
+        --showme:libs)
+            SHOWME_LIBS=1
+            shift
+            ;;
         --showme:link)
             SHOWME_LINK=1
             shift
@@ -264,9 +272,7 @@ if [[ "$SHOWME_LDFLAGS" == 1 ]]; then
 fi
 
 if [[ "$SHOWME_LIBS" == 1 ]]; then
-    if [[ "$shared" == no ]]; then
-        echo -n "$(get_libs)"
-    fi
+    echo -n "$(get_libs)"
     exit 0
 fi
 
