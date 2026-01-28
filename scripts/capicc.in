@@ -51,18 +51,18 @@ get_inst_cmd() {
     case "$iface" in
         gnu_static)
             echo "-Xclang -load -Xclang $CAPI_INST_PASS \
-                  -fpass-plugin=$CAPI_INST_PASS -mllvm -inst-api=gnu"
+-fpass-plugin=$CAPI_INST_PASS -mllvm -inst-api=gnu"
             ;;
         talp_static)
             echo "-Xclang -load -Xclang $CAPI_INST_PASS \
-                  -Xclang -load -Xclang $TALP_PASS \
-                  -fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS \
-                  -mllvm -inst-api=talp"
+-Xclang -load -Xclang $TALP_PASS \
+-fpass-plugin=$CAPI_INST_PASS -fpass-plugin=$TALP_PASS \
+-mllvm -inst-api=talp"
             ;;
         nesmik)
             if [[ "$RUN_INST_PASS" == 1 ]]; then
                 echo "-Xclang -load -Xclang $NESMIK_PASS \
-                      -fpass-plugin=$NESMIK_PASS $XRAY_FLAGS"
+-fpass-plugin=$NESMIK_PASS $XRAY_FLAGS"
             else
                 echo "$XRAY_FLAGS"
             fi
@@ -88,7 +88,7 @@ get_compile_flags() {
 # -------------------------------
 wrap_whole_archive() {
     local libs="$*"
-    echo "-Wl,-whole-archive $libs -Wl,-no-whole-archive"
+    echo -n "-Wl,-whole-archive $libs -Wl,-no-whole-archive"
 }
 
 # -------------------------------
@@ -98,14 +98,6 @@ prepare_scorep_init() {
     # Generate init file + object
     @SCOREP_CONFIG@ --mpp=mpi --adapter-init --compiler > scorep_init.c
     $COMPILER -c -x c scorep_init.c
-}
-
-get_scorep_link_flags() {
-    echo "-Wl,-start-group \
-          $(wrap_whole_archive $CAPI_LIB_SCOREP) \
-          $(@SCOREP_CONFIG@ --compiler --ldflags) \
-          $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) \
-          -Wl,-end-group"
 }
 
 get_ldflags() {
@@ -136,9 +128,7 @@ get_libs() {
             libs="$(wrap_whole_archive $CAPI_LIB_GNU) $LLVM_LIBS -lstdc++"
             ;;
         scorep)
-            libs="$(wrap_whole_archive $CAPI_LIB_SCOREP) \
-                  $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) \
-                  $LLVM_LIBS -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_SCOREP) $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) $LLVM_LIBS -lstdc++"
             ;;
         extrae)
             libs="$(wrap_whole_archive $CAPI_LIB_EXTRAE) $LLVM_LIBS -lstdc++"
@@ -147,8 +137,7 @@ get_libs() {
             libs="$(wrap_whole_archive $CAPI_LIB_TALP) $LLVM_LIBS -lstdc++"
             ;;
         nesmik)
-            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) \
-                  $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
             ;;
         gnu_static|talp_static)
             libs=""
@@ -250,11 +239,7 @@ if [[ "$linking" == yes ]]; then
             ;;
     esac
 
-    CMD="$COMPILER \
-         $(get_compile_flags) \
-         $EXTRA_OBJS \
-         $@ \
-         $(get_ldflags)"
+    CMD="$COMPILER $(get_compile_flags) $EXTRA_OBJS $@ $(get_ldflags)"
 
     # Only executables get libraries
     if [[ "$shared" == no ]]; then

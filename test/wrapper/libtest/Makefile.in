@@ -1,5 +1,5 @@
 CAPICC=@CAPICC@
-CAPI_FLAGS=--capi-interface=nesmik --verbose --embed-cg
+CAPI_FLAGS=--capi-interface=gnu --verbose --embed-cg
 CXX=@CXX@
 
 all: main.exe
