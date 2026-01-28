@@ -14,7 +14,7 @@ LLVM_LIBS=$(@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
 NESMIK_LIB="@NESMIK_LIB_PATH@"
 DLB_LIB="@DLB_LIBRARY@"
 
-XRAY_FLAGS="-fxray-instrument -fxray-instruction-threshold=1"
+XRAY_FLAGS="-fxray-instrument -fxray-shared -fxray-instruction-threshold=1"
 
 INST_PASSES_AVAILABLE="@INST_PASSES_AVAILABLE@"
 
@@ -24,10 +24,24 @@ NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
 
 VERBOSE=0
 RUN_INST_PASS=1
+EMBED_CG=0
 SHOWME_COMPILE=0
+SHOWME_LDFLAGS=0
+SHOWME_LIBS=0
 SHOWME_LINK=0
 SHOWME_ALL=0
 SHOWME_COMMAND=0
+
+# -------------------------------
+# Helper: CaGe flags
+# -------------------------------
+get_cage_link_flags() {
+    echo "$(metacg-config --cage-ldflags)"
+}
+
+get_cage_compile_flags() {
+    echo "$(metacg-config --cage-cxxflags)"
+}
 
 # -------------------------------
 # Helper: instrumentation command
@@ -59,6 +73,16 @@ get_inst_cmd() {
     esac
 }
 
+get_compile_flags() {
+    local flags
+    flags="$(get_inst_cmd "$CAPI_INTERFACE")"
+
+    if [[ "$EMBED_CG" == 1 ]]; then
+        flags="$flags $(get_cage_compile_flags)"
+    fi
+
+    echo "$flags"
+}
 # -------------------------------
 # Helper: wrap with whole-archive
 # -------------------------------
@@ -84,35 +108,56 @@ get_scorep_link_flags() {
           -Wl,-end-group"
 }
 
-get_compile_flags() {
-    get_inst_cmd "$CAPI_INTERFACE"
-}
+get_ldflags() {
+    local flags=""
 
-get_link_flags() {
     case "$CAPI_INTERFACE" in
-        gnu)
-            echo "$(wrap_whole_archive $CAPI_LIB_GNU) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
-            ;;
-        gnu_static|talp_static)
-            echo ""
-            ;;
         scorep)
-            echo "$(get_scorep_link_flags) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
+            flags="$(@SCOREP_CONFIG@ --compiler --ldflags) $XRAY_FLAGS"
             ;;
-        extrae)
-            echo "$(wrap_whole_archive $CAPI_LIB_EXTRAE) $XRAY_FLAGS $LLVM_LIBS -lstdc++ -lmpi"
-            ;;
-        talp)
-            echo "$(wrap_whole_archive $CAPI_LIB_TALP) $XRAY_FLAGS $LLVM_LIBS -lstdc++"
-            ;;
-        nesmik)
-            echo "$(wrap_whole_archive $CAPI_LIB_NESMIK) \
-                  $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lstdc++ -lmpi"
-            ;;
-        *)
+        gnu|scorep|extrae|talp|nesmik)
+            flags="$XRAY_FLAGS"
             ;;
     esac
+
+    if [[ "$EMBED_CG" == 1 ]]; then
+        flags="$flags $(get_cage_link_flags)"
+    fi
+
+    echo "$flags"
 }
+
+
+get_libs() {
+    local libs=""
+
+    case "$CAPI_INTERFACE" in
+        gnu)
+            libs="$(wrap_whole_archive $CAPI_LIB_GNU) $LLVM_LIBS -lstdc++"
+            ;;
+        scorep)
+            libs="$(wrap_whole_archive $CAPI_LIB_SCOREP) \
+                  $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) \
+                  $LLVM_LIBS -lstdc++"
+            ;;
+        extrae)
+            libs="$(wrap_whole_archive $CAPI_LIB_EXTRAE) $LLVM_LIBS -lstdc++"
+            ;;
+        talp)
+            libs="$(wrap_whole_archive $CAPI_LIB_TALP) $LLVM_LIBS -lstdc++"
+            ;;
+        nesmik)
+            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) \
+                  $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
+            ;;
+        gnu_static|talp_static)
+            libs=""
+            ;;
+    esac
+
+    echo "$libs"
+}
+
 
 # -------------------------------
 # Parse wrapper options
@@ -121,6 +166,10 @@ for arg in "$@"; do
     case $arg in
         --capi-interface=*)
             CAPI_INTERFACE="${arg#*=}"
+            shift
+            ;;
+        --embed-cg)
+            EMBED_CG=1
             shift
             ;;
         --no-instrument)
@@ -148,7 +197,7 @@ for arg in "$@"; do
             shift
             ;;
         -*)
-            echo "Unknown wrapper option $arg"
+            echo "Unknown wrapper option $arg" >&2
             exit 1
             ;;
         *)
@@ -161,7 +210,7 @@ done
 # Checking for inconsistencies
 # -------------------------------
 if [[ "$RUN_INST_PASS" -eq 1 ]] && [[ "$INST_PASSES_AVAILABLE" -eq 0 ]]; then
-    echo "Instrumentation plugins not available. Build CaPI with ENABLE_INST_PASSES=ON or disable LLVM instrumentation plugins by passing --no-instrument to this wrapper."
+    echo "Instrumentation plugins not available. Build CaPI with ENABLE_INST_PASSES=ON or disable LLVM instrumentation plugins by passing --no-instrument to this wrapper." >&2
     exit 1
 fi
 
@@ -171,77 +220,93 @@ shift
 
 # Check if linking or not
 linking=yes
+shared=no
 for arg in "$@"; do
     case "$arg" in
         -c|-S|-E|-M|-MM|-MMD)
             linking=no
+            ;;
+        -shared|-Wl,-shared)
+            shared=yes
             ;;
     esac
 done
 
 CMD=""
 
-# -------------------------------
-# Linking case
-# -------------------------------
 if [[ "$linking" == yes ]]; then
-    INST_CMD=""
     EXTRA_OBJS=""
 
     case "$CAPI_INTERFACE" in
-        gnu)
-            # no LLVM pass instrumentation, just XRAY flags
-            INST_CMD="$XRAY_FLAGS"
-            ;;
-        gnu_static|talp_static)
-            INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
-            ;;
         scorep)
             prepare_scorep_init
             EXTRA_OBJS="scorep_init.o"
-            INST_CMD="$XRAY_FLAGS"
             ;;
-        extrae|talp)
-            INST_CMD="$XRAY_FLAGS"
-            ;;
-        nesmik)
-            INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
+        gnu_static|talp_static|gnu|talp|nesmik|extrae)
             ;;
         *)
+            echo "Invalid interface" >&2
             exit 1
             ;;
     esac
 
     CMD="$COMPILER \
-         $INST_CMD \
+         $(get_compile_flags) \
          $EXTRA_OBJS \
          $@ \
-         $(get_link_flags)"
+         $(get_ldflags)"
+
+    # Only executables get libraries
+    if [[ "$shared" == no ]]; then
+        CMD="$CMD $(get_libs)"
+    fi
 else
 # -------------------------------
 # Non-linking case
 # -------------------------------
-    INST_CMD=$(get_inst_cmd "$CAPI_INTERFACE")
-    CMD="$COMPILER $INST_CMD $@"
+    CMD="$COMPILER $(get_compile_flags) $@"
 fi
 
+
 if [[ "$SHOWME_COMPILE" == 1 ]]; then
-    echo "$(get_compile_flags)"
+    echo -n "$(get_compile_flags)"
+    exit 0
+fi
+
+if [[ "$SHOWME_LDFLAGS" == 1 ]]; then
+    echo -n "$(get_ldflags)"
+    exit 0
+fi
+
+if [[ "$SHOWME_LIBS" == 1 ]]; then
+    if [[ "$shared" == no ]]; then
+        echo -n "$(get_libs)"
+    fi
     exit 0
 fi
 
 if [[ "$SHOWME_LINK" == 1 ]]; then
-    echo "$(get_link_flags)"
+    if [[ "$shared" == no ]]; then
+        echo -n "$(get_ldflags) $(get_libs)"
+    else
+        echo -n "$(get_ldflags)"
+    fi
     exit 0
 fi
+
 
 if [[ "$SHOWME_ALL" == 1 ]]; then
-    echo "$(get_compile_flags) $(get_link_flags)"
+    if [[ "$shared" == no ]]; then
+        echo -n "$(get_compile_flags) $(get_ldflags) $(get_libs)"
+    else
+        echo -n "$(get_compile_flags) $(get_ldflags)"
+    fi
     exit 0
 fi
 
+
 if [[ "$SHOWME_COMMAND" == 1 ]]; then
-    echo "$CMD"
+    echo -n "$CMD"
     exit 0
 fi
 
