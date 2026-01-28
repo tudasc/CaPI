@@ -16,7 +16,7 @@ wrapper_file="$install_dir"/"$name"
 echo "Installing wrapper to $wrapper_file"
 cat << EOF > "$wrapper_file"
 #!/usr/bin/env bash
-"$capicc" \$CAPICC_FLAGS $compiler "$@"
+"$capicc" \$CAPICC_FLAGS $compiler "\$@"
 EOF
 chmod +x "$wrapper_file"
 
