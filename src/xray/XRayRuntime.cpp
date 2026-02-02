@@ -231,16 +231,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   std::string mcFile = result["config"].as<std::string>();
   std::string filterFile = result["filter-file"].as<std::string>();
 
-
-  auto enableEnv = std::getenv("CAPI_ENABLE");
-  if (enableEnv) {
-    shouldInit = true;
-  }
-
-  auto logCallsEnv = std::getenv("CAPI_LOG_CALLS");
-  if (logCallsEnv) {
-    logCalls = true;
-  }
+  shouldInit = result["enable"].as<bool>();
 
 
   if (!mcFile.empty()) {
