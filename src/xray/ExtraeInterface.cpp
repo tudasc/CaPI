@@ -85,6 +85,9 @@ inline void handle_extrae_region_exit(int id) XRAY_NEVER_INSTRUMENT {
 
 namespace capi {
 
+void registerExtraOptions(cxxopts::Options&) {
+}
+
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   XRayRecursionGuard guard(inXRayScope);
   if (!guard) {

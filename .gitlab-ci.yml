@@ -227,7 +227,7 @@ capi-test-example-run:
     - module load dlb/3.5
     - cd $CAPI_BUILD/examples/lulesh
     - cp ../../test/integration/input/lulesh/lulesh_full.compute.gtjson lulesh_test_filter.json
-    - CAPI_MEASUREMENT_CONFIG=lulesh_test_filter.json SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
+    - CAPI_OPTIONS="--config lulesh_test_filter.json" SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true SCOREP_EXPERIMENT_DIRECTORY="scorep-test-profile" ./lulesh2.0_scorep -s 10
     - num_usr=$(scorep-score -r scorep-test-profile/profile.cubex | grep USR | wc -l)
     - | 
       if [[ $num_usr != 10 ]]; then 

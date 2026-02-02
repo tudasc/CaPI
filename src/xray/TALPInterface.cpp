@@ -97,6 +97,9 @@ inline void handle_talp_region_exit(RegionInfo &region) XRAY_NEVER_INSTRUMENT {
 
 namespace capi {
 
+void registerExtraOptions(cxxopts::Options&) {
+}
+
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 
   // TODO: Optimize region lookup at exit by maintaining thread-local stack of active regions?
