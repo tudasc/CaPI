@@ -141,9 +141,9 @@ capi-test-wrapper:
     - module load llvm/20.1.3
     - module load metacg/devel
     - cd $CAPI_BUILD/test/wrapper
-    - make clean && make CXXFLAGS="-gcc-toolchain=$(dirname $(which gcc))/.." all
+    - make clean && make CXXFLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." all
     - CAPI_OPTIONS="--enable" ./main.exe
-    - make clean && make CXXFLAGS="-gcc-toolchain=$(dirname $(which gcc))/.. -DDLOPEN_LIB" all
+    - make clean && make CXXFLAGS="--gcc-toolchain=$(dirname $(which gcc))/.. -DDLOPEN_LIB" all
     - CAPI_OPTIONS="--enable" ./main.exe
 
 capi-install:
