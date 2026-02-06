@@ -11,13 +11,16 @@
 #include <unordered_set>
 #include <vector>
 #include <memory>
+#include <sstream>
+
+#define CXXOPTS_NO_RTTI
+#include "cxxopts.hpp"
 
 #include "xray/xray_interface.h"
 #include "capi/selection/MeasurementConfig.h"
 #include "capi/support/IteratorUtils.h"
 
 #define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
-
 
 namespace capi {
 
@@ -49,10 +52,10 @@ struct GlobalCaPIData {
   std::unique_ptr<XRayMeasurementConfig> measurementConfig;
   bool logCalls;
   std::unique_ptr<CallLogger> logger;
+  cxxopts::ParseResult options;
 };
 
 using XRayHandlerFn = void (*)(int32_t, XRayEntryType);
-
 
 struct XRayRecursionGuard {
   bool& xrayScope;
@@ -76,7 +79,7 @@ struct XRayRecursionGuard {
   }
 };
 
-
+void registerExtraOptions(cxxopts::Options&);
 
 void initXRay();
 
