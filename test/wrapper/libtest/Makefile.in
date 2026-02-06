@@ -6,14 +6,14 @@ all: main.exe
 
 %.o: %.cpp
 	@echo "Building $<"
-	$(CAPICC) $(CAPI_FLAGS) $(CXX) -c -o $@  $<
+	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -c -o $@  $<
 
 shared.so: shared.o
 	@echo "Linking shared lib $<"
-	$(CAPICC) $(CAPI_FLAGS) $(CXX) -shared -o $@ $<
+	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -shared -o $@ $<
 
 main.exe: main.o shared.so
-	$(CAPICC) $(CAPI_FLAGS) clang++ main.o shared.so -Wl,-rpath=`pwd` -o $@
+	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) main.o shared.so -Wl,-rpath=`pwd` -o $@
 
 clean:
 	rm -f *.o *.exe *.so
