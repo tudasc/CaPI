@@ -17,6 +17,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <link.h>
 #include <sstream>
 #include <unistd.h>
 #include <unordered_set>
@@ -35,6 +36,8 @@
 CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 namespace capi {
+
+static int numInitialObjects = 0;
 
 XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, const XRayFunctionMap& xrayMap) {
   std::unordered_set<std::string> enteredFunctions;
@@ -113,9 +116,8 @@ public:
 
 };
 
-
-std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
-  std::unordered_map<int, XRayFunctionInfo> xrayIdMap;
+XRayFunctionMap loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
+  XRayFunctionMap xrayIdMap;
 
   llvm::Expected<llvm::xray::InstrumentationMap> mapOrErr = llvm::xray::loadInstrumentationMap(objectFile);
   if (auto E = mapOrErr.takeError()) {
@@ -156,13 +158,154 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
 // Stored behind a pointer to avoid initialization order problems.
 capi::GlobalCaPIData* globalCaPIData;
 
+
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
 extern void handleCustomXRayEvent(void* data, size_t len);
 
-extern void postXRayInit(const XRayFunctionMap &);
+extern void postXRayInit();
 
 extern void preXRayFinalize();
+
+std::vector<std::string> splitArgs(const std::string& input) {
+  std::istringstream iss(input);
+  std::vector<std::string> args;
+  std::string token;
+  while (iss >> token) {
+    args.push_back(token);
+  }
+  return args;
+}
+
+cxxopts::ParseResult parseOptions() {
+
+  std::vector<std::string> args;
+  const char* env = std::getenv("CAPI_OPTIONS");
+  if (env && !std::string(env).empty()) {
+    args = splitArgs(env);
+  }
+  args.insert(args.begin(), "capi-runtime"); // argv[0] dummy
+
+  std::vector<const char*> argv;
+  argv.reserve(args.size());
+  for (const auto& s : args) {
+    argv.push_back(s.c_str());
+  }
+
+  cxxopts::Options options("capi-options", "CaPI runtime common options");
+
+
+  options.add_options()
+      ("enable", "Enable instrumentation",
+       cxxopts::value<bool>()->default_value("false"))
+      ("log-calls", "Log instrumented calls",
+       cxxopts::value<bool>()->default_value("false"))
+      ("config", "Measurement configuration file",
+       cxxopts::value<std::string>()->default_value(""))
+      ("filter-file", "Filter file (deprecated, use --config instead)",
+       cxxopts::value<std::string>()->default_value(""));
+
+  capi::registerExtraOptions(options);
+  auto result = options.parse(static_cast<int>(args.size()), argv.data());
+  return result;
+
+}
+
+struct PatchingStats {
+  int numFound{0};
+  int numPatched{0};
+  int numFailed{0};
+};
+
+static std::string detectObject(int objId, MappedSymTableMap& symTables) {
+  // A somewhat hacky way to find out to which DSO this ID belongs
+  std::string objName;
+  uintptr_t firstAddr = __xray_function_address_in_object(1, objId);
+  auto nextHighestIt = symTables.upper_bound(firstAddr);
+  if (nextHighestIt == symTables.begin()) {
+    logInfo() << "Unable to detect DSO name\n";
+  } else {
+    nextHighestIt--;
+    objName = nextHighestIt->second.memMap.path;
+  }
+  return objName;
+}
+
+
+static PatchingStats patchObject(int objId, const XRayFunctionMap& localMap, XRayFunctionMap& globalMap, FunctionFilter* filter, Timer* patchTimer) {
+
+  size_t maxFID = __xray_max_function_id_in_object(objId);
+  if (maxFID == 0) {
+    logError() << "Detected no XRay sleds - no functions instrumented.\n";
+    return {};
+  }
+
+  PatchingStats stats;
+
+  stats.numFound += localMap.size();
+
+  if (patchTimer)
+    patchTimer->resume();
+  for (int fid = 1; fid <= maxFID; ++fid) {
+    auto fIt = localMap.find(fid);
+    if (fIt == localMap.end()) {
+      logError() << "Unable to determine symbol for function " << fid << "\n";
+      continue;
+    }
+    auto& fInfo = fIt->second;
+
+    // Ignore if there is no filter or the function is filtered out
+    if (filter && !filter->accepts(fInfo.name)) {
+      continue;
+    }
+
+    auto patchStatus = __xray_patch_function_in_object(fid, objId);
+    if (patchStatus == SUCCESS) {
+      auto packedId = __xray_pack_id(fid, objId);
+      globalMap[packedId] = fInfo;
+
+      if (filter) {
+        // TODO: This should not access global data directly
+        int flags = filter->getFlags(fInfo.name);
+        if (isScopeTrigger(flags)) {
+          globalCaPIData->scopeTriggerSet.insert(packedId);
+        }
+        if (isBeginTrigger(flags)) {
+          globalCaPIData->beginTriggerSet.insert(packedId);
+          // If there are begin triggers, start in inactive mode
+          globalCaPIData->beginActive = false;
+        }
+        if (isEndTrigger(flags)) {
+          globalCaPIData->endTriggerSet.insert(packedId);
+        }
+      }
+      stats.numPatched++;
+    } else {
+      logError() << "XRay patching failed: object=" << objId << ", fid=" << fid << ", name=" << fInfo.name << "\n";
+      stats.numFailed++;
+    }
+  }
+  if (patchTimer)
+    patchTimer->pause();
+  return stats;
+}
+
+
+static PatchingStats loadIdsAndPatchObject(int objId, std::string objName, XRayFunctionMap& globalMap, FunctionFilter* filter, Timer* idLoadTimer, Timer* patchTimer) {
+
+  if (idLoadTimer)
+    idLoadTimer->resume();
+  auto funcInfoMap = loadXRayIDs(objName);
+  if (idLoadTimer)
+    idLoadTimer->pause();
+
+  size_t maxFID = __xray_max_function_id_in_object(objId);
+
+  logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")" << std::endl;
+
+  return patchObject(objId, funcInfoMap, globalMap, filter, patchTimer);
+}
+
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
@@ -173,9 +316,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   bool shouldInit{false};
   bool logCalls{false};
 
-  bool noFilter{true};
-
-  FunctionFilter filter;
+  std::unique_ptr<FunctionFilter> filter;
   std::unique_ptr<MeasurementConfig> mc;
 
   auto result = parseOptions();
@@ -186,34 +327,34 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   shouldInit = result["enable"].as<bool>();
 
-
   if (!mcFile.empty()) {
     logInfo() << "Loading measurement config from " << mcFile << "...\n";
     mc = read(mcFile);
     if (mc) {
-      filter = mc->createFunctionFilter();
-      noFilter = false;
+      filter = std::make_unique<FunctionFilter>(mc->createFunctionFilter());
       shouldInit = true;
     }
   } else if (!filterFile.empty()) {
     Timer timer("[Info] Loading filter file took ", std::cout);
+    filter = std::make_unique<FunctionFilter>();
     bool success{false};
     if (filterFile.ends_with(".json")) {
-      success = readJSONFilterFile(filter, filterFile);
+      success = readJSONFilterFile(*filter, filterFile);
     } else {
-      success = readScorePFilterFile(filter, filterFile);
+      success = readScorePFilterFile(*filter, filterFile);
     }
     if (success) {
-      logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
-      noFilter = false;
+      logInfo() << "Loaded filter file with " << filter->size() << " entries.\n";
       shouldInit = true;
     } else {
+      filter.reset();
       logError() << "Failed to read filter file from " << filterFile << "\n";
       return;
     }
   } else {
     logInfo() << "No CaPI filtering file specified.\n";
   }
+
 
   if (!shouldInit) {
     logInfo() << "CaPI is inactive. Set '--config <config_file>' or '--enable' in 'CAPI_OPTIONS' if you want to activate instrumentation.\n";
@@ -231,14 +372,10 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     symTables = loadMappedSymTables(execPath);
   }
 
-  size_t numFound = 0;
-  size_t numPatched = 0;
-  size_t numFailed = 0;
-
-  SymbolTable globalTable;
   std::unordered_set<uintptr_t> filteredOut;
 
   size_t numObjects = __xray_num_objects();
+  numInitialObjects = numObjects;
 
   XRayFunctionMap xrayMap;
 
@@ -246,72 +383,18 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   __xray_set_handler(handleXRayEvent);
   __xray_set_customevent_handler(handleCustomXRayEvent);
 
-  Timer idLoadTimer("[Info] Loading IDs took ", std::cout, false);
-  Timer patchTimer("[Info] Patching took ", std::cout, false);
+  PatchingStats fullStats;
 
-  for (int objId = 0; objId < numObjects; ++objId) {
-    size_t maxFID = __xray_max_function_id_in_object(objId);
-    if (maxFID == 0) {
-      logError() << "No functions instrumented.\n";
-      return;
+  {
+    Timer idLoadTimer("[Info] Loading IDs took ", std::cout, false);
+    Timer patchTimer("[Info] Patching took ", std::cout, false);
+    for (int objId = 0; objId < numObjects; ++objId) {
+      auto objName = detectObject(objId, symTables);
+      auto objectStats = loadIdsAndPatchObject(objId, objName, xrayMap, filter.get(), &idLoadTimer, &patchTimer);
+      fullStats.numFound += objectStats.numFound;
+      fullStats.numPatched += objectStats.numPatched;
+      fullStats.numFailed += objectStats.numFailed;
     }
-
-    // A somewhat hacky way to find out to which DSO this ID belongs
-    std::string objName;
-    uintptr_t firstAddr = __xray_function_address_in_object(1, objId);
-    auto nextHighestIt = symTables.upper_bound(firstAddr);
-    if (nextHighestIt == symTables.begin()) {
-      logInfo() << "Unable to detect DSO name\n";
-    } else {
-      nextHighestIt--;
-      objName = nextHighestIt->second.memMap.path;
-    }
-
-    logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")" << std::endl;
-
-    idLoadTimer.resume();
-    auto funcInfoMap = loadXRayIDs(objName);
-    idLoadTimer.pause();
-
-    numFound += funcInfoMap.size();
-
-    patchTimer.resume();
-    for (int fid = 1; fid <= maxFID; ++fid) {
-
-      auto fIt = funcInfoMap.find(fid);
-      if (fIt == funcInfoMap.end()) {
-        logError() << "Unable to determine symbol for function " << fid << "\n";
-        continue;
-      }
-      auto& fInfo = fIt->second;
-      if (!(noFilter || filter.accepts(fInfo.name))) {
-        continue;
-      }
-
-      auto patchStatus = __xray_patch_function_in_object(fid, objId);
-      if (patchStatus == SUCCESS) {
-        auto packedId = __xray_pack_id(fid, objId);
-        xrayMap[packedId] = fInfo;
-        int flags = filter.getFlags(fInfo.name);
-        if (isScopeTrigger(flags)) {
-          globalCaPIData->scopeTriggerSet.insert(packedId);
-        }
-        if (isBeginTrigger(flags)) {
-          globalCaPIData->beginTriggerSet.insert(packedId);
-          // If there are begin triggers, start in inactive mode
-          globalCaPIData->beginActive = false;
-        }
-        if (isEndTrigger(flags)) {
-          globalCaPIData->endTriggerSet.insert(packedId);
-        }
-        numPatched++;
-      } else {
-        logError() << "XRay patching failed: object=" << objId << ", fid=" << fid << ", name=" << fInfo.name << "\n";
-        numFailed++;
-      }
-
-    }
-    patchTimer.pause();
   }
 
   std::unique_ptr<XRayMeasurementConfig> xmc;
@@ -320,7 +403,8 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   }
 
   globalCaPIData->options = result;
-  globalCaPIData->xrayFuncMap = xrayMap;
+  globalCaPIData->xrayFuncMap = std::move(xrayMap);
+  globalCaPIData->filter = std::move(filter);
   globalCaPIData->measurementConfig = std::move(xmc);
   globalCaPIData->useScopeTriggers = !globalCaPIData->scopeTriggerSet.empty();
   globalCaPIData->logCalls = logCalls;
@@ -329,20 +413,85 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     globalCaPIData->logger = std::make_unique<CallLogger>(execFilename);
   }
 
-  logInfo() << "Functions found: " << numFound << "\n";
-  logInfo() << "Functions patched: " << numPatched << " (" << numFailed << " failed)\n";
+  logInfo() << "Functions found: " << fullStats.numFound << "\n";
+  logInfo() << "Functions patched: " << fullStats.numPatched << " (" << fullStats.numFailed << " failed)\n";
 
-
-  // TODO: Since the map is now in the global data, there is no need to pass it.
-  postXRayInit(xrayMap);
-
+  postXRayInit();
 }
+
 
 void finalizeXRay() XRAY_NEVER_INSTRUMENT {
   preXRayFinalize();
   delete globalCaPIData;
 }
 
+
+}
+
+extern "C" void capi_register_dso(uint64_t firstFunctionAddr) XRAY_NEVER_INSTRUMENT {
+
+  if (!capi::globalCaPIData) {
+    // Not initialized yet
+    capi::logError() << "Tried to register DSO, but CaPI has not been initialized yet!\n";
+    return;
+  }
+
+  capi::logInfo() << "Registering DSO!\n";
+
+  // TODO: Enable filtering
+  for (int objId = capi::numInitialObjects; objId < __xray_num_objects(); objId++) {
+      if (__xray_max_function_id_in_object(objId) == 0) {
+        continue;
+      }
+//      capi::logInfo() << "First adddress in " << i << " is " << std::hex <<  __xray_function_address_in_object(1, i) << ", target address is " << firstFunctionAddr << std::dec << "\n";
+      if (__xray_function_address_in_object(1, objId) == firstFunctionAddr) {
+
+        capi::logInfo() << "Intercepted loading of DSO with ID=" << objId << "\n";
+
+        struct FindDsoCtx {
+          uintptr_t target;
+          const char* result = nullptr;
+        };
+
+        FindDsoCtx ctx;
+        dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* data) -> int {
+          auto* ctx = static_cast<FindDsoCtx*>(data);
+          for (int i = 0; i < info->dlpi_phnum; ++i) {
+            const ElfW(Phdr)& ph = info->dlpi_phdr[i];
+
+            if (ph.p_type != PT_LOAD)
+              continue;
+
+            uintptr_t start = info->dlpi_addr + ph.p_vaddr;
+            uintptr_t end   = start + ph.p_memsz;
+
+            if (ctx->target >= start && ctx->target < end) {
+              ctx->result = info->dlpi_name && info->dlpi_name[0]
+                                ? info->dlpi_name
+                                : "<main executable>";
+              return 1; // stop iteration
+            }
+          }
+//          capi::logInfo() << "Detected loading of DSO " << (info->dlpi_name[0] ? info->dlpi_name : "unknown" ) << " at address "
+//                                      << std::hex << (void*)info->dlpi_addr << std::dec << "\n";
+          return 0;
+        }, &ctx);
+
+        if (!ctx.result) {
+          capi::logError() << "Could not detect corresponding object file!\n";
+          return;
+        }
+
+        capi::logInfo() << "Loading symbols and patching DSO " << ctx.result << "\n";
+
+        auto& xrayMap = capi::globalCaPIData->xrayFuncMap;
+        auto& filter = capi::globalCaPIData->filter;
+
+        auto objectStats = loadIdsAndPatchObject(objId, ctx.result, xrayMap, filter.get(), nullptr, nullptr);
+        __xray_patch_object(objId);
+      }
+
+  }
 
 }
 

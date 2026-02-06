@@ -7,6 +7,9 @@ set(CAPI_XRAY_SOURCES
         ../selection/MeasurementConfig.cpp
         ../selection/MeasurementConfigIO.cpp)
 
+add_library(capi_dso_init STATIC DSOInit.cpp)
+install(TARGETS capi_dso_init ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 add_library(capixray_gnu STATIC ${CAPI_XRAY_SOURCES} GNUInterface.cpp)
 add_json(capixray_gnu)
 add_cxxopts(capixray_gnu)

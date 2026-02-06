@@ -16,9 +16,10 @@
 #define CXXOPTS_NO_RTTI
 #include "cxxopts.hpp"
 
-#include "xray/xray_interface.h"
 #include "capi/selection/MeasurementConfig.h"
 #include "capi/support/IteratorUtils.h"
+#include "capi/symbol_retriever/SymbolRetriever.h"
+#include "xray/xray_interface.h"
 
 #define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
 
@@ -49,10 +50,12 @@ struct GlobalCaPIData {
   std::unordered_set<int32_t> endTriggerSet;
   bool beginActive{true};
   bool useScopeTriggers{false};
+  std::unique_ptr<FunctionFilter> filter;
   std::unique_ptr<XRayMeasurementConfig> measurementConfig;
   bool logCalls;
   std::unique_ptr<CallLogger> logger;
   cxxopts::ParseResult options;
+  MappedSymTableMap symTables;
 };
 
 using XRayHandlerFn = void (*)(int32_t, XRayEntryType);

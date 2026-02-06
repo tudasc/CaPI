@@ -174,7 +174,7 @@ void registerExtraeEvents(const XRayFunctionMap& xrayMap, bool demangle) XRAY_NE
   Extrae_define_event_type (&ExtraeXRayEvt, const_cast<char*>("XRay Event"), &nvalues, &idList[0], &descriptions[0]);
 }
 
-void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
+void postXRayInit() XRAY_NEVER_INSTRUMENT {
   if (!Extrae_init) {
     logError() << "Extrae API not available. XRay events will not be traced.\n";
     return;
@@ -193,7 +193,7 @@ void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
     demangle = false;
   }
 
-  registerExtraeEvents(xrayMap, demangle);
+  registerExtraeEvents(globalCaPIData->xrayFuncMap, demangle);
 
   initialized = true;
   logInfo() << "XRay initialization and Extrae event registration done.\n";

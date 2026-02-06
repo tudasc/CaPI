@@ -15,6 +15,10 @@
 
 #define TALP_NAME_MAX 128
 
+namespace capi {
+extern GlobalCaPIData *globalCaPIData;
+}
+
 namespace {
 
 using namespace capi;
@@ -181,8 +185,8 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 void handleCustomXRayEvent(void* data, size_t len) {}
 
 
-void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
-    talpData = new TalpData{xrayMap};
+void postXRayInit() XRAY_NEVER_INSTRUMENT {
+    talpData = new TalpData{globalCaPIData->xrayFuncMap};
     initialized = true;
     logInfo() << "XRAY has been initialized, data passed to TALP handler.\n";
 }
