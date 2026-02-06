@@ -142,7 +142,9 @@ capi-test-wrapper:
     - module load metacg/devel
     - cd $CAPI_BUILD/test/wrapper
     - make clean && make CXXFLAGS="--gcc-toolchain=$(dirname $(which gcc))/.." all
-    - ./main.exe
+    - CAPI_OPTIONS="--enable" ./main.exe
+    - make clean && make CXXFLAGS="--gcc-toolchain=$(dirname $(which gcc))/.. -DDLOPEN_LIB" all
+    - CAPI_OPTIONS="--enable" ./main.exe
 
 capi-install:
   <<: *job-setup

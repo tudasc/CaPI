@@ -1,14 +1,18 @@
 CAPICC=@CAPICC@
-CAPI_FLAGS=--capi-interface=gnu --verbose --embed-cg
+CAPI_FLAGS=--capi-interface=gnu --verbose
 CXX=@CXX@
 
-all: main.exe
+all: main.exe shared2.so
 
 %.o: %.cpp
 	@echo "Building $<"
 	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -c -o $@  $<
 
 shared.so: shared.o
+	@echo "Linking shared lib $<"
+	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -shared -o $@ $<
+
+shared2.so: shared2.o
 	@echo "Linking shared lib $<"
 	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -shared -o $@ $<
 

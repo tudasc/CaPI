@@ -236,7 +236,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 }
 
-void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
+void postXRayInit() XRAY_NEVER_INSTRUMENT {
   mainThreadId = std::this_thread::get_id();
 
   auto opts = globalCaPIData->options;

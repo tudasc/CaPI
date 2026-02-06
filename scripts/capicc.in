@@ -3,6 +3,7 @@
 export OMPI_CC=@CC_PATH@
 export OMPI_CXX=@CXX_PATH@
 
+CAPI_LIB_DSO_INIT=@CAPI_XRAY_LIB_DIR@/libcapi_dso_init.a
 CAPI_LIB_GNU=@CAPI_XRAY_LIB_DIR@/libcapixray_gnu.a
 CAPI_LIB_SCOREP=@CAPI_XRAY_LIB_DIR@/libcapixray_scorep.a
 CAPI_LIB_EXTRAE=@CAPI_XRAY_LIB_DIR@/libcapixray_extrae.a
@@ -28,6 +29,7 @@ EMBED_CG=0
 SHOWME_COMPILE=0
 SHOWME_LDFLAGS=0
 SHOWME_LIBS=0
+SHOWME_LIBS_SHARED=0
 SHOWME_LINK=0
 SHOWME_ALL=0
 SHOWME_COMMAND=0
@@ -147,6 +149,22 @@ get_libs() {
     echo "$libs"
 }
 
+# Library dependencies that are injected into shared libraries
+get_libs_shared() {
+    local libs=""
+
+    case "$CAPI_INTERFACE" in
+        gnu|scorep|extrae|talp|nesmik)
+            libs="$(wrap_whole_archive $CAPI_LIB_DSO_INIT)"
+            ;;
+        gnu_static|talp_static)
+            libs=""
+            ;;
+    esac
+
+    echo "$libs"
+}
+
 
 # -------------------------------
 # Parse wrapper options
@@ -175,6 +193,10 @@ for arg in "$@"; do
             ;;
         --showme:libs)
             SHOWME_LIBS=1
+            shift
+            ;;
+        --showme::libs_shared)
+            SHOWME_LIBS_SHARED=1
             shift
             ;;
         --showme:link)
@@ -247,11 +269,13 @@ if [[ "$linking" == yes ]]; then
             ;;
     esac
 
-    CMD="$COMPILER $(get_compile_flags) $EXTRA_OBJS $@ $(get_ldflags)"
+    CMD="$COMPILER $(get_compile_flags) $@ $(get_ldflags)"
 
     # Only executables get libraries
-    if [[ "$shared" == no ]]; then
-        CMD="$CMD $(get_libs)"
+    if [[ "$shared" == yes ]]; then
+        CMD="$CMD $(get_libs_shared)"
+    else
+       CMD="$CMD $EXTRA_OBJS $(get_libs)"
     fi
 else
 # -------------------------------
@@ -276,11 +300,16 @@ if [[ "$SHOWME_LIBS" == 1 ]]; then
     exit 0
 fi
 
+if [[ "$SHOWME_LIBS_SHARED" == 1 ]]; then
+    echo -n "$(get_libs_SHARED)"
+    exit 0
+fi
+
 if [[ "$SHOWME_LINK" == 1 ]]; then
     if [[ "$shared" == no ]]; then
         echo -n "$(get_ldflags) $(get_libs)"
     else
-        echo -n "$(get_ldflags)"
+        echo -n "$(get_ldflags) $(get_libs_shared)"
     fi
     exit 0
 fi
@@ -290,7 +319,7 @@ if [[ "$SHOWME_ALL" == 1 ]]; then
     if [[ "$shared" == no ]]; then
         echo -n "$(get_compile_flags) $(get_ldflags) $(get_libs)"
     else
-        echo -n "$(get_compile_flags) $(get_ldflags)"
+        echo -n "$(get_compile_flags) $(get_ldflags) $(get_libs_shared)"
     fi
     exit 0
 fi
