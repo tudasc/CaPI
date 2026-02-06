@@ -14,6 +14,7 @@ option(ENABLE_TESTING "Enable testing (requires lit)" ON)
 
 include(FetchContent)
 include(json)
+include(cxxopts-header)
 include(AddLLVM)
 include(clang-tidy)
 include(clang-format)

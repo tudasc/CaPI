@@ -36,6 +36,8 @@ CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 namespace capi {
 
+
+
 XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, const XRayFunctionMap& xrayMap) {
   std::unordered_set<std::string> enteredFunctions;
   for (const auto& [id, info] : xrayMap) {
@@ -156,6 +158,7 @@ std::unordered_map<int, XRayFunctionInfo> loadXRayIDs(std::string& objectFile) X
 // Stored behind a pointer to avoid initialization order problems.
 capi::GlobalCaPIData* globalCaPIData;
 
+
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
 extern void handleCustomXRayEvent(void* data, size_t len);
@@ -163,6 +166,50 @@ extern void handleCustomXRayEvent(void* data, size_t len);
 extern void postXRayInit(const XRayFunctionMap &);
 
 extern void preXRayFinalize();
+
+std::vector<std::string> splitArgs(const std::string& input) {
+  std::istringstream iss(input);
+  std::vector<std::string> args;
+  std::string token;
+  while (iss >> token) {
+    args.push_back(token);
+  }
+  return args;
+}
+
+cxxopts::ParseResult parseOptions() {
+
+  std::vector<std::string> args;
+  const char* env = std::getenv("CAPI_OPTIONS");
+  if (env && !std::string(env).empty()) {
+    args = splitArgs(env);
+  }
+  args.insert(args.begin(), "capi-runtime"); // argv[0] dummy
+
+  std::vector<const char*> argv;
+  argv.reserve(args.size());
+  for (const auto& s : args) {
+    argv.push_back(s.c_str());
+  }
+
+  cxxopts::Options options("capi-options", "CaPI runtime common options");
+
+
+  options.add_options()
+      ("enable", "Enable instrumentation",
+       cxxopts::value<bool>()->default_value("false"))
+      ("log-calls", "Log instrumented calls",
+       cxxopts::value<bool>()->default_value("false"))
+      ("config", "Measurement configuration file",
+       cxxopts::value<std::string>()->default_value(""))
+      ("filter-file", "Filter file (deprecated, use --config instead)",
+       cxxopts::value<std::string>()->default_value(""));
+
+  capi::registerExtraOptions(options);
+  auto result = options.parse(static_cast<int>(args.size()), argv.data());
+  return result;
+
+}
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
@@ -173,55 +220,51 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   bool shouldInit{false};
   bool logCalls{false};
 
-  auto enableEnv = std::getenv("CAPI_ENABLE");
-  if (enableEnv) {
-    shouldInit = true;
-  }
-
-  auto logCallsEnv = std::getenv("CAPI_LOG_CALLS");
-  if (logCallsEnv) {
-    logCalls = true;
-  }
-
-
   bool noFilter{true};
-  FunctionFilter filter;
 
+  FunctionFilter filter;
   std::unique_ptr<MeasurementConfig> mc;
-  auto mcEnv = std::getenv("CAPI_MEASUREMENT_CONFIG");
-  if (mcEnv) {
-    logInfo() << "Loading measurement config from " << mcEnv << "...\n";
-    mc = read(mcEnv);
+
+  auto result = parseOptions();
+
+  logCalls = result["log-calls"].as<bool>();
+  std::string mcFile = result["config"].as<std::string>();
+  std::string filterFile = result["filter-file"].as<std::string>();
+
+  shouldInit = result["enable"].as<bool>();
+
+
+  if (!mcFile.empty()) {
+    logInfo() << "Loading measurement config from " << mcFile << "...\n";
+    mc = read(mcFile);
     if (mc) {
       filter = mc->createFunctionFilter();
       noFilter = false;
       shouldInit = true;
     }
-  } else {
-    auto filterEnv = std::getenv("CAPI_FILTERING_FILE");
-    if (filterEnv) {
-      Timer timer("[Info] Loading filter file took ", std::cout);
-      bool success{false};
-      if (0 == strncmp(filterEnv + strlen(filterEnv) - 5, ".json", 5)) {
-        success = readJSONFilterFile(filter, filterEnv);
-      } else {
-        success = readScorePFilterFile(filter, filterEnv);
-      }
-      if (success) {
-        logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
-        noFilter = false;
-        shouldInit = true;
-      } else {
-        logError() << "Failed to read filter file from " << filterEnv << "\n";
-        return;
-      }
+  } else if (!filterFile.empty()) {
+    Timer timer("[Info] Loading filter file took ", std::cout);
+    bool success{false};
+    if (filterFile.ends_with(".json")) {
+      success = readJSONFilterFile(filter, filterFile);
     } else {
-      logInfo() << "No CaPI filtering file specified.\n";
+      success = readScorePFilterFile(filter, filterFile);
     }
+    if (success) {
+      logInfo() << "Loaded filter file with " << filter.size() << " entries.\n";
+      noFilter = false;
+      shouldInit = true;
+    } else {
+      logError() << "Failed to read filter file from " << filterFile << "\n";
+      return;
+    }
+  } else {
+    logInfo() << "No CaPI filtering file specified.\n";
   }
 
+
   if (!shouldInit) {
-    logInfo() << "CaPI is inactive. Pass CAPI_FILTERING_FILE or set CAPI_ENABLE=1 if you want to active instrumentation.\n";
+    logInfo() << "CaPI is inactive. Set '--config <config_file>' or '--enable' in 'CAPI_OPTIONS' if you want to activate instrumentation.\n";
     return;
   }
 
@@ -229,7 +272,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
 
   auto execPath = getExecPath();
   auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
-
 
   MappedSymTableMap symTables;
   {
@@ -325,6 +367,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     xmc = std::make_unique<XRayMeasurementConfig>(*mc, xrayMap);
   }
 
+  globalCaPIData->options = result;
   globalCaPIData->xrayFuncMap = xrayMap;
   globalCaPIData->measurementConfig = std::move(xmc);
   globalCaPIData->useScopeTriggers = !globalCaPIData->scopeTriggerSet.empty();

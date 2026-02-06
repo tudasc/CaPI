@@ -31,8 +31,11 @@ namespace {
 
 using RegionClock = std::chrono::high_resolution_clock;
 
-constexpr long FILTERING_THRESHOLD_NANOS = 10000;
-constexpr long FILTERING_MIN_INVOCATIONS = 100;
+constexpr long FILTERING_THRESHOLD_MICROS_DFLT = 10;
+constexpr long FILTERING_MIN_INVOCATIONS_DFLT = 100;
+
+long filteringThresholdMicros = FILTERING_MIN_INVOCATIONS_DFLT;
+long filteringMinInvocs = FILTERING_MIN_INVOCATIONS_DFLT;
 
 capi::Mode measurementMode{capi::Mode::PROFILE};
 bool dynamicFiltering{false};
@@ -87,6 +90,20 @@ private:
 namespace capi {
 
 
+void registerExtraOptions(cxxopts::Options& options) {
+  options.add_options()
+      ("mode", "Runtime mode: profile|trace",
+       cxxopts::value<std::string>()->default_value("profile"))
+      ("dynamic-filtering", "Enable dynamic filtering",
+       cxxopts::value<bool>())
+      ("filter-limit-micros", "Filter threshold in microseconds",
+       cxxopts::value<int>()->default_value("1"))
+      ("filter-min-calls", "Minimum calls before filtering",
+       cxxopts::value<int>()->default_value("100"));
+}
+
+
+
 static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
   if (dynamicFiltering) {
     // FIXME: Thread-safety!
@@ -128,9 +145,9 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
       auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime);
       metrics.accumulatedTimeNanos += elapsed.count();
       metrics.numInvocations++;
-      if (metrics.numInvocations >= FILTERING_MIN_INVOCATIONS) {
+      if (metrics.numInvocations >= filteringMinInvocs) {
         metrics.shouldMonitor = false;
-        if (metrics.meanDuration() < FILTERING_THRESHOLD_NANOS) {
+        if (metrics.meanDuration() < filteringThresholdMicros) {
           metrics.filtered = true;
           __xray_unpatch_function(id);
           logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
@@ -163,7 +180,11 @@ void handleCustomXRayEvent(void* data, size_t len) {
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   XRayRecursionGuard guard(inXRayScope);
   if (!guard) {
-   logError() << "Recursive XRay event handling detected (id=" << id << ")!\n";
+   logError() << "Recursive XRay event handling detected (id=" << id << ") - unpatching...\n";
+   __xray_unpatch_function(id);
+   // Because we're unpatched, it should be safe to access the function info now.
+   auto& info = capi::globalCaPIData->xrayFuncMap[id];
+   logError() << "Offending function was '" << info.name << "'. Consider filtering this function statically.\n";
    return;
   }
 
@@ -218,31 +239,31 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 void postXRayInit(const XRayFunctionMap& xrayMap) XRAY_NEVER_INSTRUMENT {
   mainThreadId = std::this_thread::get_id();
 
-  bool demangle = true;
-  auto demangleEnv = std::getenv("CAPI_DEMANGLE");
-  if (demangleEnv && (!strcmp(demangleEnv, "0") || !strcmp(demangleEnv, "OFF"))) {
-    demangle = false;
-  }
+  auto opts = globalCaPIData->options;
 
-  measurementMode = Mode::PROFILE;
-  auto modeEnv = std::getenv("CAPI_MODE");
-  if (modeEnv && (!strcmp(modeEnv, "trace") || !strcmp(modeEnv, "TRACE"))) {
+  filteringThresholdMicros = opts["filter-limit-micros"].as<int>();
+  filteringMinInvocs = opts["filter-min-calls"].as<int>();
+
+  const auto& modeStr = opts["mode"].as<std::string>();
+  if (modeStr == "profile") {
+    measurementMode = Mode::PROFILE;
+  } else if (modeStr == "trace") {
     measurementMode = Mode::TRACE;
+  } else {
+    logError() << "Invalid mode selected. Defaulting to PROFILE.\n";
+    measurementMode = Mode::PROFILE;
   }
 
   // Dynamic filtering is only available in profiling mode.
-  bool shouldFilter = measurementMode == Mode::PROFILE;
-  if (shouldFilter) {
-    // Can be turned off.
-    auto filterEnv = std::getenv("CAPI_DYNAMIC_FILTERING");
-    if (filterEnv && (!strcmp(filterEnv, "0") || !strcmp(filterEnv, "OFF"))) {
-      shouldFilter = false;
-    }
+  if (opts.count("dynamic-filtering")) {
+    dynamicFiltering = (measurementMode == Mode::PROFILE) && opts["dynamic-filtering"].as<bool>();
   }
-  dynamicFiltering = shouldFilter;
 
   // TODO: Make this configurable?
   recordInParallelRegions = false;
+
+  // Set NeSmiK backend (if not already set explicitly)
+  setenv("NESMIK_BACKEND", "CaPI", 0);
 
   logInfo() << "XRay initialization for neSmiK done.\n";
   logInfo() << "Running in " << (measurementMode == Mode::PROFILE ? "profiling" : "tracing") << " mode.\n";

@@ -23,6 +23,9 @@ namespace capi {
 
 extern capi::GlobalCaPIData* globalCaPIData;
 
+void registerExtraOptions(cxxopts::Options&) {
+}
+
 void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   // We assume here that XRay is successfully initialized, otherwise this function should not be called
   auto& xrayMap = globalCaPIData->xrayFuncMap;
