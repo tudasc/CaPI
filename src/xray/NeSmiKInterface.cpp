@@ -43,6 +43,7 @@ bool initialized{false};
 bool finalized{false};
 bool recordInParallelRegions{false};
 bool recordOnlyMainThread{true};
+bool isRank0{true};
 thread_local bool inXRayScope{false};
 thread_local bool inParallelRegion{false};
 thread_local int functionLastEnteredBeforeInit{-1};
@@ -63,12 +64,12 @@ std::unordered_map<int, RegionMetrics> regionMetricsMap;
 
 thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeStamps;
 
-std::thread::id mainThreadId;
+pid_t mainThreadId;
 
 struct ThreadGuard {
 
-    explicit ThreadGuard(std::thread::id mainThread)  {
-        auto thisThread = std::this_thread::get_id();
+    explicit ThreadGuard(pid_t mainThread)  {
+        auto thisThread = gettid();
         this->isMainThread = thisThread == mainThread;
     }
 
@@ -95,7 +96,7 @@ void registerExtraOptions(cxxopts::Options& options) {
       ("mode", "Runtime mode: profile|trace",
        cxxopts::value<std::string>()->default_value("profile"))
       ("dynamic-filtering", "Enable dynamic filtering",
-       cxxopts::value<bool>())
+       cxxopts::value<bool>()->default_value("true"))
       ("filter-limit-micros", "Filter threshold in microseconds",
        cxxopts::value<int>()->default_value("1"))
       ("filter-min-calls", "Minimum calls before filtering",
@@ -195,7 +196,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
       }
   }
 
-  if (!recordInParallelRegions && inParallelRegion) {
+    if (!recordInParallelRegions && inParallelRegion) {
     return;
   }
 
@@ -237,7 +238,7 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
 }
 
 void postXRayInit() XRAY_NEVER_INSTRUMENT {
-  mainThreadId = std::this_thread::get_id();
+  mainThreadId = gettid();
 
   auto opts = globalCaPIData->options;
 
@@ -255,9 +256,7 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
   }
 
   // Dynamic filtering is only available in profiling mode.
-  if (opts.count("dynamic-filtering")) {
-    dynamicFiltering = (measurementMode == Mode::PROFILE) && opts["dynamic-filtering"].as<bool>();
-  }
+  dynamicFiltering = (measurementMode == Mode::PROFILE) && opts["dynamic-filtering"].as<bool>();
 
   // TODO: Make this configurable?
   recordInParallelRegions = false;
@@ -272,6 +271,12 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Finalizing XRay interface for neSmiK\n";
+  if (initialized && isRank0) {
+      globalCaPIData->runtimeGraph->printStats();
+      if (globalCaPIData->measurementConfig) {
+          globalCaPIData->runtimeGraph->validateQuery(*globalCaPIData->measurementConfig);
+      }
+  }
 }
 
 }
@@ -282,6 +287,12 @@ void dyncapi_nesmik_init() {
   MPI_Initialized(&mpiInited);
   if (!mpiInited) {
     capi::logError() << "Called dyncapi_mpi_init before MPI_Init! This may lead to inconsistencies in the neSmiK profile.\n";
+  } else {
+    int rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank != 0) {
+      isRank0 = false;
+    }
   }
 #endif
   nesmik::init();
@@ -292,6 +303,7 @@ void dyncapi_nesmik_finalize() {
   __xray_unpatch();
   nesmik::finalize();
   finalized = true;
+
   if (dynamicFiltering) {
 
     std::vector<int> filtered;
@@ -313,7 +325,9 @@ void dyncapi_nesmik_finalize() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    if (rank == 0) capi::logInfo() << "Gathering filtered regions in MPI rank 0...\n";
+    if (rank == 0) {
+        capi::logInfo() << "Gathering filtered regions in MPI rank 0...\n";
+    }
 
     // Gathering filtered IDs in rank 0
     int localSize = filtered.size();

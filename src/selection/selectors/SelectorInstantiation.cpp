@@ -178,6 +178,8 @@ RegisterSelector caSelectorDistinct("common_caller_distinct",
 
 RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>);
 
+RegisterSelector iicSelector("inclusive_instruction_count", createMetricSelector<IICMetric>);
+
 // TALP metrics
 RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>);
 RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetric<TalpMetricKind::CYCLES, long>>);

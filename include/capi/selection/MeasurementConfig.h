@@ -36,10 +36,17 @@ using PathEntries = std::vector<PathEntry>;
 class MeasurementConfig {
  private:
   std::unordered_map<std::string, PathEntries> selectedFunctions;
+  std::string query;
 
   friend void to_json(json&, const MeasurementConfig&);
   friend void from_json(const json&, MeasurementConfig&);
  public:
+    MeasurementConfig(const std::string& query = "") : query(query) {}
+
+  const std::string& getQuery() const {
+    return query;
+  }
+
   void add(const std::string& name, PathEntry entry) {
     auto& pathEntries = selectedFunctions[name];
     pathEntries.push_back(std::move(entry));
@@ -87,17 +94,20 @@ inline void from_json(const json& j, PathEntry& p) {
 // MeasurementConfig
 inline void to_json(json& j, const MeasurementConfig& config) {
   j = json::object();
+  auto& jSelection = j["selection"];
+  j["query"]  = config.query;
   for (const auto& [name, entry] : config.selectedFunctions) {
-    j[name] = entry;
+    jSelection[name] = entry;
   }
 }
 
 inline void from_json(const json& j, MeasurementConfig& config) {
   config.selectedFunctions.clear();
-  for (const auto& [name, value] : j.items()) {
+  for (const auto& [name, value] : j["selection"].items()) {
     PathEntries entries = value.get<PathEntries>();
     config.selectedFunctions[name] = std::move(entries);
   }
+  j["query"].get_to(config.query);
 }
 
 }  // namespace capi

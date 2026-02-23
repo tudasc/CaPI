@@ -20,6 +20,7 @@
 #include "capi/support/IteratorUtils.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 #include "xray/xray_interface.h"
+#include "RuntimeGraph.h"
 
 #define XRAY_NEVER_INSTRUMENT __attribute__((xray_never_instrument))
 
@@ -51,11 +52,13 @@ struct GlobalCaPIData {
   bool beginActive{true};
   bool useScopeTriggers{false};
   std::unique_ptr<FunctionFilter> filter;
-  std::unique_ptr<XRayMeasurementConfig> measurementConfig;
+  std::unique_ptr<MeasurementConfig> measurementConfig;
+  std::unique_ptr<XRayMeasurementConfig> xrayMeasurementConfig;
   bool logCalls;
   std::unique_ptr<CallLogger> logger;
   cxxopts::ParseResult options;
   MappedSymTableMap symTables;
+  std::unique_ptr<RuntimeGraph> runtimeGraph;
 };
 
 using XRayHandlerFn = void (*)(int32_t, XRayEntryType);

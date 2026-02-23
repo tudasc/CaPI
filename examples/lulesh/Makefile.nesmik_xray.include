@@ -1,5 +1,5 @@
 
 VARIANT = nesmik
-CAPI_FLAGS = --capi-interface=nesmik
+CAPI_FLAGS = --capi-interface=nesmik --embed-cg
 
 CXXFLAGS += -mllvm -emit-xray-events=1

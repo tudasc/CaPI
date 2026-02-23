@@ -369,7 +369,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   MappedSymTableMap symTables;
   {
     Timer timer("[Info] Reading symtables took ", std::cout);
-    symTables = loadMappedSymTables(execPath);
+    symTables = loadMappedSymTables(execPath, false);
   }
 
   std::unordered_set<uintptr_t> filteredOut;
@@ -405,7 +405,9 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   globalCaPIData->options = result;
   globalCaPIData->xrayFuncMap = std::move(xrayMap);
   globalCaPIData->filter = std::move(filter);
-  globalCaPIData->measurementConfig = std::move(xmc);
+  globalCaPIData->xrayMeasurementConfig = std::move(xmc);
+  globalCaPIData->measurementConfig = std::move(mc);
+  globalCaPIData->symTables = std::move(symTables);
   globalCaPIData->useScopeTriggers = !globalCaPIData->scopeTriggerSet.empty();
   globalCaPIData->logCalls = logCalls;
   if (logCalls) {
@@ -416,6 +418,12 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Functions found: " << fullStats.numFound << "\n";
   logInfo() << "Functions patched: " << fullStats.numPatched << " (" << fullStats.numFailed << " failed)\n";
 
+  auto mainGraph = extractMainGraph();
+  if (!mainGraph) {
+    logWarn() << "Could not load embedded graph - running without runtime graph\n";
+  }
+  globalCaPIData->runtimeGraph = std::make_unique<RuntimeGraph>(std::move(mainGraph));
+
   postXRayInit();
 }
 
@@ -424,7 +432,6 @@ void finalizeXRay() XRAY_NEVER_INSTRUMENT {
   preXRayFinalize();
   delete globalCaPIData;
 }
-
 
 }
 
@@ -492,6 +499,30 @@ extern "C" void capi_register_dso(uint64_t firstFunctionAddr) XRAY_NEVER_INSTRUM
       }
 
   }
+
+}
+
+extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEVER_INSTRUMENT {
+    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
+
+    if (!capi::globalCaPIData) {
+        // CaPI was not initialized
+        return;
+    }
+
+    auto& knownCalls = visitedMap[name];
+    if (knownCalls.find(address) != knownCalls.end()) {
+        // We have seen this edge before
+        return;
+    }
+    knownCalls.insert(address);
+
+    const std::string& symbol = findSymbol(reinterpret_cast<std::uintptr_t>(address), capi::globalCaPIData->symTables);
+    if (symbol.empty()) {
+        capi::logError() << "Could not resolve symbol for call to address " << std::hex << reinterpret_cast<std::uintptr_t>(address) << std::dec << " from " << name << "\n";
+        return;
+    }
+    capi::globalCaPIData->runtimeGraph->recordIndirectCall(name, symbol);
 
 }
 

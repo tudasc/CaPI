@@ -17,8 +17,8 @@ bool write(const MeasurementConfig& config, const std::string outFile) {
     logError() <<"Failed to open output file: " << outFile << "\n";
     return false;
   }
-  nlohmann::json jConfig = config;
-  nlohmann::json j{{"selection", jConfig}, {"_format", {{"name", "measurement_config"}, {"version", "1.0"}}}};
+  nlohmann::json j = config;
+  j["_format"] = {{"name", "measurement_config"}, {"version", "1.0"}};
   out << j.dump(4);  // pretty print with 4-space indentation
   return true;
 }
@@ -43,14 +43,9 @@ std::unique_ptr<MeasurementConfig> read(const std::string inFile) {
     return {};
   }
 
-  if (!j.contains("selection")) {
-    logError() << "Missing expected 'selection' entry\n";
-    return {};
-  }
-  auto& jSelection = j.at("selection");
-
   auto config = std::make_unique<MeasurementConfig>();
-  jSelection.get_to(*config);
+  j.get_to(*config);
+
   return config;
 }
 

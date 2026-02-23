@@ -204,8 +204,12 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
 
 SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtors) : cg(cg), helper(cg, traverseVirtualDtors) {
   // TODO: Add some kind of analysis management logic for selectors to request results
-  StatementCountAnalysis sca;
+  StatementCountAnalysis<StatementCountTraits> sca;
   sca.run(helper);
+
+  StatementCountAnalysis<InstructionCountTraits> ica;
+  ica.run(helper);
+
   // Ensure that CaPIMD ist present
   bool warned{false};
   for (auto& node : cg.getNodes()) {
@@ -275,7 +279,7 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
 
   auto result = runSelectorPipeline(*selectorGraph, helper, debugMode);
 
-  MeasurementConfig mc;
+  MeasurementConfig mc(query);
 
   if (pathSensitive && !isForest(cg)) {
     logError() << "Warning: path sensitive selection is only possible if the call graph is a forest.\n";

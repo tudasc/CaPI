@@ -362,6 +362,20 @@ class ISCMetric : public SimpleMDMetric<ISCMetric, ISCMD, long> {
   }
 };
 
+class IICMetric : public SimpleMDMetric<IICMetric, IICMD, long> {
+public:
+    static constexpr std::string_view Name = "IICMetric";
+    static long readMDVal(const IICMD& md) {
+        return md.value;
+    }
+
+
+    static inline constexpr std::array<std::string_view, 3> requiredAnalyses {
+            "instructionCount"
+    };
+
+};
+
 
 }
 

@@ -96,28 +96,47 @@ inline bool addToSet(std::unordered_set<T>& set, const T& entry) {
   return false;
 }
 
-// TODO: Incomplete
-//class AnalysisManager {
-// public:
-//  using AnalysisID = int;
-//
-//  AnalysisManager(TraversalHelper& helper) : helper(helper) {}
-//
-//  template<typename AnalysisT>
-//  AnalysisT::AnalysisResultT& getAnalysisResult() {
-//    auto* result = resultMap[AnalysisT::getID()];
-//    if (!result) {
-//      AnalysisT analysis;
-//      result = analysis.run(helper);
-//    }
-//    return *result;
-//  }
-//
-// private:
-//  TraversalHelper& helper;
-//  std::unordered_map<AnalysisID, void*> resultMap;
-//
-//};
+class AnalysisManager {
+ public:
+    using AnalysisFn = std::function<bool()>;
+
+    struct AnalysisInfo {
+      AnalysisFn analysisFn;
+     bool valid;
+  };
+
+
+  explicit AnalysisManager(TraversalHelper& helper) : helper(helper) {}
+
+  void registerAnalysis(const std::string& name, AnalysisFn analysisFn) {
+      analysisInfoMap[name] = {.analysisFn=analysisFn, .valid=false};
+  }
+
+  bool require(const std::string& name) {
+      if (auto it = analysisInfoMap.find(name); it != analysisInfoMap.end()) {
+        if (!it->second.valid) {
+            bool success = it->second.analysisFn();
+            if (success) {
+                it->second.valid = true;
+                return true;
+            }
+        }
+      }
+      return false;
+  }
+
+  void invalidate(const std::string& name) {
+      if (auto it = analysisInfoMap.find(name); it != analysisInfoMap.end()) {
+          it->second.valid = false;
+      }
+  }
+
+
+
+ private:
+  TraversalHelper& helper;
+  std::unordered_map<std::string, AnalysisInfo> analysisInfoMap;
+};
 
 class Selector
 {

@@ -10,8 +10,11 @@ CAPI_LIB_EXTRAE=@CAPI_XRAY_LIB_DIR@/libcapixray_extrae.a
 CAPI_LIB_TALP=@CAPI_XRAY_LIB_DIR@/libcapixray_talp.a
 CAPI_LIB_NESMIK=@CAPI_XRAY_LIB_DIR@/libcapixray_nesmik.a
 
+CAPI_SELECT_LIB=@CAPI_SELECT_LIB_DIR@/libcapi_select.so
+
 LLVM_LIBS=$(@LLVM_CONFIG@ --libfiles xray symbolize --link-static --system-libs)
 
+METACG_LIB="@METACG_LIBRARY@"
 NESMIK_LIB="@NESMIK_LIB_PATH@"
 DLB_LIB="@DLB_LIBRARY@"
 
@@ -22,9 +25,12 @@ INST_PASSES_AVAILABLE="@INST_PASSES_AVAILABLE@"
 CAPI_INST_PASS=@CAPI_INST_PASS_DIR@/capi_inst.so
 TALP_PASS=@CAPI_TALP_PASS_DIR@/talp_inst.so
 NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
+#CGPATCH_PASS="$(dirname "$METACG_LIB")/libcgpatch-inst-pass.so"
+CGPATCH_PASS=$(metacg-config --libdir)/libcgpatch-inst-pass.so
 
 VERBOSE=0
 RUN_INST_PASS=1
+RUN_CGPATCH=1
 EMBED_CG=0
 SHOWME_COMPILE=0
 SHOWME_LDFLAGS=0
@@ -38,11 +44,23 @@ SHOWME_COMMAND=0
 # Helper: CaGe flags
 # -------------------------------
 get_cage_link_flags() {
-    echo "$(metacg-config --cage-ldflags)"
+    echo $(metacg-config --cage-ldflags)
 }
 
 get_cage_compile_flags() {
-    echo "$(metacg-config --cage-cxxflags)"
+    echo $(metacg-config --cage-cxxflags)
+}
+
+get_cgpatch_compile_flags() {
+  echo "-fwhole-program-vtables"
+}
+
+get_cgpatch_link_flags() {
+  local flags="-Wl,-mllvm=-load=$CGPATCH_PASS -Wl,--load-pass-plugin=$CGPATCH_PASS"
+  if [[ "$VERBOSE" == 1 ]]; then
+          flags="$flags -Wl,-mllvm=-cgpatch-verbose"
+  fi
+  echo "$flags"
 }
 
 # -------------------------------
@@ -81,6 +99,9 @@ get_compile_flags() {
 
     if [[ "$EMBED_CG" == 1 ]]; then
         flags="$flags $(get_cage_compile_flags)"
+        if [[ "$RUN_CGPATCH" == 1 ]]; then
+            flags="$flags $(get_cgpatch_compile_flags)"
+        fi
     fi
 
     echo "$flags"
@@ -91,6 +112,14 @@ get_compile_flags() {
 wrap_whole_archive() {
     local libs="$*"
     echo -n "-Wl,-whole-archive $libs -Wl,-no-whole-archive"
+}
+
+# -------------------------------
+# Helper: link DSO with rpath
+# -------------------------------
+link_with_rpath() {
+  local lib="$*"
+  echo -n "-Wl,-rpath,$(dirname $lib) $lib"
 }
 
 # -------------------------------
@@ -116,6 +145,9 @@ get_ldflags() {
 
     if [[ "$EMBED_CG" == 1 ]]; then
         flags="$flags $(get_cage_link_flags)"
+        if [[ "$RUN_CGPATCH" == 1 ]]; then
+          flags="$flags $(get_cgpatch_link_flags)"
+        fi
     fi
 
     echo "$flags"
@@ -127,19 +159,19 @@ get_libs() {
 
     case "$CAPI_INTERFACE" in
         gnu)
-            libs="$(wrap_whole_archive $CAPI_LIB_GNU) $LLVM_LIBS -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_GNU) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $LLVM_LIBS -lstdc++"
             ;;
         scorep)
-            libs="$(wrap_whole_archive $CAPI_LIB_SCOREP) $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) $LLVM_LIBS -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_SCOREP) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $(@SCOREP_CONFIG@ --libs --mpp=mpi --compiler) $LLVM_LIBS -lstdc++"
             ;;
         extrae)
-            libs="$(wrap_whole_archive $CAPI_LIB_EXTRAE) $LLVM_LIBS -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_EXTRAE) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $LLVM_LIBS -lstdc++"
             ;;
         talp)
-            libs="$(wrap_whole_archive $CAPI_LIB_TALP) $LLVM_LIBS -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_TALP) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $LLVM_LIBS -lstdc++"
             ;;
         nesmik)
-            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
             ;;
         gnu_static|talp_static)
             libs=""

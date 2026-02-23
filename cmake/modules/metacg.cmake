@@ -12,6 +12,10 @@ if (ENABLE_TESTING)
     message(STATUS "CGCollector: ${CGC_EXE}")
 endif ()
 
-
+get_target_property(METACG_LIBRARY metacg::metacg LOCATION)
 get_target_property(METACG_INCLUDE_DIR metacg::metacg INTERFACE_INCLUDE_DIRECTORIES)
 message(STATUS "Include directories for MetaCG: ${METACG_INCLUDE_DIR}")
+
+function(add_metacg target)
+    target_link_libraries(${target} PRIVATE metacg::metacg)
+endfunction()
