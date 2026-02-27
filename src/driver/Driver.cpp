@@ -19,6 +19,7 @@
 #include "capi/selection/SelectorGraph.h"
 #include "capi/selection/StatementCountAnalysis.h"
 #include "capi/selection/metadata/CaPIMD.h"
+#include "capi/selection/CallGraphExtractor.h"
 #include "capi/support/Logging.h"
 #include "capi/support/ASTDotExporter.h"
 #include "capi/support/Timer.h"
@@ -57,7 +58,7 @@ struct Options {
 };
 
 void printHelp() {
-  std::cout << "Usage: capi [options] <metacg_file>\n";
+  std::cout << "Usage: capi [options] <metacg_file/executable>\n";
   std::cout << "Options:\n";
   std::cout << "-h   Print this help message.\n";
   std::cout
@@ -234,19 +235,31 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "Loading call graph from " << opts.cgFile << "\n";
 
-  metacg::io::FileSource fileSrc(opts.cgFile);
-  auto reader = metacg::io::createReader(fileSrc);
-  if (!reader) {
-    std::cerr << "Unable to create reader for input file " << opts.cgFile << "\n";
-    return EXIT_FAILURE;
-  }
+  std::unique_ptr<metacg::Callgraph> cg;
 
-  auto cg = reader->read();
-  if (!cg) {
-    std::cerr << "Failed to read call graph\n";
-    return EXIT_FAILURE;
+  if (opts.cgFile.ends_with(".mcg")) {
+    std::cout << "Loading call graph from " << opts.cgFile << "\n";
+    metacg::io::FileSource fileSrc(opts.cgFile);
+    auto reader = metacg::io::createReader(fileSrc);
+    if (!reader) {
+      std::cerr << "Unable to create reader for input file " << opts.cgFile << "\n";
+      return EXIT_FAILURE;
+    }
+
+    cg = reader->read();
+    if (!cg) {
+      std::cerr << "Failed to read call graph\n";
+      return EXIT_FAILURE;
+    }
+  } else {
+    std::cout << "Trying to extract call graph from executable " << opts.cgFile << "\n";
+    cg = extractAndAssembleFullCallGraph(opts.cgFile);
+    if (!cg) {
+      std::cerr << "Failed to extract the call graph!\n Was the input file in MetaCG JSON format? "
+                   "Then make sure it uses the .mcg extension.\n";
+      return EXIT_FAILURE;
+    }
   }
 
   // Attach demangled names as metadata

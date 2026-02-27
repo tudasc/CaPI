@@ -2,6 +2,7 @@
 set(SOURCES
         DriverUtils.cpp
         SCC.cpp
+        CallGraphExtractor.cpp
         Demangle.cpp
         DOTWriter.cpp
         FunctionFilter.cpp
@@ -20,6 +21,10 @@ set(SOURCES
 
 add_library(capi_select SHARED ${SOURCES})
 
+target_link_libraries(capi_select PRIVATE
+        LLVMObject
+        LLVMSupport
+)
 target_link_libraries(capi_select PUBLIC symbol_retriever)
 target_link_libraries(capi_select PUBLIC metacg::metacg)
 add_version_include(capi_select)
