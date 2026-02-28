@@ -1,0 +1,1 @@
+CAPI_FLAGS=--capi-interface=nesmik --verbose

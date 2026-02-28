@@ -7,6 +7,11 @@
 #include "capi/support/CGUtils.h"
 
 #include "llvm/Support/Program.h"
+#include "llvm/Object/ObjectFile.h"
+#include "llvm/Object/ELFObjectFile.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/WithColor.h"
 
 #include <filesystem>
 #include <memory>
@@ -91,13 +96,26 @@ runLddAndCapture(const std::filesystem::path &binary) {
   std::vector<std::string> outputLines;
 
   // Create a temporary file to capture stdout
-  std::filesystem::path tmpFile = std::filesystem::temp_directory_path() / "ldd_output.txt";
+    SmallString<128> tmpPath;
+    int tmpFD;
+    if (sys::fs::createTemporaryFile("ldd-output", "txt", tmpFD, tmpPath)) {
+        errs() << "Failed to create temporary file for ldd\n";
+        return outputLines;
+    }
 
-  // Redirect stdout of ldd to the temp file
-  SmallVector<std::optional<StringRef>, 3> redirects = {std::nullopt, tmpFile.string(), std::nullopt};
+    // Close FD — ExecuteAndWait will reopen via path
+    sys::fs::closeFile(tmpFD);
 
+
+    // Redirect stdout of ldd to the temp file
+  SmallVector<std::optional<StringRef>, 3> redirects = {std::nullopt, StringRef(tmpPath), std::nullopt};
+
+  auto binaryStr = binary.string();
   SmallVector<StringRef, 4> args;
-  args.push_back(binary.string());
+  args.push_back("ldd");
+  args.push_back(binaryStr);
+
+  logInfo() << "Running ldd on " << binary << "\n";
 
   bool execFailed = false;
   int rc = sys::ExecuteAndWait(
@@ -112,51 +130,64 @@ runLddAndCapture(const std::filesystem::path &binary) {
   );
 
   if (rc != 0 || execFailed) {
-    llvm::errs() << "Warning: failed to run ldd on " << binary << "\n";
+    logError() << "Warning: failed to run ldd on " << binary << "\n";
     return outputLines;
   }
 
   // Read temp file
-  std::ifstream ifs(tmpFile);
+  std::ifstream ifs(tmpPath.c_str());
   std::string line;
   while (std::getline(ifs, line)) {
-    outputLines.push_back(line);
+      outputLines.push_back(line);
   }
 
-  std::filesystem::remove(tmpFile);
+  std::filesystem::remove(tmpPath.c_str());
   return outputLines;
 }
 
-static void extractAndMergeDependencies(const std::filesystem::path& binary,
-                 std::unique_ptr<metacg::Callgraph>& mainCG,
-                 std::unordered_set<std::string>& seen) {
+static void extractAndMergeDependencies(const std::filesystem::path& executable,
+                 std::unique_ptr<metacg::Callgraph>& mainCG) {
 
   using namespace llvm;
 
-  std::string absPath = std::filesystem::absolute(binary).string();
-  if (seen.count(absPath))
-    return; // already processed
-  seen.insert(absPath);
+  std::vector<std::filesystem::path> workList;
+  std::unordered_set<std::filesystem::path> seen;
+  workList.push_back(executable);
+  seen.insert(executable);
 
-  // Run ldd and parse dependencies
-  auto lines = runLddAndCapture(binary);
-  std::regex libRegex(R"(=>\s*(/[^ ]+))"); // captures "/path/to/lib.so"
+  while (!workList.empty()) {
+      auto binary = workList.back();
+      workList.pop_back();
 
-  for (const auto& line : lines) {
-    std::smatch match;
-    if (std::regex_search(line, match, libRegex)) {
-      std::filesystem::path depPath(match[1].str());
+      std::cout << "Working on " << binary << "\n";
 
-      // Extract callgraph from this binary
-      auto cg = extractCallGraph(depPath);
-      if (cg) {
-        mainCG->merge(*cg, metacg::MergeByName{});
-      } else {
-        logWarn() << "No metacg section in " << binary << "\n";
+      // Run ldd and parse dependencies
+      auto lines = runLddAndCapture(binary);
+      std::regex libRegex(R"(=>\s*(/[^ ]+))"); // captures "/path/to/lib.so"
+
+      for (const auto& line : lines) {
+          std::smatch match;
+          if (std::regex_search(line, match, libRegex)) {
+              std::filesystem::path depPath(match[1].str());
+
+              if (seen.contains(depPath))
+                  continue;
+
+
+              // Extract callgraph from this binary
+              auto cg = extractCallGraph(depPath);
+              if (cg) {
+                  logInfo() << "Merging with call graph from dependency " << depPath << "\n";
+                  mainCG->merge(*cg, metacg::MergeByName{});
+              } else {
+                  logWarn() << "Could not extract call graph from " << depPath << "\n";
+              }
+
+              seen.insert(depPath);
+              workList.push_back(depPath);
+          }
       }
 
-      extractAndMergeDependencies(depPath, mainCG, seen);
-    }
   }
 }
 
@@ -165,16 +196,13 @@ extractAndAssembleFullCallGraph(const std::filesystem::path& binary) {
 
   auto mainCG = extractCallGraph(binary);
   if (!mainCG) {
-    logError() << "Failed to extract callgraph from "
-           << binary.string() << "\n";
-    return nullptr;
+      logError() << "Failed to extract callgraph from "
+                 << binary << "\n";
+      return nullptr;
   }
 
-  // Keep track of already processed libraries
-  std::unordered_set<std::string> seen;
-
   // Process dependencies recursively
-  extractAndMergeDependencies(binary, mainCG, seen);
+  extractAndMergeDependencies(binary, mainCG);
 
   return mainCG;
 }

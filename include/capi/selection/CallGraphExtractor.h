@@ -7,13 +7,6 @@
 
 #include "Callgraph.h"
 
-#include "llvm/Object/ObjectFile.h"
-#include "llvm/Object/ELFObjectFile.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/WithColor.h"
-#include "llvm/Support/raw_ostream.h"
-
 #include <filesystem>
 #include <memory>
 

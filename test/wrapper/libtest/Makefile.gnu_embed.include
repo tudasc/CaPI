@@ -1,0 +1,1 @@
+CAPI_FLAGS=--capi-interface=gnu --embed-cg --verbose

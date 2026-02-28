@@ -21,7 +21,7 @@ set(SOURCES
 
 add_library(capi_select SHARED ${SOURCES})
 
-target_link_libraries(capi_select PRIVATE
+target_link_libraries(capi_select PUBLIC
         LLVMObject
         LLVMSupport
 )

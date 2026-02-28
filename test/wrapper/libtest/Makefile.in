@@ -1,23 +1,26 @@
 CAPICC=@CAPICC@
-CAPI_FLAGS=--capi-interface=gnu --verbose
 CXX=@CXX@
 
-all: main.exe shared2.so
+VARIANT=gnu
 
-%.o: %.cpp
+include Makefile.$(VARIANT).include
+
+all: main.$(VARIANT).exe shared2.$(VARIANT).so
+
+%.$(VARIANT).o: %.cpp
 	@echo "Building $<"
 	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -c -o $@  $<
 
-shared.so: shared.o
+shared.$(VARIANT).so: shared.$(VARIANT).o
 	@echo "Linking shared lib $<"
 	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -shared -o $@ $<
 
-shared2.so: shared2.o
+shared2.$(VARIANT).so: shared2.$(VARIANT).o
 	@echo "Linking shared lib $<"
 	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) -shared -o $@ $<
 
-main.exe: main.o shared.so
-	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) main.o shared.so -Wl,-rpath=`pwd` -o $@
+main.$(VARIANT).exe: main.$(VARIANT).o shared.$(VARIANT).so
+	$(CAPICC) $(CAPI_FLAGS) $(CXX) $(CXXFLAGS) main.$(VARIANT).o shared.$(VARIANT).so -Wl,-rpath=`pwd` -o $@
 
 clean:
 	rm -f *.o *.exe *.so
