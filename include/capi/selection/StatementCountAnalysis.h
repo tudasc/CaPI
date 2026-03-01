@@ -6,9 +6,10 @@
 #define CAPI_STATEMENTCOUNTANALYSIS_H
 
 #include "capi/selection/TraversalHelper.h"
+#include "capi/selection/SCC.h"
 
 #include "metadata/TransientMD.h"
-#include "capi/selection/metadata/NumInstructionsMD.h"
+#include "cage/generator/NumInstructionsMD.h"
 #include "metadata/NumStatementsMD.h"
 
 #include "capi/support/Logging.h"
@@ -66,8 +67,11 @@ bool StatementCountAnalysis<MetricTraits>::run(TraversalHelper& helper) {
     std::queue<const CgNode*> workQueue;
     std::unordered_set<const CgNode*> visitedNodes;
 
-    for (auto& leaf :  helper.findLeaves()) {
-        workQueue.push(leaf);
+    // TODO: Avoid re-running this analysis
+    SCCAnalysisResults sccResults = computeSCCs(helper, true);
+
+    for (auto& leaf :  sccResults.findLeaves(helper)) {
+        workQueue.push_range(leaf->nodes);
     }
 
     while (!workQueue.empty()) {
@@ -100,6 +104,9 @@ struct StatementCountTraits {
     using MDType = TransientMD<long, StatementCountTraits>;
 
     static long getCount(const CgNode* node) {
+        if (!node->getHasBody()) {
+            return 0;
+        }
         if (!node->has<NumStatementsMD>()) {
             logError() << "Need NumStatementsMD to compute inclusive statement count\n";
             return -1;
@@ -117,11 +124,14 @@ struct InstructionCountTraits {
     using MDType = TransientMD<long, InstructionCountTraits>;
 
     static long getCount(const CgNode* node) {
-        if (!node->has<NumInstructionsMD>()) {
-            logError() << "Need NumInstructionsMD to compute inclusive statement count\n";
-            return -1;
+        if (!node->getHasBody()) {
+            return 0;
         }
-        const auto numInstructionsMd = node->get<NumInstructionsMD>();
+        if (!node->has<cage::NumInstructionsMD>()) {
+            logError() << "Node " << node->getFunctionName() << " does not provide NumInstructionsMD - assuming 0 instructions.\n";
+            return 0;
+        }
+        const auto numInstructionsMd = node->get<cage::NumInstructionsMD>();
         return numInstructionsMd->getNumberOfInstructions();
     }
 };

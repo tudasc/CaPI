@@ -9,7 +9,6 @@
 
 #include "capi/support/Logging.h"
 #include "metadata/NumStatementsMD.h"
-#include "capi/selection/metadata/NumInstructionsMD.h"
 
 namespace capi {
 

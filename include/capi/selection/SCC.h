@@ -96,7 +96,26 @@ struct SCCAnalysisResults {
     return callees;
   }
 
-  // Compute list of ancestors for each SCCNode. Exploits that SCC-graph is a DAG.
+    std::vector<const SCCNode*> findRoots(TraversalHelper& helper) const {
+        std::vector<const SCCNode*> roots;
+        for (auto& node : sccs) {
+            if (findAllCallers(&node, helper).empty())
+                roots.push_back(&node);
+        }
+        return roots;
+    }
+
+    std::vector<const SCCNode*> findLeaves(TraversalHelper& helper) const {
+        std::vector<const SCCNode*> leaves;
+        for (auto& node : sccs) {
+            if (findAllCallees(&node, helper).empty())
+                leaves.push_back(&node);
+        }
+        return leaves;
+    }
+
+
+    // Compute list of ancestors for each SCCNode. Exploits that SCC-graph is a DAG.
   std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> globalAncestorComputation(
       const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper);
 };
