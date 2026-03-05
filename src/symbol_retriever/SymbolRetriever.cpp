@@ -281,6 +281,7 @@ MappedSymTableMap loadMappedSymTables(const std::string& execFile, bool printDeb
 std::string findSymbol(uint64_t addrInProc, MappedSymTableMap& mappedSymTables) {
   auto nextHighestIt = mappedSymTables.upper_bound(addrInProc);
   if (nextHighestIt == mappedSymTables.begin()) {
+    std::cerr << " No object found matching address " << std::hex << addrInProc << std::dec << "\n";
     return "";
   }
   nextHighestIt--;

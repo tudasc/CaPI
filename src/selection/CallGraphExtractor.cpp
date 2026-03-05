@@ -6,6 +6,8 @@
 
 #include "capi/support/CGUtils.h"
 
+#include "cage/generator/DynamicLinkagePolicy.h"
+
 #include "llvm/Support/Program.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Object/ELFObjectFile.h"
@@ -178,7 +180,7 @@ static void extractAndMergeDependencies(const std::filesystem::path& executable,
               auto cg = extractCallGraph(depPath);
               if (cg) {
                   logInfo() << "Merging with call graph from dependency " << depPath << "\n";
-                  mainCG->merge(*cg, metacg::MergeByName{});
+                  mainCG->merge(*cg, cage::DynamicLinkagePolicy{});
               } else {
                   logWarn() << "Could not extract call graph from " << depPath << "\n";
               }

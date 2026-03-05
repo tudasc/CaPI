@@ -59,6 +59,7 @@ struct GlobalCaPIData {
   cxxopts::ParseResult options;
   MappedSymTableMap symTables;
   std::unique_ptr<RuntimeGraph> runtimeGraph;
+  std::unordered_set<std::string> finalDynamicFilterSet;
 };
 
 using XRayHandlerFn = void (*)(int32_t, XRayEntryType);

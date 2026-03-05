@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "Callgraph.h"
+#include "cage/generator/DynamicLinkagePolicy.h"
 #include "capi/selection/MeasurementConfig.h"
 
 namespace capi {
@@ -20,6 +21,7 @@ class RuntimeGraph {
 
   std::unique_ptr<metacg::Callgraph> fullStaticGraph;
   std::unique_ptr<metacg::Callgraph> patchGraph;
+  size_t numIndirectEdges{0};
 
 public:
 
@@ -27,12 +29,19 @@ public:
   }
 
   void mergeLibGraph(const metacg::Callgraph& libGraph) {
-    fullStaticGraph->merge(libGraph, metacg::MergeByName{});
+    fullStaticGraph->merge(libGraph, cage::DynamicLinkagePolicy{});
   }
 
   void recordIndirectCall(const std::string& parent, const std::string& child);
 
   void validateQuery(const MeasurementConfig& cfg);
+
+  metacg::Callgraph* getStaticGraph() {
+      if (!fullStaticGraph) {
+          return nullptr;
+      }
+      return fullStaticGraph.get();
+  }
 
   void printStats();
 

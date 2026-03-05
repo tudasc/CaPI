@@ -26,11 +26,16 @@ CAPI_INST_PASS=@CAPI_INST_PASS_DIR@/capi_inst.so
 TALP_PASS=@CAPI_TALP_PASS_DIR@/talp_inst.so
 NESMIK_PASS=@CAPI_NESMIK_PASS_DIR@/nesmik_inst.so
 #CGPATCH_PASS="$(dirname "$METACG_LIB")/libcgpatch-inst-pass.so"
-CGPATCH_PASS=$(metacg-config --libdir)/libcgpatch-inst-pass.so
+METACG_LIB_DIR="$(metacg-config --libdir)"
+CGPATCH_PASS=$METACG_LIB_DIR/libcgpatch-inst-pass.so
+CAGE_LIB=$METACG_LIB_DIR/libcage.a
+CAGE_MD_LIB=$METACG_LIB_DIR/libcage_metadata.so
+NESMIK_MERGE_LIB=@CAPI_NESMIK_MERGE_LIB_DIR@/libmerge_nesmik.so
 
 VERBOSE=0
 RUN_INST_PASS=1
 RUN_CGPATCH=1
+CGPATCH_AT_LINK_TIME=0
 EMBED_CG=0
 SHOWME_COMPILE=0
 SHOWME_LDFLAGS=0
@@ -51,14 +56,28 @@ get_cage_compile_flags() {
     echo $(metacg-config --cage-cxxflags)
 }
 
+get_cage_lib() {
+    echo "$METACG_LIB_DIR/libcage.a"
+}
+
 get_cgpatch_compile_flags() {
-  echo "-fwhole-program-vtables"
+  local flags="-fwhole-program-vtables"
+  if [[ "$CGPATCH_AT_LINK_TIME" == 0 ]]; then
+      flags="$flags -Xclang -load -Xclang $CGPATCH_PASS -fpass-plugin=$CGPATCH_PASS"
+      if [[ "$VERBOSE" == 1 ]]; then
+          flags="$flags -mllvm -cgpatch-verbose"
+      fi
+  fi
+  echo "$flags"
 }
 
 get_cgpatch_link_flags() {
-  local flags="-Wl,-mllvm=-load=$CGPATCH_PASS -Wl,--load-pass-plugin=$CGPATCH_PASS"
-  if [[ "$VERBOSE" == 1 ]]; then
-          flags="$flags -Wl,-mllvm=-cgpatch-verbose"
+  local flags=""
+  if [[ "$CGPATCH_AT_LINK_TIME" == 1 ]]; then
+      flags="$flags -Wl,-mllvm=-load=$CGPATCH_PASS -Wl,--load-pass-plugin=$CGPATCH_PASS"
+      if [[ "$VERBOSE" == 1 ]]; then
+        flags="$flags -Wl,-mllvm=-cgpatch-verbose"
+      fi
   fi
   echo "$flags"
 }
@@ -171,7 +190,7 @@ get_libs() {
             libs="$(wrap_whole_archive $CAPI_LIB_TALP) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $LLVM_LIBS -lstdc++"
             ;;
         nesmik)
-            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) $(link_with_rpath $CAPI_SELECT_LIB) $METACG_LIB $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
+            libs="$(wrap_whole_archive $CAPI_LIB_NESMIK) $(link_with_rpath $CAPI_SELECT_LIB) $(link_with_rpath $NESMIK_MERGE_LIB) $CAGE_LIB $(link_with_rpath $CAGE_MD_LIB) $METACG_LIB $NESMIK_LIB $DLB_LIB $LLVM_LIBS -lmpi -lstdc++"
             ;;
         gnu_static|talp_static)
             libs=""
@@ -211,6 +230,14 @@ for arg in "$@"; do
             EMBED_CG=1
             shift
             ;;
+        --cgpatch-lto)
+            CGPATCH_AT_LINK_TIME=1
+            shift
+            ;;
+        --no-cgpatch)
+            RUN_CGPATCH=0
+            shift
+            ;;
         --no-instrument)
             RUN_INST_PASS=0
             shift
@@ -227,7 +254,7 @@ for arg in "$@"; do
             SHOWME_LIBS=1
             shift
             ;;
-        --showme::libs_shared)
+        --showme:libs_shared)
             SHOWME_LIBS_SHARED=1
             shift
             ;;
@@ -333,7 +360,7 @@ if [[ "$SHOWME_LIBS" == 1 ]]; then
 fi
 
 if [[ "$SHOWME_LIBS_SHARED" == 1 ]]; then
-    echo -n "$(get_libs_SHARED)"
+    echo -n "$(get_libs_shared)"
     exit 0
 fi
 

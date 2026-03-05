@@ -12,6 +12,7 @@
 #include "capi/selection/MeasurementConfigIO.h"
 #include "CallLogger.h"
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -37,7 +38,10 @@ CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
 namespace capi {
 
+static std::atomic_bool runtimeInitialized{false};
+static std::atomic_bool runtimeActive{false};
 static int numInitialObjects = 0;
+static std::vector<const char*>* graphsToMerge{nullptr};
 
 XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, const XRayFunctionMap& xrayMap) {
   std::unordered_set<std::string> enteredFunctions;
@@ -308,6 +312,14 @@ static PatchingStats loadIdsAndPatchObject(int objId, std::string objName, XRayF
 
 
 void initXRay() XRAY_NEVER_INSTRUMENT {
+
+    bool expected = false;
+    if (!runtimeInitialized.compare_exchange_strong(
+            expected, true,
+            std::memory_order_acq_rel)) {
+        return;
+    }
+
   logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
   logInfo() << "Git revision: " << CAPI_GIT_SHA1 << std::endl;
 
@@ -375,6 +387,8 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   std::unordered_set<uintptr_t> filteredOut;
 
   size_t numObjects = __xray_num_objects();
+  numObjects = std::min(__xray_num_objects(), 255ul); // FIXME: Workaround for bug in XRay
+
   numInitialObjects = numObjects;
 
   XRayFunctionMap xrayMap;
@@ -414,39 +428,61 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     logInfo() << "Call logging is active\n";
     globalCaPIData->logger = std::make_unique<CallLogger>(execFilename);
   }
+    auto mainGraph = extractMainGraph();
+    if (!mainGraph) {
+        logWarn() << "Could not load embedded graph - running without runtime graph\n";
+    }
+
+    // Load and merge DSO call graphs
+    if (mainGraph && capi::graphsToMerge) {
+        for (auto rawCg : *graphsToMerge) {
+            if (rawCg) {
+                auto dsoCg = capi::loadGraphFromStr(rawCg);
+                if (dsoCg) {
+                    mainGraph->merge(*dsoCg, cage::DynamicLinkagePolicy{});
+                }
+            }
+        }
+    }
+    globalCaPIData->runtimeGraph = std::make_unique<RuntimeGraph>(std::move(mainGraph));
 
   logInfo() << "Functions found: " << fullStats.numFound << "\n";
   logInfo() << "Functions patched: " << fullStats.numPatched << " (" << fullStats.numFailed << " failed)\n";
 
-  auto mainGraph = extractMainGraph();
-  if (!mainGraph) {
-    logWarn() << "Could not load embedded graph - running without runtime graph\n";
-  }
-  globalCaPIData->runtimeGraph = std::make_unique<RuntimeGraph>(std::move(mainGraph));
+  runtimeActive.store(true, std::memory_order_release);
 
   postXRayInit();
 }
 
 
 void finalizeXRay() XRAY_NEVER_INSTRUMENT {
+  runtimeActive.store(false, std::memory_order_release);
   preXRayFinalize();
   delete globalCaPIData;
+  globalCaPIData = nullptr;
 }
 
 }
 
-extern "C" void capi_register_dso(uint64_t firstFunctionAddr) XRAY_NEVER_INSTRUMENT {
+extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_t firstFunctionAddr, const char* rawCg) XRAY_NEVER_INSTRUMENT {
 
-  if (!capi::globalCaPIData) {
-    // Not initialized yet
-    capi::logError() << "Tried to register DSO, but CaPI has not been initialized yet!\n";
-    return;
+  if (!capi::runtimeActive.load(std::memory_order_acquire)) {
+      // Store for loading during init
+      if (!capi::graphsToMerge) {
+          // Need pointer here to avoid static initialization order fiasco
+          capi::graphsToMerge = new std::vector<const char*>();
+      }
+      capi::graphsToMerge->push_back(rawCg);
+      capi::logInfo() << "Registered DSO! Graph stored for merging during init...\n";
+      return;
   }
 
-  capi::logInfo() << "Registering DSO!\n";
 
-  // TODO: Enable filtering
-  for (int objId = capi::numInitialObjects; objId < __xray_num_objects(); objId++) {
+  // Patching only libraries that are loaded *after* the initial setup.
+  // TODO: Should they also be merged into the runtime graph for validation? Probably not?
+
+  size_t numObjects = std::min(__xray_num_objects(), 255ul); // FIXME: Workaround for bug in XRay
+  for (int objId = capi::numInitialObjects; objId < numObjects; objId++) {
       if (__xray_max_function_id_in_object(objId) == 0) {
         continue;
       }
@@ -503,12 +539,13 @@ extern "C" void capi_register_dso(uint64_t firstFunctionAddr) XRAY_NEVER_INSTRUM
 }
 
 extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEVER_INSTRUMENT {
-    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
-
-    if (!capi::globalCaPIData) {
-        // CaPI was not initialized
+    if (!capi::runtimeActive.load(std::memory_order_acquire) || !capi::globalCaPIData) {
+        // CaPI was not initialized or is finalized
         return;
     }
+
+    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
+
 
     auto& knownCalls = visitedMap[name];
     if (knownCalls.find(address) != knownCalls.end()) {

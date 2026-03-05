@@ -12,8 +12,11 @@
 #include <fstream>
 #include <thread>
 
+#include "capi/nesmik_merger/NesmikMerger.h"
 #include "capi/support/Logging.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
+
+#include "io/VersionFourMCGWriter.h"
 
 #include "nlohmann/json.hpp"
 
@@ -29,63 +32,98 @@ extern GlobalCaPIData *globalCaPIData;
 
 namespace {
 
-using RegionClock = std::chrono::high_resolution_clock;
+    using RegionClock = std::chrono::high_resolution_clock;
 
-constexpr long FILTERING_THRESHOLD_MICROS_DFLT = 10;
-constexpr long FILTERING_MIN_INVOCATIONS_DFLT = 100;
+    constexpr long FILTERING_THRESHOLD_MICROS_DFLT = 10;
+    constexpr long FILTERING_MIN_INVOCATIONS_DFLT = 100;
 
-long filteringThresholdMicros = FILTERING_MIN_INVOCATIONS_DFLT;
-long filteringMinInvocs = FILTERING_MIN_INVOCATIONS_DFLT;
+    long filteringThresholdMicros = FILTERING_THRESHOLD_MICROS_DFLT;
+    long filteringMinInvocs = FILTERING_MIN_INVOCATIONS_DFLT;
 
-capi::Mode measurementMode{capi::Mode::PROFILE};
-bool dynamicFiltering{false};
-bool initialized{false};
-bool finalized{false};
-bool recordInParallelRegions{false};
-bool recordOnlyMainThread{true};
-bool isRank0{true};
-thread_local bool inXRayScope{false};
-thread_local bool inParallelRegion{false};
-thread_local int functionLastEnteredBeforeInit{-1};
+    capi::Mode measurementMode{capi::Mode::PROFILE};
+    bool dynamicFiltering{false};
+    bool initialized{false};
+    bool finalized{false};
+    bool recordInParallelRegions{false};
+    bool recordOnlyMainThread{true};
+    bool isRank0{true};
+    thread_local bool inXRayScope{false};
+    thread_local bool inParallelRegion{false};
+    thread_local int functionLastEnteredBeforeInit{-1};
 
-struct RegionMetrics {
-  size_t numInvocations{0};
-  long accumulatedTimeNanos{0};
-  std::atomic_bool filtered{false};
-  std::atomic_bool shouldMonitor{true};
+    struct RegionMetrics {
+        size_t numInvocations{0};
+        long accumulatedTimeNanos{0};
+        std::atomic_bool filtered{false};
+        std::atomic_bool shouldMonitor{true};
 
-  double meanDuration() const {
-    return accumulatedTimeNanos / numInvocations;
-  }
-};
+        double meanDuration() const {
+            return accumulatedTimeNanos / numInvocations;
+        }
+
+        double meanDurationMicros() const {
+            return meanDuration() / 1000;
+        }
+    };
 
 // FIXME: Is not thread safe!
-std::unordered_map<int, RegionMetrics> regionMetricsMap;
+    std::unordered_map<int, RegionMetrics> regionMetricsMap;
 
-thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeStamps;
+    thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeStamps;
 
-pid_t mainThreadId;
+    pid_t mainThreadId;
 
-struct ThreadGuard {
+    struct ThreadGuard {
 
-    explicit ThreadGuard(pid_t mainThread)  {
-        auto thisThread = gettid();
-        this->isMainThread = thisThread == mainThread;
+        explicit ThreadGuard(pid_t mainThread) {
+            auto thisThread = gettid();
+            this->isMainThread = thisThread == mainThread;
+        }
+
+        operator bool() const {
+            return check();
+        }
+
+        bool check() const {
+            return isMainThread;
+        }
+
+    private:
+        bool isMainThread;
+    };
+
+    std::string parseTalpOutputFile(const std::string &dlbArgs) {
+        const std::string key = "--talp-output-file=";
+        size_t pos = dlbArgs.find(key);
+        if (pos == std::string::npos) {
+            return "";
+        }
+
+        pos += key.length();
+        size_t endPos = dlbArgs.find_first_of(" \t", pos);
+        if (endPos == std::string::npos) {
+            endPos = dlbArgs.length();
+        }
+
+        return dlbArgs.substr(pos, endPos - pos);
     }
 
-    operator bool() const {
-        return check();
+    std::string getTalpOutputFile() {
+        const char *defaultFile = "talp.json";
+
+        const char *envValue = std::getenv("DLB_ARGS");
+        if (!envValue) {
+            return defaultFile;
+        }
+
+        std::string dlbArgs(envValue);
+        std::string filename = parseTalpOutputFile(dlbArgs);
+
+        if (filename.empty()) {
+            return defaultFile;
+        }
+        return filename;
     }
-
-    bool check() const {
-        return isMainThread;
-    }
-
-private:
-    bool isMainThread;
-};
-
-
 }
 
 namespace capi {
@@ -98,9 +136,13 @@ void registerExtraOptions(cxxopts::Options& options) {
       ("dynamic-filtering", "Enable dynamic filtering",
        cxxopts::value<bool>()->default_value("true"))
       ("filter-limit-micros", "Filter threshold in microseconds",
-       cxxopts::value<int>()->default_value("1"))
+       cxxopts::value<int>()->default_value(std::to_string(FILTERING_THRESHOLD_MICROS_DFLT)))
       ("filter-min-calls", "Minimum calls before filtering",
-       cxxopts::value<int>()->default_value("100"));
+       cxxopts::value<int>()->default_value(std::to_string(FILTERING_MIN_INVOCATIONS_DFLT)))
+      ("profile-name", "Filename for the generated TALP profile",
+       cxxopts::value<std::string>()->default_value("talp_metrics.mcg"))
+      ("validate", "Run static call graph validation after termination",
+       cxxopts::value<bool>()->default_value("false"));
 }
 
 
@@ -148,10 +190,10 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
       metrics.numInvocations++;
       if (metrics.numInvocations >= filteringMinInvocs) {
         metrics.shouldMonitor = false;
-        if (metrics.meanDuration() < filteringThresholdMicros) {
+        if (metrics.meanDurationMicros() < filteringThresholdMicros) {
           metrics.filtered = true;
           __xray_unpatch_function(id);
-          logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
+//          logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
         }
       }
     }
@@ -271,12 +313,39 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Finalizing XRay interface for neSmiK\n";
-  if (initialized && isRank0) {
-      globalCaPIData->runtimeGraph->printStats();
-      if (globalCaPIData->measurementConfig) {
-          globalCaPIData->runtimeGraph->validateQuery(*globalCaPIData->measurementConfig);
-      }
-  }
+    if (initialized && isRank0) {
+        capi::logInfo() << "Merging TALP metrics with static graph...\n";
+        // Generate metric profile
+        auto staticCg = capi::globalCaPIData->runtimeGraph->getStaticGraph();
+
+        std::ifstream talp_json_file(getTalpOutputFile());
+        nlohmann::json talp_json;
+        talp_json_file >> talp_json;
+
+        std::ifstream nesmik_json_file("capinesmik.json");
+        nlohmann::json nesmik_json;
+        nesmik_json_file >> nesmik_json;
+
+        auto metricCg = capi::buildDynamicGraphAndAttachMetrics(staticCg, talp_json, nesmik_json, capi::globalCaPIData->finalDynamicFilterSet);
+
+        if (metricCg) {
+            const auto& outFile = capi::globalCaPIData->options["profile-name"].as<std::string>();
+            auto mcgWriter = io::createWriter(4);
+            if (mcgWriter) {
+                io::JsonSink jsonSink;
+                mcgWriter->write(metricCg.get(), jsonSink);
+                std::ofstream os(outFile);
+                os << jsonSink.getJson().dump(4) << std::endl;
+                capi::logInfo() << "Profile successfully written to " << outFile << "!\n";
+            } else {
+                capi::logError() << "Unable to create a writer for MetaCG format version 4\n";
+            }
+
+        } else {
+            capi::logError() << "Failed to merge TALP profile!\n";
+        }
+    }
+
 }
 
 }
@@ -304,14 +373,20 @@ void dyncapi_nesmik_finalize() {
   nesmik::finalize();
   finalized = true;
 
+  std::unordered_set<int> filteredSet;
+  std::vector<int> filtered;
+
+  std::unordered_set<std::string> filteredNamesSet;
+
   if (dynamicFiltering) {
 
-    std::vector<int> filtered;
+
     for (auto& [id, metrics] : regionMetricsMap) {
       if (metrics.filtered) {
         filtered.push_back(id);
       }
     }
+
 
   #ifdef WITH_MPI
     int mpiFinalized = 0;
@@ -358,44 +433,49 @@ void dyncapi_nesmik_finalize() {
                 gathered.data(), recvCounts.data(), displs.data(), MPI_INT,
                 0, MPI_COMM_WORLD);
 
-    std::unordered_set<int> gatheredSet;
-    gatheredSet.insert(gathered.begin(), gathered.end());
+    filteredSet.insert(gathered.begin(), gathered.end());
 
-    filtered.clear();
-    filtered.reserve(gatheredSet.size());
-    std::copy(gatheredSet.begin(), gatheredSet.end(), std::back_inserter(filtered));
+  #else
+      filteredSet.insert(filtered.begin(), filtered.end());
   #endif
 
     // Convert to names
-    std::vector<std::string> filteredNames;
-    for (auto id : filtered) {
+    for (auto id : filteredSet) {
       auto& info = capi::globalCaPIData->xrayFuncMap[id];
-      filteredNames.push_back(info.name);
+      filteredNamesSet.insert(info.name);
     }
 
     // Write to file
-#ifdef WITH_MPI
-    if (rank == 0) {
-#endif
-      // Convert to JSON
-      nlohmann::json j = filteredNames;
+      if(isRank0) {
+          // Convert to JSON
+          nlohmann::json j = filteredNamesSet;
 
-      auto execPath = getExecPath();
-      auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
+          auto execPath = getExecPath();
+          auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
 
-      auto outFile = execFilename + ".filtered.json";
+          auto outFile = execFilename + ".filtered.json";
 
-      // Write to file
-      std::ofstream out(outFile);
-      out << j.dump(2) << std::endl;
+          // Write to file
+          std::ofstream out(outFile);
+          out << j.dump(2) << std::endl;
 
-      capi::logInfo() << "A list of all dynamically filtered regions has been written to " << outFile << "\n";
+          capi::logInfo() << "Dynamic filtering disabled " << filteredSet.size() << " regions.\n";
+          capi::logInfo() << "A list of all dynamically filtered regions has been written to " << outFile << "\n";
 
-#ifdef WITH_MPI
-    }
-#endif
+          capi::globalCaPIData->finalDynamicFilterSet = std::move(filteredNamesSet);
+
+      }
 
   }
+
+    if(isRank0) {
+        capi::globalCaPIData->runtimeGraph->printStats();
+        bool shouldValidate = capi::globalCaPIData->options["validate"].as<bool>();
+
+        if (shouldValidate && capi::globalCaPIData->measurementConfig) {
+            capi::globalCaPIData->runtimeGraph->validateQuery(*capi::globalCaPIData->measurementConfig);
+        }
+    }
 
 }
 

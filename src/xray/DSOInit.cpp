@@ -25,9 +25,10 @@ struct XRaySledEntry {
 extern "C" {
 extern const XRaySledEntry __start_xray_instr_map[] __attribute__((weak));
 extern const XRaySledEntry __stop_xray_instr_map[] __attribute__((weak));
+extern const char __start_metacg[] __attribute__((weak));
 }
 
-extern "C" void capi_register_dso(uint64_t addr);
+extern "C" void capi_register_dso(uint64_t addr, const char* rawCG);
 
 
 __attribute__((constructor))
@@ -36,5 +37,5 @@ static void capi_dso_init() {
     return;
   }
   const XRaySledEntry* firstSled = &__start_xray_instr_map[0];
-  capi_register_dso(firstSled->function());
+  capi_register_dso(firstSled->function(), __start_metacg);
 }

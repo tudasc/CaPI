@@ -27,6 +27,7 @@ target_link_libraries(capi_select PUBLIC
 )
 target_link_libraries(capi_select PUBLIC symbol_retriever)
 target_link_libraries(capi_select PUBLIC metacg::metacg)
+target_link_libraries(capi_select PUBLIC cage)
 add_version_include(capi_select)
 
 if (ENABLE_FLIP)

@@ -57,8 +57,9 @@ void RuntimeGraph::recordIndirectCall(const std::string& parent, const std::stri
         caller.setHasBody(true);
         callee.setHasBody(true);
 
-        logInfo() << "Recorded indirect call: " << parent << " -> " << child << "\n";
+//        logInfo() << "Recorded indirect call: " << parent << " -> " << child << "\n";
         patchGraph->addEdge(caller, callee);
+        numIndirectEdges++;
     }
 }
 
@@ -130,7 +131,7 @@ void RuntimeGraph::printStats() {
     return;
   }
   logInfo() << "Runtime graph has " << fullStaticGraph->size() << " nodes\n";
-  logInfo() << "Patch graph has " << patchGraph->size() << " nodes\n";
+  logInfo() << "Patch graph has " << patchGraph->size() << " nodes with " << numIndirectEdges << " recorded indirect edges\n";
 }
 
 

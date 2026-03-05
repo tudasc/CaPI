@@ -5,6 +5,7 @@ add_subdirectory(selection)
 add_subdirectory(driver)
 add_subdirectory(calltree_logger)
 add_subdirectory(symbol_retriever)
+add_subdirectory(nesmik_merger)
 
 if (ENABLE_XRAY)
     add_subdirectory(xray)
