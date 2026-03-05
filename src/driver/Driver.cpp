@@ -28,6 +28,7 @@
 
 // MetaCG
 #include "io/MCGReader.h"
+#include "io/MCGWriter.h"
 
 CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 
@@ -53,6 +54,8 @@ struct Options {
   std::string outfile;
   bool debugMode{false};
   bool printSCCStats{false};
+  bool exportCg{false};
+  std::string cgOutFile;
   InputMode mode{InputMode::FILE};
   OutputFormat outputFormat{OutputFormat::JSON};
 };
@@ -68,6 +71,7 @@ void printHelp() {
   std::cout << " -v <verbosity>     Set verbosity level (0-3, default is 2). "
                "Passing -v without argument sets it to 3.\n";
   std::cout << " --export-ast <file> Write AST to dotfile\n";
+  std::cout << " --export-cg <file> Write the call graph to the given file (useful if loading from binary).\n";
   std::cout << " --write-dot <file>  Write a dotfile of the selected "
                "call-graph subset.\n";
   std::cout << " --replace-inlined <binary>  Replaces inlined functions with "
@@ -113,6 +117,14 @@ bool parseOptions(int argc, char** argv, Options& opts) {
             return false;
           }
           opts.astFile = argv[i];
+        } else if (option == "export-cg") {
+            opts.exportCg = true;
+          if (++i >= argc) {
+              std::cerr << "Need to pass a name for the output call graph file. \n";
+              printHelp();
+              return false;
+          }
+          opts.cgOutFile = argv[i];
         } else if (option == "debug") {
           opts.debugMode = true;
         } else if (option == "replace-inlined") {
@@ -259,6 +271,19 @@ int main(int argc, char **argv) {
       std::cerr << "Failed to extract the call graph!\n Was the input file in MetaCG JSON format? "
                    "Then make sure it uses the .mcg extension.\n";
       return EXIT_FAILURE;
+    }
+    if (opts.exportCg) {
+        std::cout << "Writing extracted graph to " << opts.cgOutFile << "...\n";
+        io::JsonSink js;
+        auto writer = io::createWriter(4);
+        writer->write(cg.get(), js);
+        std::ofstream out(opts.cgOutFile);
+        if (!out.good()) {
+            std::cout << "Could not write to file!\n";
+            return EXIT_FAILURE;
+        }
+        out << js.getJson().dump(4) << std::endl;
+        std::cout << "Done!\n";
     }
   }
 
