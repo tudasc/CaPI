@@ -71,7 +71,8 @@ bool StatementCountAnalysis<MetricTraits>::run(TraversalHelper& helper) {
     SCCAnalysisResults sccResults = computeSCCs(helper, true);
 
     for (auto& leaf :  sccResults.findLeaves(helper)) {
-        workQueue.push_range(leaf->nodes);
+        for (auto&& v : leaf->nodes)
+            workQueue.push(v);
     }
 
     while (!workQueue.empty()) {

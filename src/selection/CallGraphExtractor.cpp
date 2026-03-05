@@ -117,8 +117,6 @@ runLddAndCapture(const std::filesystem::path &binary) {
   args.push_back("ldd");
   args.push_back(binaryStr);
 
-  logInfo() << "Running ldd on " << binary << "\n";
-
   bool execFailed = false;
   int rc = sys::ExecuteAndWait(
       "/usr/bin/ldd",
@@ -132,7 +130,7 @@ runLddAndCapture(const std::filesystem::path &binary) {
   );
 
   if (rc != 0 || execFailed) {
-    logError() << "Warning: failed to run ldd on " << binary << "\n";
+    logWarn() << "Warning: failed to run ldd on " << binary << "\n";
     return outputLines;
   }
 
@@ -161,8 +159,6 @@ static void extractAndMergeDependencies(const std::filesystem::path& executable,
       auto binary = workList.back();
       workList.pop_back();
 
-      std::cout << "Working on " << binary << "\n";
-
       // Run ldd and parse dependencies
       auto lines = runLddAndCapture(binary);
       std::regex libRegex(R"(=>\s*(/[^ ]+))"); // captures "/path/to/lib.so"
@@ -182,7 +178,7 @@ static void extractAndMergeDependencies(const std::filesystem::path& executable,
                   logInfo() << "Merging with call graph from dependency " << depPath << "\n";
                   mainCG->merge(*cg, cage::DynamicLinkagePolicy{});
               } else {
-                  logWarn() << "Could not extract call graph from " << depPath << "\n";
+//                  logWarn() << "Could not extract call graph from " << depPath << "\n";
               }
 
               seen.insert(depPath);
