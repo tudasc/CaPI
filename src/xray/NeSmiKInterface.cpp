@@ -49,6 +49,7 @@ namespace {
     bool isRank0{true};
     thread_local bool inXRayScope{false};
     thread_local bool inParallelRegion{false};
+    thread_local int callDepth{0};
     thread_local int functionLastEnteredBeforeInit{-1};
 
     struct RegionMetrics {
@@ -148,6 +149,8 @@ void registerExtraOptions(cxxopts::Options& options) {
 
 
 static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
+    assert(callDepth >= 0);
+    callDepth++;
   if (dynamicFiltering) {
     // FIXME: Thread-safety!
     auto& metrics = regionMetricsMap[id];
@@ -164,6 +167,13 @@ static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
 }
 
 static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
+    if (callDepth == 0) {
+        logWarn() << "Entry event for function ID " << id << " was not recorded - skipping exit...\n";
+        return;
+    }
+    assert(callDepth >= 0);
+    callDepth--;
+
   if (dynamicFiltering) {
     auto& metrics = regionMetricsMap[id];
     if (metrics.filtered) {
