@@ -155,6 +155,9 @@ RegisterSelector registerSystemHeaderSelector("in_system_header", createSimpleSe
 // UnresolveCallSelector
 RegisterSelector registerUnresolvedCallSelector("contains_unresolved_calls", createSimpleSelector<UnresolvedCallSelector>);
 
+// InstructionSelector
+RegisterSelector registerInstSelector("instructions", createMetricSelector<InstMetric>);
+
 // FlopSelector
 RegisterSelector registerFlopSelector("flops", createMetricSelector<FlopMetric>);
 

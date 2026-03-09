@@ -287,14 +287,19 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
   filteringThresholdMicros = opts["filter-limit-micros"].as<int>();
   filteringMinInvocs = opts["filter-min-calls"].as<int>();
 
+  const char* nesmikBackend;
+
   const auto& modeStr = opts["mode"].as<std::string>();
   if (modeStr == "profile") {
     measurementMode = Mode::PROFILE;
+    nesmikBackend = "CaPI";
   } else if (modeStr == "trace") {
     measurementMode = Mode::TRACE;
+    nesmikBackend = "Extrae::TypeStack";
   } else {
     logError() << "Invalid mode selected. Defaulting to PROFILE.\n";
     measurementMode = Mode::PROFILE;
+    nesmikBackend = "CaPI";
   }
 
   // Dynamic filtering is only available in profiling mode.
@@ -304,16 +309,16 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
   recordInParallelRegions = false;
 
   // Set NeSmiK backend (if not already set explicitly)
-  setenv("NESMIK_BACKEND", "CaPI", 0);
+  setenv("NESMIK_BACKEND", nesmikBackend, 1);
 
   logInfo() << "XRay initialization for neSmiK done.\n";
-  logInfo() << "Running in " << (measurementMode == Mode::PROFILE ? "profiling" : "tracing") << " mode.\n";
+  logInfo() << "Running in " << (measurementMode == Mode::PROFILE ? "profiling" : "tracing") << " mode with neSmiK backend '" << nesmikBackend << "'.\n";
   logInfo() << "Dynamic filtering is " << (dynamicFiltering ? "enabled" : "disabled") << ".\n";
 }
 
 void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
   logInfo() << "Finalizing XRay interface for neSmiK\n";
-    if (initialized && isRank0) {
+    if (initialized && measurementMode == Mode::PROFILE && isRank0) {
         capi::logInfo() << "Merging TALP metrics with static graph...\n";
         // Generate metric profile
         auto staticCg = capi::globalCaPIData->runtimeGraph->getStaticGraph();
@@ -350,7 +355,9 @@ void preXRayFinalize() XRAY_NEVER_INSTRUMENT {
 
 }
 
-void dyncapi_nesmik_init() {
+
+
+void  __attribute__((visibility("default")))  dyncapi_nesmik_init() XRAY_NEVER_INSTRUMENT {
 #ifdef WITH_MPI
   int mpiInited = 0;
   MPI_Initialized(&mpiInited);
@@ -368,10 +375,15 @@ void dyncapi_nesmik_init() {
   initialized = true;
 }
 
-void dyncapi_nesmik_finalize() {
+void  __attribute__((visibility("default")))  dyncapi_nesmik_finalize() XRAY_NEVER_INSTRUMENT {
   __xray_unpatch();
   nesmik::finalize();
   finalized = true;
+
+  if (!initialized) {
+      capi::logError() << "NeSmiK was not initialized, but finalize was called!\n";
+      return;
+  }
 
   std::unordered_set<int> filteredSet;
   std::vector<int> filtered;
@@ -479,10 +491,10 @@ void dyncapi_nesmik_finalize() {
 
 }
 
-void dyncapi_par_region_enter() {
+void __attribute__((visibility("default")))  dyncapi_par_region_enter() XRAY_NEVER_INSTRUMENT {
   inParallelRegion = true;
 }
 
-void dyncapi_par_region_exit() {
+void  __attribute__((visibility("default"))) dyncapi_par_region_exit() XRAY_NEVER_INSTRUMENT{
   inParallelRegion = false;
 }

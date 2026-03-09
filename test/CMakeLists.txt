@@ -1,3 +1,5 @@
+enable_testing()
+
 add_library(test-rt STATIC test-rt.cpp)
 
 if (ENABLE_INST_PASSES)
@@ -8,6 +10,7 @@ add_subdirectory(integration)
 add_subdirectory(symbol_retriever)
 add_subdirectory(install_test)
 add_subdirectory(wrapper)
+add_subdirectory(unit)
 
 file(GLOB INTEGRATION_EXECUTABLES integration/simpleTester.cpp integration/runTestCases integration/simpleTester integration/testfunctions)
 file(GLOB INTEGRATION_INPUT integration/input)

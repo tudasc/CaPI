@@ -49,7 +49,11 @@ SHOWME_COMMAND=0
 # Helper: CaGe flags
 # -------------------------------
 get_cage_link_flags() {
-    echo $(metacg-config --cage-ldflags)
+    local extra_options=""
+    if [[ "$VERBOSE" == 1 ]]; then
+      extra_options="--cage-pass-option -cage-verbose"
+    fi
+    echo $(metacg-config --cage-ldflags $extra_options)
 }
 
 get_cage_compile_flags() {

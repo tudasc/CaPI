@@ -17,7 +17,7 @@
 #include "capi/selection/SCC.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "capi/selection/SelectorGraph.h"
-#include "capi/selection/StatementCountAnalysis.h"
+#include "capi/selection/InclusiveMetricAnalysis.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/selection/CallGraphExtractor.h"
 #include "capi/support/Logging.h"
@@ -109,7 +109,7 @@ bool parseOptions(int argc, char** argv, Options& opts) {
             return false;
           }
           opts.dotFile = argv[i];
-        } if (option == "export-ast") {
+        } else if (option == "export-ast") {
           opts.exportAST = true;
           if (++i >= argc) {
             std::cerr << "Need to pass a name for the output AST file. \n";
@@ -454,6 +454,19 @@ int main(int argc, char **argv) {
     });
   }
 
+//    // DEBUGGING
+//    runner.onSelectionResult([&filter](InstrumentationAction& action, FunctionSet& selection) {
+//        // Legacy function filter
+//        for (auto &f: selection) {
+//            auto* instMd = f->get<cage::NumInstructionsMD>();
+//            long localCount = instMd ? instMd->getNumberOfInstructions() : -1;
+//            auto* iicMd = f->get<IICMD>();
+//            long inclusiveCount = iicMd ? iicMd->value : -1;
+//            std::cout << "Instructions for " << f->getFunctionName() << ": " << localCount << " (inclusive=" << inclusiveCount << ")\n";
+//        }
+//        return true;
+//    });
+
 
   // Execute the query
   auto resultOrErr = runner.runQuery(queryStr, opts.pathSensitive, opts.debugMode);
@@ -502,6 +515,7 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
   }
+
 
   return EXIT_SUCCESS;
 }

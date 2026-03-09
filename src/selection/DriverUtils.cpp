@@ -19,7 +19,7 @@
 #include "capi/selection/QueryParser.h"
 #include "capi/selection/SelectorBuilder.h"
 #include "capi/selection/SelectorGraph.h"
-#include "capi/selection/StatementCountAnalysis.h"
+#include "capi/selection/InclusiveMetricAnalysis.h"
 #include "capi/selection/TraversalHelper.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
@@ -204,10 +204,10 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
 
 SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtors) : cg(cg), helper(cg, traverseVirtualDtors) {
   // TODO: Add some kind of analysis management logic for selectors to request results
-  StatementCountAnalysis<StatementCountTraits> sca;
-  sca.run(helper);
+//  InclusiveMetricAnalysis<StatementCountTraits> sca;
+//  sca.run(helper);
 
-  StatementCountAnalysis<InstructionCountTraits> ica;
+  InclusiveMetricAnalysis<InstructionCountTraits> ica;
   ica.run(helper);
 
   // Ensure that CaPIMD ist present

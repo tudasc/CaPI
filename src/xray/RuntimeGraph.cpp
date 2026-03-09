@@ -64,7 +64,7 @@ void RuntimeGraph::recordIndirectCall(const std::string& parent, const std::stri
 }
 
 void RuntimeGraph::validateQuery(const MeasurementConfig& cfg) {
-    logInfo() << "Validating static call graph...";
+    logInfo() << "Validating static call graph...\n";
 
     if (patchGraph->isEmpty()) {
         logInfo() << "Patch graph is empty - nothing to do.\n";
@@ -72,7 +72,7 @@ void RuntimeGraph::validateQuery(const MeasurementConfig& cfg) {
     }
 
     // TODO: Do we need to save the original graph?
-    fullStaticGraph->merge(*patchGraph, metacg::MergeByName());
+    fullStaticGraph->merge(*patchGraph, MergeByName());
 
     logInfo() << "Query: \n" << cfg.getQuery() << "\n";
 
@@ -102,8 +102,8 @@ void RuntimeGraph::validateQuery(const MeasurementConfig& cfg) {
 
     auto patchedMc = *resultOrErr;
 
-    auto numAdded = patchedMc.entries().size() - cfg.entries().size();
-    if (numAdded > 0) {
+    auto numAdded = (int) patchedMc.entries().size() - (int) cfg.entries().size();
+    if (numAdded != 0) {
         float relIncrease = ((float) numAdded) / cfg.entries().size();
 
         logInfo() << "Number of missed functions due to unresolved call edges: " << numAdded << " ("

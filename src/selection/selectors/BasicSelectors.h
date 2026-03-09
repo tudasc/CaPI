@@ -12,7 +12,7 @@
 
 #include "capi/selection/Selector.h"
 
-#include "capi/selection/StatementCountAnalysis.h"
+#include "capi/selection/InclusiveMetricAnalysis.h"
 #include "metadata/BuiltinMD.h"
 #include "metadata/NumOperationsMD.h"
 
@@ -314,6 +314,14 @@ class LoopDepthMetric: public SimpleMDMetric<LoopDepthMetric, metacg::LoopDepthM
   static int readMDVal(const metacg::LoopDepthMD& md) {
     return md.loopDepth;
   }
+};
+
+class InstMetric: public SimpleMDMetric<InstMetric, cage::NumInstructionsMD, int> {
+public:
+    static constexpr std::string_view Name = "InstMetric";
+    static int readMDVal(cage::NumInstructionsMD& md) {
+        return md.getNumberOfInstructions();
+    }
 };
 
 class CoarseSelector : public Selector {
