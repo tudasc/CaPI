@@ -21,10 +21,11 @@ set(SOURCES
 
 add_library(capi_select SHARED ${SOURCES})
 
-target_link_libraries(capi_select PUBLIC
-        LLVMObject
-        LLVMSupport
-)
+llvm_map_components_to_libnames(llvm_libs support object)
+
+target_link_libraries(capi_select PUBLIC ${llvm_libs})
+target_include_directories(capi_select PUBLIC ${LLVM_INCLUDE_DIRS})
+
 target_link_libraries(capi_select PUBLIC symbol_retriever)
 target_link_libraries(capi_select PUBLIC metacg::metacg)
 add_version_include(capi_select)
