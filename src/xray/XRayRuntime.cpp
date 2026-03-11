@@ -489,14 +489,16 @@ extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_
 //      capi::logInfo() << "First adddress in " << i << " is " << std::hex <<  __xray_function_address_in_object(1, i) << ", target address is " << firstFunctionAddr << std::dec << "\n";
       if (__xray_function_address_in_object(1, objId) == firstFunctionAddr) {
 
-        capi::logInfo() << "Intercepted loading of DSO with ID=" << objId << "\n";
+        capi::logInfo() << "Intercepted loading of DSO with ID=" << objId << " with first function at address " << std::hex << firstFunctionAddr << std::dec << "\n";
 
         struct FindDsoCtx {
           uintptr_t target;
-          const char* result = nullptr;
+          const char* name = nullptr;
+          uintptr_t addr;
         };
 
         FindDsoCtx ctx;
+        ctx.target = firstFunctionAddr;
         dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* data) -> int {
           auto* ctx = static_cast<FindDsoCtx*>(data);
           for (int i = 0; i < info->dlpi_phnum; ++i) {
@@ -508,10 +510,13 @@ extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_
             uintptr_t start = info->dlpi_addr + ph.p_vaddr;
             uintptr_t end   = start + ph.p_memsz;
 
+            //capi::logInfo() << "Checking segment: start=" << std::hex << start << ", end=" << end << std::dec << "\n";
+
             if (ctx->target >= start && ctx->target < end) {
-              ctx->result = info->dlpi_name && info->dlpi_name[0]
+              ctx->name = info->dlpi_name && info->dlpi_name[0]
                                 ? info->dlpi_name
                                 : "<main executable>";
+              ctx->addr = start;
               return 1; // stop iteration
             }
           }
@@ -520,23 +525,33 @@ extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_
           return 0;
         }, &ctx);
 
-        if (!ctx.result) {
+        if (!ctx.name) {
           capi::logError() << "Could not detect corresponding object file!\n";
           return;
         }
 
-        capi::logInfo() << "Loading symbols and patching DSO " << ctx.result << "\n";
+        capi::logInfo() << "Loading symbols and patching DSO " << ctx.name << "\n";
+
+        auto symTable = loadSymbolTable(ctx.name);
+        if (!symTable.empty()) {
+            // FIXME: Adress mapping is not correct
+            MappedSymTable mappedTable(std::move(symTable), MemMapEntry(ctx.name, ctx.addr, 0));
+            capi::globalCaPIData->symTables[ctx.addr] = std::move(mappedTable);
+        }
 
         auto& xrayMap = capi::globalCaPIData->xrayFuncMap;
         auto& filter = capi::globalCaPIData->filter;
 
-        auto objectStats = loadIdsAndPatchObject(objId, ctx.result, xrayMap, filter.get(), nullptr, nullptr);
-        __xray_patch_object(objId);
+        // TODO: Reenable patching of loaded objects
+        //auto objectStats = loadIdsAndPatchObject(objId, ctx.name, xrayMap, filter.get(), nullptr, nullptr);
+        //__xray_patch_object(objId);
       }
 
   }
 
 }
+
+static std::mutex rtGraphMutex;
 
 extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEVER_INSTRUMENT {
     if (!capi::runtimeActive.load(std::memory_order_acquire) || !capi::globalCaPIData) {
@@ -544,8 +559,9 @@ extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEV
         return;
     }
 
-    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
+    std::lock_guard<std::mutex> lock(rtGraphMutex);
 
+    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
 
     auto& knownCalls = visitedMap[name];
     if (knownCalls.find(address) != knownCalls.end()) {
