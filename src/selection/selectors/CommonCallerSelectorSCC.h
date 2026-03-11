@@ -9,8 +9,6 @@
 
 namespace capi {
 
-
-
 class CommonCallerSelectorSCC : public Selector {
 public:
   enum CAHeuristicType {

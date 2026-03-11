@@ -16,6 +16,7 @@ set(SOURCES
         TraversalHelper.cpp
         selectors/SelectorInstantiation.cpp
         selectors/BasicSelectors.cpp
+        selectors/SCCSelector.cpp
         selectors/CommonCallerSelectorSCC.cpp)
 
 add_library(capi_select SHARED ${SOURCES})

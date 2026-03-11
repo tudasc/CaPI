@@ -13,9 +13,11 @@ enum class TraverseDir { TraverseUp, TraverseDown };
 
 template <TraverseDir dir> class CallPathSelector : public Selector {
   TraversalHelper *helper{nullptr};
+  int maxDepth{0};
 
 public:
   CallPathSelector() = default;
+  CallPathSelector(int maxDepth) : maxDepth(maxDepth) {};
 
   void init(TraversalHelper &helper) override {
     this->helper = &helper;
@@ -25,16 +27,16 @@ public:
 
   std::string getName() override {
     if constexpr (dir == TraverseDir::TraverseUp) {
-      return "CallPathSelector<TraverseUp>";
+      return "CallPathSelector<TraverseUp>(" + std::to_string(maxDepth) + ")";
     }
-    return "CallPathSelector<TraverseDown>";
+    return "CallPathSelector<TraverseDown>("+ std::to_string(maxDepth) + ")";
   }
 };
 
 /**
  * Traverses the call chain downwards, calling the given visit function on each
  * node.
- * @tparam VisitFn Function that takes a metacg::CgNode& argument and returns the next
+ * @tparam VisitFn Function that takes a metacg::CgNode& argument and the current call depth and returns the next
  * nodes to traverse.
  * @tparam VisitFn Function that takes a metacg::CgNode& argument.
  * @param node
@@ -44,24 +46,46 @@ public:
 template <typename TraverseFn, typename VisitFn>
 int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
                       VisitFn &&visit) {
-  std::vector<const metacg::CgNode *> workingSet;
-  std::vector<const metacg::CgNode *> alreadyVisited;
+//  struct NodeInfo {
+//      const metacg::CgNode* node{nullptr};
+//      int depth{0};
+//  };
+
+
+
+  std::vector<const CgNode*> workingSet;
+  std::unordered_set<const metacg::CgNode*> alreadyVisited;
+  std::unordered_map<const metacg::CgNode*, int> minDepth;
 
   workingSet.push_back(&node);
+  minDepth[&node] = 0;
 
   do {
     auto currentNode = workingSet.back();
     workingSet.pop_back();
     //        std::cout << "Visiting caller " << currentNode->getName() << "\n";
     visit(*currentNode);
-    alreadyVisited.push_back(currentNode);
-    for (auto &nextNode : selectNextNodes(*currentNode)) {
-      if (std::find(workingSet.begin(), workingSet.end(), nextNode) ==
-          workingSet.end() &&
-          std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode) ==
+    int depth = minDepth[currentNode];
+
+    alreadyVisited.insert(currentNode);
+    for (auto &nextNode : selectNextNodes(*currentNode, depth)) {
+
+        if (!minDepth.contains(nextNode) || depth+1 < minDepth[nextNode]) {
+            minDepth[nextNode] = depth+1;
+        }
+
+      // Already visited? Check if we're at a lower depth
+      if (auto vNode = std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode); vNode !=
           alreadyVisited.end()) {
-        workingSet.push_back(nextNode);
+          if (depth+1 >= minDepth[*vNode]) {
+              continue;
+          }
       }
+
+      if (std::find(workingSet.begin(), workingSet.end(),nextNode) == workingSet.end()) {
+          workingSet.push_back(nextNode);
+      }
+
     }
 
   } while (!workingSet.empty());
@@ -91,15 +115,21 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   for (auto &fn : in) {
     if constexpr (Dir == TraverseDir::TraverseDown) {
       int count = traverseCallGraph(
-              *fn, [this](const metacg::CgNode & node) -> auto {
-                return helper->get(&node).findAllCallees();
+              *fn, [this](const metacg::CgNode & node, int depth) -> auto {
+                  auto callees = helper->get(&node).findAllCallees();
+                if (maxDepth == 0 || depth < maxDepth)
+                    return callees;
+                return IterRange{callees.begin(), callees.begin()};
               },
               visitFn);
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
-              *fn, [this](const metacg::CgNode & node) -> auto {
-                return helper->get(&node).findAllCallers();
+              *fn, [this](const metacg::CgNode & node, int depth) -> auto {
+                  auto callers = helper->get(&node).findAllCallers();
+                  if (maxDepth == 0 || depth < maxDepth)
+                    return callers;
+                  return IterRange{callers.begin(), callers.begin()};
               },
               visitFn);
       //std::cout << "Functions on call path to " << fn << ": " << count << "\n";

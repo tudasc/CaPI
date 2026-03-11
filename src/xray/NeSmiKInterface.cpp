@@ -50,13 +50,14 @@ namespace {
     thread_local bool inXRayScope{false};
     thread_local bool inParallelRegion{false};
     thread_local int callDepth{0};
-    thread_local int functionLastEnteredBeforeInit{-1};
 
     struct RegionMetrics {
         size_t numInvocations{0};
         long accumulatedTimeNanos{0};
         std::atomic_bool filtered{false};
+        std::atomic_bool unpatched{false};
         std::atomic_bool shouldMonitor{true};
+        int numOnCallStack{0};
 
         double meanDuration() const {
             return accumulatedTimeNanos / numInvocations;
@@ -67,8 +68,8 @@ namespace {
         }
     };
 
-// FIXME: Is not thread safe!
-    std::unordered_map<int, RegionMetrics> regionMetricsMap;
+// FIXME: how to handle recording multiple threads?
+    thread_local std::unordered_map<int, RegionMetrics> regionMetricsMap;
 
     thread_local std::unordered_map<int, std::vector<RegionClock::time_point>> timeStamps;
 
@@ -154,8 +155,13 @@ static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
   if (dynamicFiltering) {
     // FIXME: Thread-safety!
     auto& metrics = regionMetricsMap[id];
+    if (int n = ++metrics.numOnCallStack; n > 1) {
+//        logWarn() << "Function " << capi::globalCaPIData->xrayFuncMap[id].name << " appears " << n
+//                  << " times on the call stack\n";
+    }
     if (metrics.filtered) {
       // TODO: Expected to be unpatched at this point
+      logWarn() << "Entering function " << capi::globalCaPIData->xrayFuncMap[id].name << " after it has been filtered!\n";
       return;
     }
     if (metrics.shouldMonitor) {
@@ -168,7 +174,7 @@ static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
 
 static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
     if (callDepth == 0) {
-        logWarn() << "Entry event for function ID " << id << " was not recorded - skipping exit...\n";
+        logWarn() << "Entry event for function " << capi::globalCaPIData->xrayFuncMap[id].name << "(id=" << id << ") was not recorded - skipping exit...\n";
         return;
     }
     assert(callDepth >= 0);
@@ -176,8 +182,15 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
 
   if (dynamicFiltering) {
     auto& metrics = regionMetricsMap[id];
-    if (metrics.filtered) {
-      // TODO: Expected to be unpatched at this point
+    if (int n = --metrics.numOnCallStack; n < 0) {
+        logWarn() << "Function " << capi::globalCaPIData->xrayFuncMap[id].name << " is missing " << (-n) << " entry events!\n";
+    }
+    if (metrics.filtered && !metrics.unpatched) {
+        if (metrics.numOnCallStack == 0) {
+            // This was the last call of this function on the stack -> can safely unpatch
+            metrics.unpatched = true;
+            __xray_unpatch_function(id);
+        }
       return;
     }
   }
@@ -201,9 +214,15 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
       if (metrics.numInvocations >= filteringMinInvocs) {
         metrics.shouldMonitor = false;
         if (metrics.meanDurationMicros() < filteringThresholdMicros) {
+          logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
           metrics.filtered = true;
-          __xray_unpatch_function(id);
-//          logInfo() << "Region " << info.name << " filtered out! Mean time was " << metrics.meanDuration() << " ns over " << metrics.numInvocations << " invocations\n";
+          metrics.unpatched = false;
+          if (metrics.numOnCallStack == 0) {
+              __xray_unpatch_function(id);
+              metrics.unpatched = true;
+          } else {
+              logWarn() << "Filtered region has " << metrics.numOnCallStack << "calls remaining on the stack - deferring unpatching.\n";
+          }
         }
       }
     }
@@ -259,7 +278,6 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
   }
 
   if (!initialized) {
-    functionLastEnteredBeforeInit = id;
     static bool failedBefore{false};
     if (!failedBefore) {
       auto& info = capi::globalCaPIData->xrayFuncMap[id];
@@ -267,12 +285,6 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
       failedBefore = true;
     }
     return;
-  }
-
-  // To avoid inconsistencies, we ignore all invocations of the function from which neSmiK was initialized.
-  // Otherwise, if this function is instrumented, the entry event will not be recorded but the exit will be.
-  if (functionLastEnteredBeforeInit == id) {
-      return;
   }
 
   switch (type) {
@@ -306,11 +318,25 @@ void postXRayInit() XRAY_NEVER_INSTRUMENT {
   } else if (modeStr == "trace") {
     measurementMode = Mode::TRACE;
     nesmikBackend = "Extrae::TypeStack";
-  } else {
-    logError() << "Invalid mode selected. Defaulting to PROFILE.\n";
-    measurementMode = Mode::PROFILE;
-    nesmikBackend = "CaPI";
+  } else if (modeStr == "check") {
+    nesmikBackend = "Detection";
+    measurementMode = Mode::TRACE;
+  } else if (modeStr == "check2") {
+      nesmikBackend = "Default";
+      measurementMode = Mode::TRACE;
+  } else if (modeStr == "check24") {
+      nesmikBackend = "Detection";
+      measurementMode = Mode::PROFILE;
+  } else if (modeStr == "check42") {
+      nesmikBackend = "Default";
+      measurementMode = Mode::PROFILE;
   }
+      else {
+          logError() << "Invalid mode selected. Defaulting to PROFILE.\n";
+          measurementMode = Mode::PROFILE;
+          nesmikBackend = "CaPI";
+      }
+
 
   // Dynamic filtering is only available in profiling mode.
   dynamicFiltering = (measurementMode == Mode::PROFILE) && opts["dynamic-filtering"].as<bool>();
@@ -382,11 +408,17 @@ void  __attribute__((visibility("default")))  dyncapi_nesmik_init() XRAY_NEVER_I
   }
 #endif
   nesmik::init();
+    if (measurementMode == capi::Mode::TRACE) {
+        nesmik::region_start("main::internal::capi");
+    }
   initialized = true;
 }
 
 void  __attribute__((visibility("default")))  dyncapi_nesmik_finalize() XRAY_NEVER_INSTRUMENT {
   __xray_unpatch();
+    if (measurementMode == capi::Mode::TRACE) {
+        nesmik::region_stop("main::internal::capi");
+    }
   nesmik::finalize();
   finalized = true;
 

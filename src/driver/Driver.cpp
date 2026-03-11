@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
       }
     }
     std::cout << "Number of SCCs: " << sccResults.size() << "\n";
-    std::cout << "Largest SCC: " << largestSCC->size() << "\n";
+    std::cout << "Largest SCC: " << largestSCC->getName() << "\n";
     std::cout << "Number of SCCs containing more than 1 node: " << numLargerOne
               << "\n";
     std::cout << "Number of SCCs containing more than 2 nodes: " << numLargerTwo

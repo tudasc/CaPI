@@ -8,6 +8,7 @@
 #include "SelectorRegistry.h"
 #include "SetOperations.h"
 #include "TalpMetricSelector.h"
+#include "SCCSelector.h"
 
 #ifdef CAPI_ENABLE_FLIP
 #include "FlipMetricSelector.h"
@@ -116,6 +117,17 @@ SelectorPtr createMinCallDepthSelector(const std::vector<Param>& params) {
   return std::make_unique<MinCallDepthSelector>(*cmpOp, intVal);
 }
 
+template <TraverseDir Dir, bool parseParam>
+SelectorPtr createCallPathSelector(const std::vector<Param>& params) {
+    int intVal = 0;
+    if (parseParam) {
+        CHECK_NUM_ARGS(CallPathSelector, params, 1)
+        CHECK_KIND(params[1], Param::INT)
+        intVal = std::get<int>(params[0].val);
+    }
+    return std::make_unique<CallPathSelector<Dir>>(intVal);
+}
+
 template<CommonCallerSelectorSCC::CAHeuristicType T>
 SelectorPtr createCommmonCallerSelectorSCC(const std::vector<Param>& params) {
   int maxOrder = INT32_MAX;
@@ -135,10 +147,19 @@ RegisterSelector registerFilePathSelector("by_path", createFilePathSelector);
 RegisterSelector registerInlineSelector("inline_specified", createSimpleSelector<InlineSelector>);
 
 // CallPathSelectorUp
-RegisterSelector registerCallPathUpSelector("on_call_path_to", createSimpleSelector<CallPathSelector<TraverseDir::TraverseUp>>);
+RegisterSelector registerCallPathUpSelector("on_call_path_to", createCallPathSelector<TraverseDir::TraverseUp, false>);
 
 // CallPathSelectorDown
-RegisterSelector registerCallPathDownSelector("on_call_path_from", createSimpleSelector<CallPathSelector<TraverseDir::TraverseDown>>);
+RegisterSelector registerCallPathDownSelector("on_call_path_from", createCallPathSelector<TraverseDir::TraverseDown, false>);
+
+// Callee selector
+RegisterSelector registerCalleesSelector("callees", createCallPathSelector<TraverseDir::TraverseDown, true>);
+
+// Callers selector
+RegisterSelector registerCallersSelector("callers", createCallPathSelector<TraverseDir::TraverseUp, true>);
+
+// SCC selector
+RegisterSelector registerSCCSelector("strongly_connected", createSimpleSelector<SCCSelector>);
 
 // UnionSelector
 RegisterSelector registerUnionSelector("join", createSimpleSelector<SetOperationSelector<SetOperation::UNION>>);

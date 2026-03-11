@@ -90,6 +90,7 @@ public:
   }
 };
 
+
 class InlineSelector : public FilterSelector {
 public:
   InlineSelector() = default;

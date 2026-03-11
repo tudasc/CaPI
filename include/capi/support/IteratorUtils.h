@@ -25,6 +25,10 @@ struct IterRange {
     return std::distance(beginIt, endIt);
   }
 
+  static IterRange<T> makeEmpty(T val) {
+      return IterRange<T>{val, val};
+  }
+
 private:
   T beginIt, endIt;
 };
