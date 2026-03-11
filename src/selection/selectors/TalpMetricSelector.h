@@ -6,7 +6,7 @@
 #define CAPI_TALPSELECTOR_H
 
 #include "BasicSelectors.h"
-#include "metadata/TalpMD.h"
+#include "capi/selection/metadata/TalpMD.h"
 
 namespace capi {
 
@@ -124,13 +124,8 @@ class TalpMetric : public SimpleMDMetric<TalpMetric<MetricT, ValT>, TalpMD, ValT
  public:
   static constexpr std::string_view Name = "TALPMetric";
   static ValT readMDVal(TalpMD& md) {
-    std::vector<std::string> path; // TODO: Refactor
-    auto metrics = md.findMetrics(path);
-    if (!metrics) {
-      logError() << "unable to find metrics for path\n";
-      return 0;
-    }
-    return lookupMetric<MetricT>(*metrics);
+    auto& metrics = md.getMetrics();
+    return lookupMetric<MetricT>(metrics);
   }
 };
 

@@ -11,7 +11,7 @@
 #include "io/VersionTwoMCGReader.h"
 #include "io/VersionTwoMCGWriter.h"
 
-#include "capi/nesmik_merger/TalpMD.h"
+#include "capi/selection/metadata/TalpMD.h"
 #include "capi/support/Logging.h"
 
 #include <fstream>
@@ -19,34 +19,25 @@
 
 using namespace metacg;
 
-static std::unique_ptr<TalpMD> getTalpMD(const std::string& id, const nlohmann::json& talp_json,
-                                         const nlohmann::json& nesmik_json, bool filtered) {
-    // first get the call path from the nesmik_json
-    if (!nesmik_json["regions"].contains(id)) {
-        return {};
-    }
-    std::vector<std::string> call_path = nesmik_json["regions"][id];
-    if (call_path.empty()) {
-        return {};
-    }
+namespace capi {
 
-    // now remove the region which is the last one in the callstack, as it the region itself
-    call_path.pop_back();
+static std::unique_ptr<TalpMD> getTalpMD(const std::string& id, const nlohmann::json& talp_json, bool filtered) {
 
     // get the TalpMetrics using the from_json method in the plugin
     if (!talp_json["Application"].contains(id)) {
+        logWarn() << "No metrics found for function " << id << "\n";
         return nullptr;
     }
     TalpMetrics metrics = talp_json["Application"][id];
 
+//    logInfo() << "Metrics found: " << talp_json["Application"][id] << "\n";
+
     auto metadata = std::make_unique<TalpMD>();
-    metadata->addMetrics(call_path, metrics);
+    metadata->setMetrics(metrics);
     metadata->setDynamicallyFiltered(filtered);
 
     return metadata;
 }
-
-namespace capi {
 
 std::unique_ptr<Callgraph> buildDynamicGraphAndAttachMetrics(Callgraph* staticGraph, const nlohmann::json& talp_json,
                                                              const nlohmann::json& nesmik_json, const std::unordered_set<std::string>& dynamic_filter_list) {
@@ -118,7 +109,7 @@ std::unique_ptr<Callgraph> buildDynamicGraphAndAttachMetrics(Callgraph* staticGr
             continue;
         }
         // Attach TALP metadata
-        auto md = getTalpMD(key, talp_json, nesmik_json, dynamic_filter_list.count(node->getFunctionName()) > 0);
+        auto md = getTalpMD(key, talp_json, dynamic_filter_list.count(node->getFunctionName()) > 0);
         if (!md) {
             logError() << "Missing data in TALP file: No metrics for function " << node->getFunctionName() << "(" << key << ")\n";
         } else {
