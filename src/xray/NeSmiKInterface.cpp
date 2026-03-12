@@ -50,6 +50,7 @@ namespace {
     thread_local bool inXRayScope{false};
     thread_local bool inParallelRegion{false};
     thread_local int callDepth{0};
+    thread_local std::vector<int> stack;
 
     struct RegionMetrics {
         size_t numInvocations{0};
@@ -168,6 +169,7 @@ static void handleRegionEnter(int id) XRAY_NEVER_INSTRUMENT {
       timeStamps[id].push_back(RegionClock::now());
     }
   }
+  stack.push_back(id);
   auto& info = capi::globalCaPIData->xrayFuncMap[id];
   nesmik::region_start(info.name);
 }
@@ -193,6 +195,22 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
         }
       return;
     }
+  }
+  bool consistent{true};
+  while(!stack.empty()) {
+      int top = stack.back();
+      stack.pop_back();
+      if (top == id) {
+          consistent = true;
+          break;
+      }
+      auto& info = capi::globalCaPIData->xrayFuncMap[top];
+      logWarn() << "Detected inconsistent call stack: emitting exit event to " << info.name << "\n";
+      consistent = false;
+      nesmik::region_stop(info.name);
+  }
+  if (!consistent) {
+      logError() << "Could not fix stack!\n";
   }
   auto& info = capi::globalCaPIData->xrayFuncMap[id];
   nesmik::region_stop(info.name);

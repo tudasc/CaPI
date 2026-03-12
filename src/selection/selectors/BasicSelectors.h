@@ -24,7 +24,9 @@ class EverythingSelector : public Selector {
 public:
   void init(TraversalHelper &helper) override {
     for (auto& node : helper.cg.getNodes()) {
-      allFunctions.insert(node.get());
+        if (node) {
+            allFunctions.insert(node.get());
+        }
     }
   }
 

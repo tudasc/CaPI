@@ -42,6 +42,7 @@ static std::atomic_bool runtimeInitialized{false};
 static std::atomic_bool runtimeActive{false};
 static int numInitialObjects = 0;
 static std::vector<const char*>* graphsToMerge{nullptr};
+static bool ignoreIndirect;
 
 XRayMeasurementConfig::XRayMeasurementConfig(const capi::MeasurementConfig& mc, const XRayFunctionMap& xrayMap) {
   std::unordered_set<std::string> enteredFunctions;
@@ -204,6 +205,8 @@ cxxopts::ParseResult parseOptions() {
        cxxopts::value<bool>()->default_value("false"))
       ("log-calls", "Log instrumented calls",
        cxxopts::value<bool>()->default_value("false"))
+      ("ignore-indirect-calls", "Disable indirect call handling",
+       cxxopts::value<bool>()->default_value("false"))
       ("config", "Measurement configuration file",
        cxxopts::value<std::string>()->default_value(""))
       ("filter-file", "Filter file (deprecated, use --config instead)",
@@ -334,6 +337,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   auto result = parseOptions();
 
   logCalls = result["log-calls"].as<bool>();
+  ignoreIndirect = result["ignore-indirect-calls"].as<bool>();
   std::string mcFile = result["config"].as<std::string>();
   std::string filterFile = result["filter-file"].as<std::string>();
 
@@ -556,6 +560,9 @@ static std::mutex rtGraphMutex;
 extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEVER_INSTRUMENT {
     if (!capi::runtimeActive.load(std::memory_order_acquire) || !capi::globalCaPIData) {
         // CaPI was not initialized or is finalized
+        return;
+    }
+    if (capi::ignoreIndirect) {
         return;
     }
 

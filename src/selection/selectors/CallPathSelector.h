@@ -21,6 +21,7 @@ public:
 
   void init(TraversalHelper &helper) override {
     this->helper = &helper;
+
   }
 
   FunctionSet apply(const FunctionSetList& input) override;
@@ -45,7 +46,7 @@ public:
  */
 template <typename TraverseFn, typename VisitFn>
 int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
-                      VisitFn &&visit) {
+                      VisitFn &&visit, bool checkDepth, std::vector<const CgNode*>& alreadyVisited, std::unordered_map<const CgNode*, int>& minDepth) {
 //  struct NodeInfo {
 //      const metacg::CgNode* node{nullptr};
 //      int depth{0};
@@ -54,8 +55,6 @@ int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
 
 
   std::vector<const CgNode*> workingSet;
-  std::unordered_set<const metacg::CgNode*> alreadyVisited;
-  std::unordered_map<const metacg::CgNode*, int> minDepth;
 
   workingSet.push_back(&node);
   minDepth[&node] = 0;
@@ -65,27 +64,29 @@ int traverseCallGraph(const metacg::CgNode &node, TraverseFn &&selectNextNodes,
     workingSet.pop_back();
     //        std::cout << "Visiting caller " << currentNode->getName() << "\n";
     visit(*currentNode);
-    int depth = minDepth[currentNode];
+    int depth = checkDepth ? minDepth[currentNode] : 0;
 
-    alreadyVisited.insert(currentNode);
+    alreadyVisited.push_back(currentNode);
     for (auto &nextNode : selectNextNodes(*currentNode, depth)) {
 
-        if (!minDepth.contains(nextNode) || depth+1 < minDepth[nextNode]) {
-            minDepth[nextNode] = depth+1;
+        if (checkDepth) {
+            if (!minDepth.contains(nextNode) || depth + 1 < minDepth[nextNode]) {
+                minDepth[nextNode] = depth + 1;
+            }
         }
 
-      // Already visited? Check if we're at a lower depth
-      if (auto vNode = std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode); vNode !=
-          alreadyVisited.end()) {
-          if (depth+1 >= minDepth[*vNode]) {
-              continue;
-          }
-      }
-
       if (std::find(workingSet.begin(), workingSet.end(),nextNode) == workingSet.end()) {
-          workingSet.push_back(nextNode);
-      }
+          // Already visited? Check if we're at a lower depth
+          if (auto vNode = std::find(alreadyVisited.begin(), alreadyVisited.end(), nextNode); vNode !=
+                                                                                              alreadyVisited.end()) {
+              if (!checkDepth || depth + 1 >= minDepth[*vNode]) {
+                  continue;
+              }
 
+          }
+          workingSet.push_back(nextNode);
+
+      }
     }
 
   } while (!workingSet.empty());
@@ -106,11 +107,14 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   FunctionSet in = input.front();
   FunctionSet out(in);
 
-  auto visitFn = [&out](const metacg::CgNode &node) {
-    if (out.find(&node) == out.end()) {
-      out.insert(&node);
-    }
-  };
+    auto visitFn = [&out](const metacg::CgNode &node) {
+        if (out.find(&node) == out.end()) {
+            out.insert(&node);
+        }
+    };
+
+    std::vector<const CgNode *> alreadyVisited;
+    std::unordered_map<const CgNode*, int> minDepth;
 
   for (auto &fn : in) {
     if constexpr (Dir == TraverseDir::TraverseDown) {
@@ -121,7 +125,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
                     return callees;
                 return IterRange{callees.begin(), callees.begin()};
               },
-              visitFn);
+              visitFn, maxDepth != 0, alreadyVisited, minDepth);
       //std::cout << "Functions on call path from " << fn << ": " << count << "\n";
     } else if constexpr (Dir == TraverseDir::TraverseUp) {
       int count = traverseCallGraph(
@@ -131,7 +135,7 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
                     return callers;
                   return IterRange{callers.begin(), callers.begin()};
               },
-              visitFn);
+              visitFn, maxDepth != 0, alreadyVisited, minDepth);
       //std::cout << "Functions on call path to " << fn << ": " << count << "\n";
     }
   }

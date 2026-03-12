@@ -45,6 +45,7 @@ struct Options {
   std::string dotFile;
   bool exportAST{false};
   std::string astFile;
+  bool prune{false};
   bool pathSensitive{false};
   bool replaceInlined{false};
   bool traverseVirtualDtors{false};
@@ -74,6 +75,7 @@ void printHelp() {
   std::cout << " --export-cg <file> Write the call graph to the given file (useful if loading from binary).\n";
   std::cout << " --write-dot <file>  Write a dotfile of the selected "
                "call-graph subset.\n";
+  std::cout << " --prune Instead of creating a measurement config, use the final set to prune the call graph.\n";
   std::cout << " --replace-inlined <binary>  Replaces inlined functions with "
                "parents. Requires passing the executable.\n";
   std::cout << " --output-format <output_format>  Set the file format. Options "
@@ -125,6 +127,8 @@ bool parseOptions(int argc, char** argv, Options& opts) {
               return false;
           }
           opts.cgOutFile = argv[i];
+        } else if (option == "prune") {
+            opts.prune = true;
         } else if (option == "debug") {
           opts.debugMode = true;
         } else if (option == "replace-inlined") {
@@ -413,8 +417,19 @@ int main(int argc, char **argv) {
         default:
           assert(false && "Unhandled instrumentation type");
       }
+
     return true;
   });
+
+  if (opts.prune) {
+      runner.onSelectionResult([&cg](InstrumentationAction& a, FunctionSet& selection) {
+          std::cout << "Pruning " << selection.size() << " nodes...\n";
+          for (auto& node : selection) {
+              cg->erase(node->getId());
+          }
+          return true;
+      });
+  }
 
   // Apply inline compensation, if requested
   if (opts.replaceInlined) {
@@ -477,6 +492,21 @@ int main(int argc, char **argv) {
   }
 
   auto mc = *resultOrErr;
+
+  if (opts.prune) {
+      std::cout << "Writing pruned call graph to " << opts.outfile << "\n";
+      io::JsonSink js;
+      auto writer = io::createWriter(4);
+      writer->write(cg.get(), js);
+      std::ofstream out(opts.outfile);
+      if (!out.good()) {
+          std::cout << "Could not write to file!\n";
+          return EXIT_FAILURE;
+      }
+      out << js.getJson().dump(4) << std::endl;
+      std::cout << "Done!\n";
+      return EXIT_SUCCESS;
+  }
 
   std::string outfile = opts.outfile;
   if (outfile.empty()) {

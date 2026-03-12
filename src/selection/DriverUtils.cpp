@@ -294,15 +294,34 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
     }
     auto selResult = it->second;
 
+    std::vector<NodeId> selIds;
+    for (auto& n: selResult) {
+        selIds.push_back(n->getId());
+    }
+
     for (auto& cb : selectionResultCBs) {
       if (!cb(action, selResult)) {
         return std::unexpected("Aborted by callback");
       }
     }
 
-    // Measurement config
-    for (auto &f : selResult) {
+    // Filter out pruned nodes
+    // FIXME: Do this more robustly
+    std::vector<const CgNode*> finalResults;
+  for (NodeId nid: selIds) {
+      if (auto* n = cg.getNode(nid); n) {
+          finalResults.push_back(n);
+      }
+  }
+
+
+      // Measurement config
+    for (auto &f : finalResults) {
       CallPath strPath;
+
+      if (!f) {
+          continue;
+      }
 
       if (pathSensitive) {
         auto path = getCallPath(cg, *f).value_or(std::vector<const metacg::CgNode*>{});
@@ -313,7 +332,11 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
 
       auto pathEntry = PathEntry{strPath, action.activeInvocations, {}};
 
-      assert(f->has<CaPIMD>());
+      if (!f->has<CaPIMD>()) {
+          logWarn() << "No CaPIMD found for " << f->getFunctionName() << "\n";
+          continue;
+      }
+
       if (action.type == ALWAYS_INSTRUMENT && f->get<CaPIMD>()->value.isTrigger) {
         pathEntry.flags.push_back("scope_trigger");
       }
