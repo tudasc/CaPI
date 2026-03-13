@@ -52,6 +52,10 @@ namespace {
     thread_local int callDepth{0};
     thread_local std::vector<int> stack;
 
+    // TODO: Sum over threads
+    thread_local std::vector<std::string> fixedExits;
+
+
     struct RegionMetrics {
         size_t numInvocations{0};
         long accumulatedTimeNanos{0};
@@ -206,6 +210,7 @@ static void handleRegionExit(int id) XRAY_NEVER_INSTRUMENT {
       }
       auto& info = capi::globalCaPIData->xrayFuncMap[top];
       logWarn() << "Detected inconsistent call stack: emitting exit event to " << info.name << "\n";
+      fixedExits.push_back(info.name);
       consistent = false;
       nesmik::region_stop(info.name);
   }
@@ -541,11 +546,31 @@ void  __attribute__((visibility("default")))  dyncapi_nesmik_finalize() XRAY_NEV
   }
 
     if(isRank0) {
+        if (!fixedExits.empty()) {
+            capi::logWarn() << "Observed inconsistent exit events for the following functions:\n";
+            for (auto& f : fixedExits) {
+                capi::logWarn() << "\t" << f;
+            }
+            capi::logWarn() << "This can be caused by C++ exceptions\n";
+        }
         capi::globalCaPIData->runtimeGraph->printStats();
         bool shouldValidate = capi::globalCaPIData->options["validate"].as<bool>();
 
         if (shouldValidate && capi::globalCaPIData->measurementConfig) {
-            capi::globalCaPIData->runtimeGraph->validateQuery(*capi::globalCaPIData->measurementConfig);
+            auto execPath = getExecPath();
+            auto execFilename = execPath.substr(execPath.find_last_of('/') + 1);
+            auto outFile = execFilename + ".patch.mcg";
+            auto* patch = capi::globalCaPIData->runtimeGraph->getPatchGraph();
+            if (patch) {
+                auto writer = metacg::io::createWriter(4);
+                metacg::io::JsonSink sink;
+                writer->write(patch, sink);
+                std::ofstream out(outFile);
+                out << sink.getJson().dump(2) << std::endl;
+                capi::logInfo() << "Exported patch graph to " << outFile << "\n";
+                capi::globalCaPIData->runtimeGraph->validateQuery(*capi::globalCaPIData->measurementConfig);
+            }
+
         }
     }
 

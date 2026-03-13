@@ -43,6 +43,13 @@ public:
       return fullStaticGraph.get();
   }
 
+  metacg::Callgraph* getPatchGraph() {
+      if (!patchGraph) {
+          return nullptr;
+      }
+      return patchGraph.get();
+  }
+
   void printStats();
 
 };
