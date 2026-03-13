@@ -217,6 +217,18 @@ RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipM
 RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>);
 RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>);
 RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>);
+RegisterSelector flipKnapsackSelector("flip_knapsack", [] (const std::vector<Param>& params) -> SelectorPtr {
+  CHECK_NUM_ARGS(MinCallDepthSelector, params, 3)
+  CHECK_KIND(params[0], Param::FLOAT)
+  CHECK_KIND(params[1], Param::FLOAT)
+  CHECK_KIND(params[2], Param::FLOAT)
+
+  auto overheadBudget = std::get<float>(params[0].val);
+  auto instrumentationCost = std::get<float>(params[1].val);
+  auto setupOverhead = std::get<float>(params[2].val);
+  
+  return std::make_unique<FlipKnapsackSelector>(overheadBudget, instrumentationCost, setupOverhead);
+});
 #endif
 }
 
