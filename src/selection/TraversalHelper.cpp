@@ -35,8 +35,8 @@ void NodeTraversalInfo::updateOverridesCache() {
   recursiveOverrides.clear();
   for (const auto& overridesNode : this->overrides) {
     auto overridesNodeTraversalInfo = helper->get(overridesNode);
-    recursiveOverrides.insert(overridesNodeTraversalInfo->node);
     assert(overridesNodeTraversalInfo && "Node must exist here");
+    recursiveOverrides.insert(overridesNodeTraversalInfo->node);
     auto recursiveNodeOverrides = overridesNodeTraversalInfo->findAllOverrides();
     recursiveOverrides.insert(recursiveNodeOverrides.begin(), recursiveNodeOverrides.end());
   }

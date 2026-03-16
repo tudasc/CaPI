@@ -101,12 +101,16 @@ FunctionSet FlipKnapsackSelector::apply(const FunctionSetList& input) {
   // unsigned i = 0;
   for (const metacg::CgNode* node : nodes) {
     // std::cout << ++i << "\n";
-    if (!inputFunctions.contains(node)) {
-      // auto parents = helper->get(node).findAllCallers();
-      // auto children = helper->get(node).findAllCallees();
+    if (inputFunctions.contains(node)) {
+      auto* overrideMD = node->get<metacg::OverrideMD>();
+      if (overrideMD != nullptr) {
+        std::erase_if(overrideMD->overrides,    [&](const auto& o) { return !inputFunctions.contains(cg.getNode(o)); });
+        std::erase_if(overrideMD->overriddenBy, [&](const auto& o) { return !inputFunctions.contains(cg.getNode(o)); });
+      }
+    } else {
       auto parents = cg.getCallers(*node);
       auto children = cg.getCallees(*node);
-
+      
       for (auto parent : parents) {
         for (auto child : children) {
           assert(parent != nullptr);
