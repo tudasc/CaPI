@@ -74,7 +74,7 @@ struct XRayRecursionGuard {
   }
 
   ~XRayRecursionGuard() XRAY_NEVER_INSTRUMENT {
-    xrayScope = false;
+    xrayScope = wasInScope;
   }
 
   bool check() const XRAY_NEVER_INSTRUMENT {
