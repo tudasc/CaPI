@@ -9,8 +9,8 @@
 #include "capi/selection/TraversalHelper.h"
 #include "capi/support/Logging.h"
 
-#include <Callgraph.h>
-#include <CgNode.h>
+#include <metacg/Callgraph.h>
+#include <metacg/CgNode.h>
 #include <memory>
 #include <unordered_set>
 #include <vector>

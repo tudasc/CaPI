@@ -5,7 +5,7 @@
 #ifndef CAPI_TRAVERSALHELPER_H
 #define CAPI_TRAVERSALHELPER_H
 
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
 #include "capi/support/IteratorUtils.h"
 
 namespace capi {

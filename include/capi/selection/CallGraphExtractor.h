@@ -5,7 +5,7 @@
 #ifndef CAPI_CALLGRAPHEXTRACTOR_H
 #define CAPI_CALLGRAPHEXTRACTOR_H
 
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
 
 #include <filesystem>
 #include <memory>

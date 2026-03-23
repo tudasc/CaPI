@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 #include "capi/selection/metadata/CaPIMD.h"
-#include "metadata/BuiltinMD.h"
+#include "metacg/metadata/BuiltinMD.h"
 
 namespace capi {
 bool IncludeListSelector::accept(const metacg::CgNode* fNode) {

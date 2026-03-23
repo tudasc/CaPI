@@ -9,7 +9,8 @@
 #include "capi/support/Logging.h"
 
 // MetaCG includes
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
+
 #include <unordered_set>
 
 namespace capi {

@@ -5,7 +5,7 @@
 #ifndef CAPI_DEMANGLE_H
 #define CAPI_DEMANGLE_H
 
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
 
 namespace capi {
 void demangleNames(metacg::Callgraph &cg);

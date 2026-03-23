@@ -5,7 +5,7 @@
 #ifndef CAPI_TRANSIENTMD_H
 #define CAPI_TRANSIENTMD_H
 
-#include "metadata/MetaData.h"
+#include "metacg/metadata/MetaData.h"
 
 namespace capi {
 

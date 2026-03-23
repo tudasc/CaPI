@@ -9,7 +9,7 @@ namespace capi {
 
 // TODO: Find common place to share this metadata with selective tracing project
 
-#include "metadata/MetaData.h"
+#include "metacg/metadata/MetaData.h"
 
 #include <numeric>
 #include <optional>

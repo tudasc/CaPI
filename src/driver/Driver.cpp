@@ -27,7 +27,7 @@
 #include "capi_version.h"
 
 // MetaCG
-#include "io/MCGReader.h"
+#include "metacg/io/MCGReader.h"
 
 CAPI_DEFINE_VERBOSITY(LOG_STATUS)
 

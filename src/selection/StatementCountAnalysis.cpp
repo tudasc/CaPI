@@ -8,7 +8,7 @@
 #include <queue>
 
 #include "capi/support/Logging.h"
-#include "metadata/NumStatementsMD.h"
+#include "metacg/metadata/NumStatementsMD.h"
 
 namespace capi {
 

@@ -13,8 +13,8 @@
 #include "capi/selection/Selector.h"
 
 #include "capi/selection/StatementCountAnalysis.h"
-#include "metadata/BuiltinMD.h"
-#include "metadata/NumOperationsMD.h"
+#include "metacg/metadata/BuiltinMD.h"
+#include "metacg/metadata/NumOperationsMD.h"
 
 namespace capi {
 

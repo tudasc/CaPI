@@ -5,7 +5,7 @@
 #ifndef CAPI_DRIVERUTILS_H
 #define CAPI_DRIVERUTILS_H
 
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
 
 #include "Selector.h"
 #include "capi/selection/MeasurementConfig.h"

@@ -5,8 +5,8 @@
 #ifndef CAPI_CGUTILS_H
 #define CAPI_CGUTILS_H
 
-#include "Callgraph.h"
-#include "io/MCGReader.h"
+#include "metacg/Callgraph.h"
+#include "metacg/io/MCGReader.h"
 
 #include "Logging.h"
 

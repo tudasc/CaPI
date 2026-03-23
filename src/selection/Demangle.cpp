@@ -14,7 +14,7 @@
 #include "capi/support/Logging.h"
 #include "capi/selection/metadata/CaPIMD.h"
 
-#include "Callgraph.h"
+#include "metacg/Callgraph.h"
 
 namespace capi {
 

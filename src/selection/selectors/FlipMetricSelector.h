@@ -10,8 +10,8 @@
 #include "capi/selection/Selector.h"
 #include "capi/selection/TraversalHelper.h"
 
-#include <Callgraph.h>
-#include <CgNode.h>
+#include <metacg/Callgraph.h>
+#include <metacg/CgNode.h>
 
 #include <flip/FLIP_counts.hpp>
 
