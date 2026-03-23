@@ -4,6 +4,8 @@
 
 #include "capi/selection/SCC.h"
 
+#include <queue>
+
 namespace capi {
 
 struct SCCData {
@@ -72,83 +74,54 @@ SCCAnalysisResults computeSCCs(capi::TraversalHelper& helper, bool followVirtual
 std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> SCCAnalysisResults::globalAncestorComputation(
     const std::unordered_set<const SCCNode*>& leafes, TraversalHelper& helper) {
   // std::cout << "Total number of SCC nodes: " << sccs.size() << "\n";
-  // unsigned processed = 0;
 
-  // result map
   std::unordered_map<const SCCNode*, std::vector<const SCCNode*>> res;
+  std::unordered_map<const SCCNode*, int> inDegree;  // #parents not yet processed
 
-  // Queue of nodes to be processed
-  std::vector<const SCCNode*> worklist;
-
-  // Temporary vector holding all parents of a node that have not been processed yet
-  std::vector<const SCCNode*> missingParents;
-
-  // Temporary vector holding the ancestors of all parents that have already been processed
-  std::vector<std::vector<const SCCNode*>> parentAncestorsCollection;
-
-  // Put all leaf SCCs into the worklist
-  worklist.insert(worklist.end(), leafes.begin(), leafes.end());
-
-  while (!worklist.empty()) {
-    const SCCNode* node = worklist.back();
-    worklist.pop_back();
-
-    // Skip if this node was already processed
-    if (res.contains(node)) {
-      continue;
+  for (const SCCNode& node : sccs) {
+    if (!inDegree.contains(&node)) {
+      inDegree[&node] = 0;
     }
 
-    // Fresh temporary vectors
-    missingParents.clear();
-    parentAncestorsCollection.clear();
+    for (const SCCNode* parent : findAllCallers(&node, helper)) {
+      inDegree[&node]++;
+    }
+  }
 
-    auto parents = findAllCallers(node, helper);
+  // Initialize working queue with root nodes (= no parents)
+  std::queue<const SCCNode*> q;
+  for (auto& [node, deg] : inDegree) {
+    if (deg == 0) {
+      q.push(node);
+    }
+  }
 
-    // iterate over all parents to popolate `missingParents` and `parentAncestorsCollection`
-    for (const SCCNode* parent : parents) {
-      auto parent_res = res.find(parent);
+  res.reserve(inDegree.size());
 
-      if (parent_res == res.end()) {
-        // parent has not been processed yet
-        missingParents.push_back(parent);
-      } else {
-        // parent has already been processed -> save its ancestors
-        parentAncestorsCollection.push_back((parent_res->second));
-      }
+  // Populate ancestor lists using Kahn's algorithm
+  while (!q.empty()) {
+    const SCCNode* node = q.front();
+    q.pop();
+
+    // Every parent is guaranteed to be in `res` already.
+    // Collect ancestors: direct parents + all of their ancestor sets.
+    std::vector<const SCCNode*>& ancestors = res[node];
+    for (const SCCNode* parent : findAllCallers(node, helper)) {
+      ancestors.push_back(parent);
+
+      const auto& pa = res.at(parent);
+      ancestors.insert(ancestors.end(), pa.begin(), pa.end());
     }
 
-    // check whether all parents have already been processed
-    if (!missingParents.empty()) {
-      // there are still parents which have not yet been processed
+    // Deduplication 
+    std::sort(ancestors.begin(), ancestors.end());
+    ancestors.erase(std::unique(ancestors.begin(), ancestors.end()), ancestors.end());
 
-      // re-visit this node after all parents have been visited
-      // (thus push it onto the worklist first)
-      worklist.push_back(node);
-
-      // push all missing parents onto the worklist
-      for (const SCCNode* parent : missingParents) {
-        worklist.push_back(parent);
-        // std::cout << node->getName() << ": pushing parent " << parent->getName() << "\n";
+    // Decrement inDegree counter in children
+    for (const SCCNode* child : findAllCallees(node, helper)) {
+      if (--inDegree[child] == 0) {
+        q.push(child); // all parents processed -> child is ready
       }
-      // std::cout << "Worklist size: " << worklist.size() << "\n";
-    } else {
-      // all parents have already been processed \o/
-
-      // collect this node's ancestors (i.e., its parents and its parent's ancestors)
-      std::vector<const SCCNode*> ancestors;
-      for (const SCCNode* parent : parents) {
-        ancestors.push_back(parent);
-      }
-      for (auto& parentAncestors : parentAncestorsCollection) {
-        for (const SCCNode* parentAncestor : parentAncestors) {
-          ancestors.push_back(parentAncestor);
-        }
-      }
-
-      // save into result map
-      res[node] = ancestors;
-      // res[node] = {};
-      // std::cout << "Processed " << ++processed << " (worklist size: " << worklist.size() << ")\n";
     }
   }
 
