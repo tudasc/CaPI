@@ -143,20 +143,50 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
 }
 
 class RootsSelector : public Selector {
-    TraversalHelper* helper;
-public:
-    void init(TraversalHelper &helper) override {
-        this->helper = &helper;
-    }
+  TraversalHelper* helper;
+ public:
+  void init(TraversalHelper &helper) override {
+    this->helper = &helper;
+  }
 
-    FunctionSet apply(const FunctionSetList&) override;
+  FunctionSet apply(const FunctionSetList&) override;
 
-    std::string getName() override {
-        return "RootsSelector";
-    }
+  std::string getName() override {
+    return "RootsSelector";
+  }
 };
 
+FunctionSet RootsSelector::apply(const FunctionSetList& input)  {
+  if (input.size() != 1) {
+    logError() << "Expected exactly one input set, got " << input.size() << " instead.\n";
+    return {};
+  }
 
+  FunctionSet in = input.front();
+  FunctionSet out;
+  for (auto& f : in) {
+    bool isRoot{true};
+    auto visitFn = [&in, &f, &isRoot](const metacg::CgNode &node) {
+      if (&node != f && in.find(&node) != in.end()) {
+        isRoot = false;
+      }
+    };
+
+    std::vector<const metacg::CgNode *> alreadyVisited;
+    std::unordered_map<const metacg::CgNode*, int> minDepth;
+
+    int count = traverseCallGraph(
+        *f, [this](const metacg::CgNode & node, int depth) -> auto {
+          return helper->get(&node).findAllCallers();
+        },
+        visitFn, false, alreadyVisited, minDepth);
+
+    if (isRoot) {
+      out.insert(f);
+    }
+  }
+  return out;
+}
 }
 
 

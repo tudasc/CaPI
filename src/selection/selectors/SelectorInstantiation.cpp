@@ -206,6 +206,7 @@ RegisterSelector iicSelector("inclusive_instruction_count", createMetricSelector
 
 RegisterSelector iicsSelector("inclusive_instruction_count_scc", createMetricSelector<IICSMetric>);
 
+RegisterSelector rootsSelector("roots", createSimpleSelector<RootsSelector>);
 
 
 // TALP metrics

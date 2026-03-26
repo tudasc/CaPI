@@ -283,14 +283,13 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
    return;
   }
 
-  if (recordOnlyMainThread) {
-      thread_local ThreadGuard threadGuard(mainThreadId);
-      if (!threadGuard) {
-          return;
-      }
-  }
-
-    if (!recordInParallelRegions && inParallelRegion) {
+  if (!initialized) {
+    static bool failedBefore{false};
+    if (!failedBefore) {
+      auto& info = capi::globalCaPIData->xrayFuncMap[id];
+      logWarn() << "Handling XRay event for function " << info.name << " (id=" << id << "): neSmiK interface has not been initialized.\n";
+      failedBefore = true;
+    }
     return;
   }
 
@@ -300,13 +299,14 @@ void handleXRayEvent(int32_t id, XRayEntryType type) XRAY_NEVER_INSTRUMENT {
     return;
   }
 
-  if (!initialized) {
-    static bool failedBefore{false};
-    if (!failedBefore) {
-      auto& info = capi::globalCaPIData->xrayFuncMap[id];
-      logWarn() << "Handling XRay event for function " << info.name << " (id=" << id << "): neSmiK interface has not been initialized.\n";
-      failedBefore = true;
-    }
+  if (recordOnlyMainThread) {
+      thread_local ThreadGuard threadGuard(mainThreadId);
+      if (!threadGuard) {
+          return;
+      }
+  }
+
+  if (!recordInParallelRegions && inParallelRegion) {
     return;
   }
 
