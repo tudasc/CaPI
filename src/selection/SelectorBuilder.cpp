@@ -7,16 +7,36 @@
 #include "capi/selection/SelectionQueryAST.h"
 #include "capi/support/Logging.h"
 #include "selectors/BasicSelectors.h"
+#include "nlohmann/json.hpp"
 
 namespace capi {
 
 namespace {
-std::unordered_map<std::string, SelectorFactoryFn> selectorRegistry;
+std::unordered_map<std::string, SelectorInfo> selectorRegistry;
 }
 
-RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn) {
+nlohmann::json getSelectorDocumentation(std::string selectorName) {
+  auto it = selectorRegistry.find(selectorName);
+  if (it == selectorRegistry.end()) {
+    return nlohmann::json();
+  }
+  SelectorDoc documentation = it->second.doc;
+
+  nlohmann::json j;
+
+  j["name"] = documentation.name;
+  j["type"] = documentation.type;
+  j["parameterLabels"] = documentation.parameterLabels;
+  j["parameterTypes"] = documentation.parameterTypes;
+  j["examples"] = documentation.example;
+  j["explanation"] = documentation.description;
+
+  return j;
+}
+
+RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn, SelectorDoc doc) {
   //std::cout << "Registered selector: " << selectorType << "\n";
-  selectorRegistry[selectorType] = std::move(fn);
+  selectorRegistry[selectorType] = SelectorInfo{std::move(fn), std::move(doc)};
 }
 
 class SelectorEmitter: public ASTVisitor {
@@ -77,7 +97,7 @@ public:
         return false;
       }
       // Call factory function
-      selectors.push_back(it->second(params));
+      selectors.push_back(it->second.fn(params));
       return true;
     }
 
