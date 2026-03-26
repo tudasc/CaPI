@@ -387,6 +387,17 @@ public:
 
 };
 
+class IICSMetric : public SimpleMDMetric<IICSMetric, IICSCCMD, long> {
+public:
+    static constexpr std::string_view Name = "IICSMetric";
+    static long readMDVal(const IICSCCMD& md) {
+        return md.value;
+    }
+    static inline constexpr std::array<std::string_view, 3> requiredAnalyses {
+            "instructionCount"
+    };
+};
+
 
 }
 

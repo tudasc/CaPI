@@ -210,6 +210,9 @@ SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtor
   InclusiveMetricAnalysis<InstructionCountTraits> ica;
   ica.run(helper);
 
+  InclusiveMetricAnalysis<InstructionCountSCCTraits> icaScc;
+  icaScc.run(helper);
+
   // Ensure that CaPIMD ist present
   bool warned{false};
   for (auto& node : cg.getNodes()) {

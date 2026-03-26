@@ -43,13 +43,14 @@ struct Helper {
         return cg->existsAnyEdge(a, b);
     }
 
-    long getCount(const std::string& node) {
-        return cg->getFirstNode(node)->getOrCreate<IICMD>().value;
+    std::pair<long, long> getCounts(const std::string& node) {
+        return {cg->getFirstNode(node)->getOrCreate<IICMD>().value, cg->getFirstNode(node)->getOrCreate<IICSCCMD>().value};
     }
 
     bool runAnalysis() {
         InclusiveMetricAnalysis<InstructionCountTraits> analysis;
-        return analysis.run(helper);
+        InclusiveMetricAnalysis<InstructionCountSCCTraits> analysisScc;
+        return analysis.run(helper) && analysisScc.run(helper);
     }
 
 };
@@ -73,10 +74,10 @@ TEST(InclusiveMetricTest, BasicDAG) {
 
     ASSERT_TRUE(h.runAnalysis());
 
-    ASSERT_EQ(h.getCount("main"), 20);
-    ASSERT_EQ(h.getCount("a"), 15);
-    ASSERT_EQ(h.getCount("b"), 10);
-    ASSERT_EQ(h.getCount("c"), 5);
+    ASSERT_EQ(h.getCounts("main"), (std::pair{20, 20}));
+    ASSERT_EQ(h.getCounts("a"), (std::pair{15, 15}));
+    ASSERT_EQ(h.getCounts("b"), (std::pair{10, 10}));
+    ASSERT_EQ(h.getCounts("c"), (std::pair{5, 5}));
 }
 
 TEST(InclusiveMetricTest, OneCycle) {
@@ -91,11 +92,11 @@ TEST(InclusiveMetricTest, OneCycle) {
 
     ASSERT_TRUE(h.runAnalysis());
 
-    ASSERT_EQ(h.getCount("main"), 30);
-    ASSERT_EQ(h.getCount("a"), 20);
-    ASSERT_EQ(h.getCount("cycle_b"), 15);
-    ASSERT_EQ(h.getCount("cycle_c"), 15);
-    ASSERT_EQ(h.getCount("d"), 5);
-    ASSERT_EQ(h.getCount("e"), 5);
+    ASSERT_EQ(h.getCounts("main"), (std::pair{30, 25}));
+    ASSERT_EQ(h.getCounts("a"), (std::pair{20, 15}));
+    ASSERT_EQ(h.getCounts("cycle_b"), (std::pair{15, 10}));
+    ASSERT_EQ(h.getCounts("cycle_c"), (std::pair{15, 10}));
+    ASSERT_EQ(h.getCounts("d"), (std::pair{5, 5}));
+    ASSERT_EQ(h.getCounts("e"),  (std::pair{5, 5}));
 }
 

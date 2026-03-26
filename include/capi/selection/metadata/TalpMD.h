@@ -20,6 +20,8 @@ namespace capi {
     struct TalpMetrics {
         /*! Total number of CPUs used by the processes that have used the region */
         unsigned int num_cpus{0};
+        /*! Total number of MPI Ranks used by the processes that have used the region */
+        unsigned int num_mpi_ranks{0};
         /*! Total number of GPUs used by the processes that have used the region */
         unsigned int num_gpus{0};
         /*! Total number of CPU cycles elapsed in that region during useful time */
@@ -75,6 +77,7 @@ namespace capi {
     void to_json(nlohmann::json& j, const TalpMetrics& m) {
         j = nlohmann::json{
                 {"numCpus", m.num_cpus},
+                {"numMpiRanks", m.num_mpi_ranks},
                 {"numGpus", m.num_gpus},
                 {"cycles", m.cycles},
                 {"instructions", m.instructions},
@@ -105,6 +108,8 @@ namespace capi {
 
     void from_json(const nlohmann::json& j, TalpMetrics& m) {
         m.num_cpus = j.value("numCpus", 0);
+        m.num_mpi_ranks = j.value("numMpiRanks", 0);
+        m.num_gpus = j.value("numGpus", 0);
         m.cycles = j.value("cycles", 0.0);
         m.instructions = j.value("instructions", 0.0);
         m.num_measurements = j.value("numMeasurements", 0u);
@@ -169,7 +174,7 @@ namespace capi {
         }
 
         void setMetrics(TalpMetrics metrics) {
-            this->metrics = std::move(metrics);
+            metrics = std::move(metrics);
         }
 
         const TalpMetrics& getMetrics() const {

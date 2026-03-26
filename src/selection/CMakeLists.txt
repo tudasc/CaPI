@@ -16,6 +16,7 @@ set(SOURCES
         TraversalHelper.cpp
         selectors/SelectorInstantiation.cpp
         selectors/BasicSelectors.cpp
+        selectors/CallPathSelector.cpp
         selectors/SCCSelector.cpp
         selectors/CommonCallerSelectorSCC.cpp)
 

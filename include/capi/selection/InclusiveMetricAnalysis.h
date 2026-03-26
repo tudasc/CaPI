@@ -24,16 +24,18 @@ namespace capi {
 template<typename MetricTraits>
 class InclusiveMetricAnalysis {
  public:
+    InclusiveMetricAnalysis() {
+    }
       bool run(TraversalHelper& helper);
 };
 
 template<typename MetricTraits>
 static long getSCCCount(const SCCNode& sccNode) {
-    long sum = 0;
+    long acc = 0;
     for (const auto& node : sccNode.nodes) {
-        sum += MetricTraits::getCount(node);
+        acc = MetricTraits::accumulate(acc, MetricTraits::getCount(node));
     }
-    return sum;
+    return acc;
 }
 
 struct Interval {
@@ -207,8 +209,8 @@ static long computeInclusiveCount(const SCCNode* node, SCCAnalysisResults& sccRe
             }
             cache[node] = sum;
             numProcessed++;
-            if (numProcessed % (1 + topo.size() / 20) == 0) {
-                logInfo() << ((100 * numProcessed + 1)/ topo.size()) << "% done...\n";
+            if (numProcessed % (1 + topo.size() / 10) == 0) {
+//                logInfo() << ((100 * numProcessed + 1)/ topo.size()) << "% done...\n";
             }
         }
 
@@ -297,9 +299,14 @@ struct StatementCountTraits {
         const auto numStatementsMD = node->get<NumStatementsMD>();
         return numStatementsMD->getNumberOfStatements();
     }
+
+    static long accumulate(long acc, long val) {
+        return acc + val;
+    }
 };
 
 using ISCMD = TransientMD<long, StatementCountTraits>;
+
 
 struct InstructionCountTraits {
     static constexpr const char* key = "iic";
@@ -317,9 +324,37 @@ struct InstructionCountTraits {
         const auto numInstructionsMd = node->get<cage::NumInstructionsMD>();
         return numInstructionsMd->getNumberOfInstructions();
     }
+
+    static long accumulate(long acc, long val) {
+        return acc + val;
+    }
+};
+
+// TODO: Avoid code duplication
+struct InstructionCountSCCTraits {
+    static constexpr const char* key = "iicscc";
+
+    using MDType = TransientMD<long, InstructionCountSCCTraits>;
+
+    static long getCount(const CgNode* node) {
+        if (!node->getHasBody()) {
+            return 0;
+        }
+        if (!node->has<cage::NumInstructionsMD>()) {
+            logWarn() << "Node " << node->getFunctionName() << " does not provide NumInstructionsMD - assuming 0 instructions.\n";
+            return 0;
+        }
+        const auto numInstructionsMd = node->get<cage::NumInstructionsMD>();
+        return numInstructionsMd->getNumberOfInstructions();
+    }
+
+    static long accumulate(long acc, long val) {
+        return std::max(acc, val);
+    }
 };
 
 using IICMD = TransientMD<long, InstructionCountTraits>;
+using IICSCCMD = TransientMD<long, InstructionCountSCCTraits>;
 
 }
 

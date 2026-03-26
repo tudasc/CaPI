@@ -204,6 +204,10 @@ RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<I
 
 RegisterSelector iicSelector("inclusive_instruction_count", createMetricSelector<IICMetric>);
 
+RegisterSelector iicsSelector("inclusive_instruction_count_scc", createMetricSelector<IICSMetric>);
+
+
+
 // TALP metrics
 RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>);
 RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetric<TalpMetricKind::CYCLES, long>>);

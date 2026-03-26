@@ -142,6 +142,20 @@ template <TraverseDir Dir> FunctionSet CallPathSelector<Dir>::apply(const Functi
   return out;
 }
 
+class RootsSelector : public Selector {
+    TraversalHelper* helper;
+public:
+    void init(TraversalHelper &helper) override {
+        this->helper = &helper;
+    }
+
+    FunctionSet apply(const FunctionSetList&) override;
+
+    std::string getName() override {
+        return "RootsSelector";
+    }
+};
+
 
 }
 
