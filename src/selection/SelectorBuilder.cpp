@@ -36,7 +36,7 @@ nlohmann::json getSelectorDocumentation(std::string selectorName) {
 
 RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn, SelectorDoc doc) {
   //std::cout << "Registered selector: " << selectorType << "\n";
-  selectorRegistry[selectorType] = SelectorInfo{std::move(fn), std::move(doc)};
+  selectorRegistry.emplace(selectorType, SelectorInfo{std::move(fn), std::move(doc)});
 }
 
 class SelectorEmitter: public ASTVisitor {

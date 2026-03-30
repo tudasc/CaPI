@@ -128,82 +128,82 @@ SelectorPtr createCommmonCallerSelectorSCC(const std::vector<Param>& params) {
   return std::make_unique<CommonCallerSelectorSCC>(maxOrder, T);
 }
 
-RegisterSelector registerNameSelector("by_name", createNameSelector, selectorDocs["by_name"]);
+RegisterSelector registerNameSelector("by_name", createNameSelector, getSelectorDocs().at("by_name"));
 
-RegisterSelector registerFilePathSelector("by_path", createFilePathSelector, selectorDocs["by_path"]);
+RegisterSelector registerFilePathSelector("by_path", createFilePathSelector, getSelectorDocs().at("by_path"));
 
 // InlineSelector
-RegisterSelector registerInlineSelector("inline_specified", createSimpleSelector<InlineSelector>, selectorDocs["inline_specified"]);
+RegisterSelector registerInlineSelector("inline_specified", createSimpleSelector<InlineSelector>, getSelectorDocs().at("inline_specified"));
 
 // CallPathSelectorUp
-RegisterSelector registerCallPathUpSelector("on_call_path_to", createSimpleSelector<CallPathSelector<TraverseDir::TraverseUp>>, selectorDocs["on_call_path_to"]);
+RegisterSelector registerCallPathUpSelector("on_call_path_to", createSimpleSelector<CallPathSelector<TraverseDir::TraverseUp>>, getSelectorDocs().at("on_call_path_to"));
 
 // CallPathSelectorDown
-RegisterSelector registerCallPathDownSelector("on_call_path_from", createSimpleSelector<CallPathSelector<TraverseDir::TraverseDown>>, selectorDocs["on_call_path_from"]);
+RegisterSelector registerCallPathDownSelector("on_call_path_from", createSimpleSelector<CallPathSelector<TraverseDir::TraverseDown>>, getSelectorDocs().at("on_call_path_from"));
 
 // UnionSelector
-RegisterSelector registerUnionSelector("join", createSimpleSelector<SetOperationSelector<SetOperation::UNION>>, selectorDocs["join"]);
+RegisterSelector registerUnionSelector("join", createSimpleSelector<SetOperationSelector<SetOperation::UNION>>, getSelectorDocs().at("join"));
 
 // IntersectionSelector
-RegisterSelector registerIntersectionSelector("intersect", createSimpleSelector<SetOperationSelector<SetOperation::INTERSECTION>>, selectorDocs["intersect"]);
+RegisterSelector registerIntersectionSelector("intersect", createSimpleSelector<SetOperationSelector<SetOperation::INTERSECTION>>, getSelectorDocs().at("intersect"));
 
 // ComplementSelector
-RegisterSelector registerComplementSelector("subtract", createSimpleSelector<SetOperationSelector<SetOperation::COMPLEMENT>>, selectorDocs["subtract"]);
+RegisterSelector registerComplementSelector("subtract", createSimpleSelector<SetOperationSelector<SetOperation::COMPLEMENT>>, getSelectorDocs().at("subtract"));
 
 // SystemIncludeSelector
-RegisterSelector registerSystemHeaderSelector("in_system_header", createSimpleSelector<SystemHeaderSelector>, selectorDocs["in_system_header"]);
+RegisterSelector registerSystemHeaderSelector("in_system_header", createSimpleSelector<SystemHeaderSelector>, getSelectorDocs().at("in_system_header"));
 
 // UnresolveCallSelector
-RegisterSelector registerUnresolvedCallSelector("contains_unresolved_calls", createSimpleSelector<UnresolvedCallSelector>, selectorDocs["contains_unresolved_calls"]);
+RegisterSelector registerUnresolvedCallSelector("contains_unresolved_calls", createSimpleSelector<UnresolvedCallSelector>, getSelectorDocs().at("contains_unresolved_calls"));
 
 // FlopSelector
-RegisterSelector registerFlopSelector("flops", createMetricSelector<FlopMetric>, selectorDocs["flops"]);
+RegisterSelector registerFlopSelector("flops", createMetricSelector<FlopMetric>, getSelectorDocs().at("flops"));
 
 // MemOpSelector
-RegisterSelector registerMemOpSelector("memops", createMetricSelector<MemOpMetric>, selectorDocs["memops"]);
+RegisterSelector registerMemOpSelector("memops", createMetricSelector<MemOpMetric>, getSelectorDocs().at("memops"));
 
 // LoopDepthSelector
-RegisterSelector registerLoopDepthSelector("loop_depth", createMetricSelector<LoopDepthMetric>, selectorDocs["loop_depth"]);
+RegisterSelector registerLoopDepthSelector("loop_depth", createMetricSelector<LoopDepthMetric>, getSelectorDocs().at("loop_depth"));
 
 // CoarseSelector
-RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>, selectorDocs["coarse"]);
+RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>, getSelectorDocs().at("coarse"));
 
 // MinCallDepthSelector
-RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelector, selectorDocs["min_call_depth"]);
+RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelector, getSelectorDocs().at("min_call_depth"));
 
 RegisterSelector caSelectorAll("common_caller",
-                  createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>);
-RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::PARTIALLY_DISTINCT>);
+                  createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>, selectorDocs["common_caller"]);
+RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::PARTIALLY_DISTINCT>, selectorDocs["common_caller_partial"]);
 RegisterSelector caSelectorDistinct("common_caller_distinct",
-    createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>);
+    createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>, selectorDocs["common_caller_distinct"]);
 
-RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>);
+RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>, selectorDocs["inclusive_statement_count"]);
 
 // TALP metrics
 // TODO: OMP metrics not added yet
-RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>, selectorDocs["has_talp_metrics"]);
-RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetric<TalpMetricKind::CYCLES, long>>, selectorDocs["talp_cycles"]);
-RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetric<TalpMetricKind::INSTRUCTIONS, long>>, selectorDocs["talp_instructions"]);
-RegisterSelector numMeasurements("talp_measurements", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MEASUREMENTS, long>>, selectorDocs["talp_measurements"]);
-RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetric<TalpMetricKind::ELAPSED_TIME, long>>, selectorDocs["talp_elapsed_time"]);
-RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MPI_CALLS,long>>, selectorDocs["talp_mpi_calls"]);
-RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::PARALLEL_EFFICIENCY, float>>, selectorDocs["talp_parallel_efficiency"]);
-RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_PARALLEL_EFFICIENCY, float>>, selectorDocs["talp_mpi_parallel_efficiency"]);
-RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY, float>>, selectorDocs["talp_mpi_comm_efficiency"]);
-RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE, float>>, selectorDocs["talp_mpi_load_balance"]);
-RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_IN, float>>, selectorDocs["talp_mpi_load_balance_in"]);
-RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_OUT, float>>, selectorDocs["talp_mpi_load_balance_out"]);
-RegisterSelector dynFilteredSelector("talp_dyn_filtered", createSimpleSelector<TalpDynFilteredSelector>, selectorDocs["talp_dyn_filtered"]);
+RegisterSelector hasTalpMetrics("has_talp_metrics", createSimpleSelector<HasTalpMetricsSelector>, getSelectorDocs().at("has_talp_metrics"));
+RegisterSelector cyclesSelector("talp_cycles", createMetricSelector<TalpMetric<TalpMetricKind::CYCLES, long>>, getSelectorDocs().at("talp_cycles"));
+RegisterSelector instructionSelector("talp_instructions", createMetricSelector<TalpMetric<TalpMetricKind::INSTRUCTIONS, long>>, getSelectorDocs().at("talp_instructions"));
+RegisterSelector numMeasurements("talp_measurements", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MEASUREMENTS, long>>, getSelectorDocs().at("talp_measurements"));
+RegisterSelector elapsedTimeSelector("talp_elapsed_time", createMetricSelector<TalpMetric<TalpMetricKind::ELAPSED_TIME, long>>, getSelectorDocs().at("talp_elapsed_time"));
+RegisterSelector numMpiCallSelector("talp_mpi_calls", createMetricSelector<TalpMetric<TalpMetricKind::NUM_MPI_CALLS,long>>, getSelectorDocs().at("talp_mpi_calls"));
+RegisterSelector parEffSelector("talp_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::PARALLEL_EFFICIENCY, float>>, getSelectorDocs().at("talp_parallel_efficiency"));
+RegisterSelector mpiParEffSelector("talp_mpi_parallel_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_PARALLEL_EFFICIENCY, float>>, getSelectorDocs().at("talp_mpi_parallel_efficiency"));
+RegisterSelector mpiCommEffSelector("talp_mpi_comm_efficiency", createMetricSelector<TalpMetric<TalpMetricKind::MPI_COMMUNICATION_EFFICIENCY, float>>, getSelectorDocs().at("talp_mpi_comm_efficiency"));
+RegisterSelector mpiLoadBalanceSelector("talp_mpi_load_balance", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE, float>>, getSelectorDocs().at("talp_mpi_load_balance"));
+RegisterSelector mpiLoadBalanceInSelector("talp_mpi_load_balance_in", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_IN, float>>, getSelectorDocs().at("talp_mpi_load_balance_in"));
+RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMetricSelector<TalpMetric<TalpMetricKind::MPI_LOAD_BALANCE_OUT, float>>, getSelectorDocs().at("talp_mpi_load_balance_out"));
+RegisterSelector dynFilteredSelector("talp_dyn_filtered", createSimpleSelector<TalpDynFilteredSelector>, getSelectorDocs().at("talp_dyn_filtered"));
 
 using IPCMetric = DerivedMetric<TalpMetric<capi::TalpMetricKind::INSTRUCTIONS, long>, TalpMetric<capi::TalpMetricKind::CYCLES, long>, double, ddivl>;
-RegisterSelector ipcSelector("talp_ipc", createMetricSelector<IPCMetric>, selectorDocs["talp_ipc"]);
+RegisterSelector ipcSelector("talp_ipc", createMetricSelector<IPCMetric>, getSelectorDocs().at("talp_avg_ipc")); // TODO: check if talp_ipc corresponds to talp_avg_ipc
 
 
 #ifdef CAPI_ENABLE_FLIP
-RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>, selectorDocs["has_flip_metrics"]);
-RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>, selectorDocs["flip_cycles"]);
-RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>, selectorDocs["flip_invocations"]);
-RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>, selectorDocs["flip_cycles_per_invocation"]);
+RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>, getSelectorDocs().at("has_flip_metrics"));
+RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>, getSelectorDocs().at("flip_cycles"));
+RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>, getSelectorDocs().at("flip_invocations"));
+RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>, getSelectorDocs().at("flip_cycles_per_invocation"));
 #endif
 }
 
