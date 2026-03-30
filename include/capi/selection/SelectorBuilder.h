@@ -16,7 +16,7 @@ namespace capi {
 void simplifyGraph(SelectorGraph& graph);
 
 SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry);
-
+nlohmann::json getSelectorDocumentation(std::string selectorName);
 }
 
 #endif // CAPI_SELECTORBUILDER_H

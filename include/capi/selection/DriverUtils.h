@@ -14,6 +14,7 @@
 #include "capi/selection/SelectorGraph.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
 
+#include <nlohmann/json.hpp>
 #include <expected>
 
 namespace capi {
@@ -27,6 +28,8 @@ std::string loadFromFile(std::string_view filename);
 FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                                     const FunctionSet &functions,
                                     TraversalHelper &helper);
+
+nlohmann::json generateSelectorDoc(const std::string& graph);
 
 class SelectionRunner {
   using AstCB = std::function<bool(QueryAST&)>;

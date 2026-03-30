@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "SelectorRegistry.h"
 #include "metadata/OverrideMD.h"
 
 #include "capi/selection/Demangle.h"
@@ -23,8 +24,13 @@
 #include "capi/selection/TraversalHelper.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
+#include "capi/selection/SelectorBuilder.h"
 
 namespace capi {
+
+nlohmann::json generateSelectorDoc(const std::string& name) {
+  return getSelectorDocumentation(name);
+}
 
 bool runConsistencyCheck(const metacg::Callgraph& cg) {
   bool success = true;
