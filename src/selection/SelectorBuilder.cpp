@@ -17,10 +17,15 @@ std::unordered_map<std::string, SelectorInfo> selectorRegistry;
 
 nlohmann::json getSelectorDocumentation(std::string selectorName) {
   auto it = selectorRegistry.find(selectorName);
+  // default to null if selector is not registered or has no documentation
   if (it == selectorRegistry.end()) {
     return nlohmann::json();
   }
-  SelectorDoc documentation = it->second.doc;
+  if (!it->second.doc.has_value()) {
+    return nlohmann::json();
+  }
+
+  SelectorDoc documentation = it->second.doc.value();
 
   nlohmann::json j;
 

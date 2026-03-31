@@ -34,12 +34,12 @@ struct SelectorDoc {
 
 struct SelectorInfo {
   SelectorFactoryFn fn;
-  SelectorDoc doc;
+  std::optional<SelectorDoc> doc;
 };
 
 struct RegisterSelector
 {
-  RegisterSelector(std::string selectorType, SelectorFactoryFn fn, SelectorDoc doc);
+  RegisterSelector(std::string selectorType, SelectorFactoryFn fn, std::optional<SelectorDoc> doc = std::nullopt);
 };
 
 }

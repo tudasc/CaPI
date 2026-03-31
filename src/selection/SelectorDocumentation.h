@@ -4,6 +4,7 @@
 
 #define SELECTOR_DOC(selectorName, selectorType, parameterLabels, parameterTypes, example, selectorDesc) \
     {#selectorName, capi::SelectorDoc(#selectorName, selectorType, parameterLabels, parameterTypes, example, selectorDesc)}
+
 inline const auto& getSelectorDocs() {
     static std::unordered_map<std::string, capi::SelectorDoc> selectorDocs = {
         SELECTOR_DOC(by_name,
@@ -88,8 +89,8 @@ inline const auto& getSelectorDocs() {
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"comp. operator", "threshold"}),
                      (std::vector<std::string>{"string", "number"}),
-                     "%A |> flops(\">=\", 10)",
-                     "Selects functions with at least 10 floating point operations."),
+                     "%A |> memops(\">=\", 10)",
+                     "Selects functions with at least 10 memory operations."),
         SELECTOR_DOC(loop_depth,
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"comp. operator", "threshold"}),
@@ -107,19 +108,19 @@ inline const auto& getSelectorDocs() {
                      (std::vector<std::string>{"heuristic parameter"}),
                      {},
                      "[by_name(\"foo\"), by_name(\"bar\")] |> common_caller(1)",
-                     "Common caller selection with max. LCA-Dist 1 (details here)"),
+                     "Common caller selection with max. LCA-Dist 1"),
         SELECTOR_DOC(common_caller_distinct,
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"heuristic parameter"}),
                      {},
-                     "[by_name(\"foo\"), by_name(\"bar\")] |> common_caller(1)",
-                     "Common caller selection with max. LCA-Dist 1 (details here)"),
+                     "",
+                     ""), 
         SELECTOR_DOC(common_caller_partial,
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"heuristic parameter"}),
                      {},
-                     "[by_name(\"foo\"), by_name(\"bar\")] |> common_caller(1)",
-                     "Common caller selection with max. LCA-Dist 1 (details here)"),
+                     "",
+                     ""),
         SELECTOR_DOC(has_talp_metrics,
                      capi::SelectorType::TALP,
                      {},
@@ -291,4 +292,3 @@ inline const auto& getSelectorDocs() {
     };
   return selectorDocs;
 }
-

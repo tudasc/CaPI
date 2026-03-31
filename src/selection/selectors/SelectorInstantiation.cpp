@@ -196,14 +196,14 @@ RegisterSelector mpiLoadBalanceOutSelector("talp_mpi_load_balance_out", createMe
 RegisterSelector dynFilteredSelector("talp_dyn_filtered", createSimpleSelector<TalpDynFilteredSelector>, getSelectorDocs().at("talp_dyn_filtered"));
 
 using IPCMetric = DerivedMetric<TalpMetric<capi::TalpMetricKind::INSTRUCTIONS, long>, TalpMetric<capi::TalpMetricKind::CYCLES, long>, double, ddivl>;
-RegisterSelector ipcSelector("talp_ipc", createMetricSelector<IPCMetric>, getSelectorDocs().at("talp_avg_ipc")); // TODO: check if talp_ipc corresponds to talp_avg_ipc
+RegisterSelector ipcSelector("talp_ipc", createMetricSelector<IPCMetric>); // NOTE: talp_ipc corresponds to talp_avg_ipc
 
 
 #ifdef CAPI_ENABLE_FLIP
-RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>, getSelectorDocs().at("has_flip_metrics"));
-RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>, getSelectorDocs().at("flip_cycles"));
-RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>, getSelectorDocs().at("flip_invocations"));
-RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>, getSelectorDocs().at("flip_cycles_per_invocation"));
+RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>;
+RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>);
+RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>);
+RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>);
 #endif
 }
 
