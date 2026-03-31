@@ -174,7 +174,7 @@ namespace capi {
         }
 
         void setMetrics(TalpMetrics metrics) {
-            metrics = std::move(metrics);
+            this->metrics = std::move(metrics);
         }
 
         const TalpMetrics& getMetrics() const {
