@@ -24,13 +24,28 @@
 #include "capi/selection/TraversalHelper.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
-#include "capi/selection/SelectorBuilder.h"
 
 namespace capi {
-
 nlohmann::json generateSelectorDoc(const std::string& name) {
-  return getSelectorDocumentation(name);
+  auto documentation = getSelectorDocumentation(name);
+  // default to null if selector is not registered or has no documentation
+  if (!documentation.has_value()) {
+    return nlohmann::json();
+  }
+
+  nlohmann::json j;
+
+  j["name"] = documentation->name;
+  j["type"] = documentation->type;
+  j["parameterLabels"] = documentation->parameterLabels;
+  j["parameterTypes"] = documentation->parameterTypes;
+  j["examples"] = documentation->example;
+  j["explanation"] = documentation->description;
+
+  return j;
 }
+
+
 
 bool runConsistencyCheck(const metacg::Callgraph& cg) {
   bool success = true;

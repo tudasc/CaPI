@@ -29,7 +29,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
                                     const FunctionSet &functions,
                                     TraversalHelper &helper);
 
-nlohmann::json generateSelectorDoc(const std::string& graph);
+nlohmann::json generateSelectorDoc(const std::string& name);
 
 class SelectionRunner {
   using AstCB = std::function<bool(QueryAST&)>;

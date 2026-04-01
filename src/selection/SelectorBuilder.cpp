@@ -15,31 +15,15 @@ namespace {
 std::unordered_map<std::string, SelectorInfo> selectorRegistry;
 }
 
-nlohmann::json getSelectorDocumentation(std::string selectorName) {
+std::optional<SelectorDoc> getSelectorDocumentation(std::string selectorName) {
   auto it = selectorRegistry.find(selectorName);
-  // default to null if selector is not registered or has no documentation
   if (it == selectorRegistry.end()) {
-    return nlohmann::json();
+    return std::nullopt;
   }
-  if (!it->second.doc.has_value()) {
-    return nlohmann::json();
-  }
-
-  SelectorDoc documentation = it->second.doc.value();
-
-  nlohmann::json j;
-
-  j["name"] = documentation.name;
-  j["type"] = documentation.type;
-  j["parameterLabels"] = documentation.parameterLabels;
-  j["parameterTypes"] = documentation.parameterTypes;
-  j["examples"] = documentation.example;
-  j["explanation"] = documentation.description;
-
-  return j;
+  return it->second.doc;
 }
 
-RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn, SelectorDoc doc) {
+RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn, std::optional<SelectorDoc> doc) {
   //std::cout << "Registered selector: " << selectorType << "\n";
   selectorRegistry.emplace(selectorType, SelectorInfo{std::move(fn), std::move(doc)});
 }
