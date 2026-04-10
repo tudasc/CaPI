@@ -200,7 +200,7 @@ RegisterSelector ipcSelector("talp_ipc", createMetricSelector<IPCMetric>); // NO
 
 
 #ifdef CAPI_ENABLE_FLIP
-RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>;
+RegisterSelector hasFlipMetric("has_flip_metrics", createSimpleSelector<HasFlipMetricsSelector>);
 RegisterSelector flipCyclesSelector("flip_cycles", createMetricSelector<FlipCycles>);
 RegisterSelector flipInvocationsSelector("flip_invocations", createMetricSelector<FlipInvocations>);
 RegisterSelector flipCyclesPerInvocationSelector("flip_cycles_per_invocation", createMetricSelector<FlipCyclesPerInvoc>);
