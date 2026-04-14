@@ -172,12 +172,12 @@ RegisterSelector coarseSelector("coarse", createSimpleSelector<CoarseSelector>, 
 RegisterSelector minCallDepthSelector("min_call_depth", createMinCallDepthSelector, getSelectorDocs().at("min_call_depth"));
 
 RegisterSelector caSelectorAll("common_caller",
-                  createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>, selectorDocs["common_caller"]);
-RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::PARTIALLY_DISTINCT>, selectorDocs["common_caller_partial"]);
+                  createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::ALL>, getSelectorDocs().at("common_caller"));
+RegisterSelector caSelectorPartiallyDistinct("common_caller_partial", createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::PARTIALLY_DISTINCT>, getSelectorDocs().at("common_caller_partial"));
 RegisterSelector caSelectorDistinct("common_caller_distinct",
-    createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>, selectorDocs["common_caller_distinct"]);
+    createCommmonCallerSelectorSCC<CommonCallerSelectorSCC::DISTINCT>, getSelectorDocs().at("common_caller_distinct"));
 
-RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>, selectorDocs["inclusive_statement_count"]);
+RegisterSelector iscSelector("inclusive_statement_count", createMetricSelector<ISCMetric>, getSelectorDocs().at("inclusive_statement_count"));
 
 // TALP metrics
 // TODO: OMP metrics not added yet
