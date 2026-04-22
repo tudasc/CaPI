@@ -61,4 +61,4 @@ install(
         DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-
+add_subdirectory(SelectorTableGenerator)
