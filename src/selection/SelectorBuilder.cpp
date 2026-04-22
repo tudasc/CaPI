@@ -15,12 +15,17 @@ namespace {
 std::unordered_map<std::string, SelectorInfo> selectorRegistry;
 }
 
-std::optional<SelectorDoc> getSelectorDocumentation(std::string selectorName) {
-  auto it = selectorRegistry.find(selectorName);
-  if (it == selectorRegistry.end()) {
-    return std::nullopt;
+std::vector<SelectorDoc> getRegisteredSelectorDocs() {
+  std::vector<SelectorDoc> docs;
+  docs.reserve(selectorRegistry.size());
+
+  for (const auto& [name, info] : selectorRegistry) {
+    if (info.doc.has_value()) {
+      docs.push_back(*info.doc);
+    }
   }
-  return it->second.doc;
+
+  return docs;
 }
 
 RegisterSelector::RegisterSelector(std::string selectorType, SelectorFactoryFn fn, std::optional<SelectorDoc> doc) {

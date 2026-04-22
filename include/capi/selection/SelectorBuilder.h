@@ -17,7 +17,7 @@ struct SelectorDoc;
 void simplifyGraph(SelectorGraph& graph);
 
 SelectorGraphPtr buildSelectorGraph(QueryAST& ast, bool lastDeclIsEntry);
-std::optional<SelectorDoc> getSelectorDocumentation(std::string selectorName);
+std::vector<SelectorDoc> getRegisteredSelectorDocs();
 }
 
 #endif // CAPI_SELECTORBUILDER_H

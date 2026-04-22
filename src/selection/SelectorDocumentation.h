@@ -3,10 +3,10 @@
 #include <vector>
 
 #define SELECTOR_DOC(selectorName, selectorType, parameterLabels, parameterTypes, example, selectorDesc) \
-    {#selectorName, capi::SelectorDoc(#selectorName, selectorType, parameterLabels, parameterTypes, example, selectorDesc)}
+    capi::SelectorDoc(#selectorName, selectorType, parameterLabels, parameterTypes, example, selectorDesc)
 
-inline const auto& getSelectorDocs() {
-    static std::unordered_map<std::string, capi::SelectorDoc> selectorDocs = {
+inline const auto& getAllSelectorDocs() {
+    static std::vector<capi::SelectorDoc> selectorDocs = {
         SELECTOR_DOC(by_name,
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"regex string"}),
@@ -291,4 +291,25 @@ inline const auto& getSelectorDocs() {
                      "Selection based on average useful frequency in Hertz.")
     };
   return selectorDocs;
+}
+
+inline const capi::SelectorDoc& getSelectorDoc(std::string_view name) {
+    const auto& docs = getAllSelectorDocs();
+
+    auto it = std::find_if(
+        docs.begin(),
+        docs.end(),
+        [&](const auto& doc) {
+            return doc.name == name;
+        }
+    );
+
+    if (it == docs.end()) {
+        throw std::runtime_error(
+            "Selector documentation not found for: " +
+            std::string(name)
+        );
+    }
+
+    return *it;
 }

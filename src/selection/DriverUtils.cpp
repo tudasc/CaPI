@@ -24,28 +24,30 @@
 #include "capi/selection/TraversalHelper.h"
 #include "capi/selection/metadata/CaPIMD.h"
 #include "capi/symbol_retriever/SymbolRetriever.h"
+#include "SelectorDocumentation.h"
 
 namespace capi {
-nlohmann::json generateSelectorDoc(const std::string& name) {
-  auto documentation = getSelectorDocumentation(name);
-  // default to null if selector is not registered or has no documentation
-  if (!documentation.has_value()) {
-    return nlohmann::json();
+
+nlohmann::json exportSelectorDoc() {
+  auto docs = getAllSelectorDocs();
+
+  nlohmann::json result = nlohmann::json::array();
+
+  for (const auto& documentation : docs) {
+    nlohmann::json j;
+
+    j["name"] = documentation.name;
+    j["type"] = documentation.type;
+    j["parameterLabels"] = documentation.parameterLabels;
+    j["parameterTypes"] = documentation.parameterTypes;
+    j["examples"] = documentation.example;
+    j["explanation"] = documentation.description;
+
+    result.push_back(j);
   }
 
-  nlohmann::json j;
-
-  j["name"] = documentation->name;
-  j["type"] = documentation->type;
-  j["parameterLabels"] = documentation->parameterLabels;
-  j["parameterTypes"] = documentation->parameterTypes;
-  j["examples"] = documentation->example;
-  j["explanation"] = documentation->description;
-
-  return j;
+  return result;
 }
-
-
 
 bool runConsistencyCheck(const metacg::Callgraph& cg) {
   bool success = true;
@@ -54,17 +56,23 @@ bool runConsistencyCheck(const metacg::Callgraph& cg) {
       for (auto id : overrideMD->overrides) {
         auto* baseFunction = cg.getNode(id);
         if (!baseFunction) {
-          logError() << "Overridden base function of node " << node->getId() << " (" << node->getFunctionName() << ") does not exist.\n";
+          logError() << "Overridden base function of node " << node->getId() << " (" << node->getFunctionName()
+                     << ") does not exist.\n";
           success = false;
           continue;
         }
         if (auto* baseMD = baseFunction->get<metacg::OverrideMD>(); baseMD) {
-          if (std::find(baseMD->overriddenBy.begin(), baseMD->overriddenBy.end(), node->getId()) == baseMD->overriddenBy.end()) {
-            logError() << "Overridden base function " << baseFunction->getId() << " (" << baseFunction->getFunctionName() << ") does not list overriding function " << node->getId() << " (" << node->getFunctionName() << ") in metadata.\n";
+          if (std::find(baseMD->overriddenBy.begin(), baseMD->overriddenBy.end(), node->getId()) ==
+              baseMD->overriddenBy.end()) {
+            logError() << "Overridden base function " << baseFunction->getId() << " ("
+                       << baseFunction->getFunctionName() << ") does not list overriding function " << node->getId()
+                       << " (" << node->getFunctionName() << ") in metadata.\n";
             success = false;
           }
         } else {
-          logError() << "Overridden base function " << baseFunction->getId() << " (" << baseFunction->getFunctionName() << ") of node " << node->getId() << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          logError() << "Overridden base function " << baseFunction->getId() << " (" << baseFunction->getFunctionName()
+                     << ") of node " << node->getId() << " (" << node->getFunctionName()
+                     << ") does not define override metadata.\n";
           success = false;
         }
       }
@@ -72,17 +80,23 @@ bool runConsistencyCheck(const metacg::Callgraph& cg) {
       for (auto id : overrideMD->overriddenBy) {
         auto* overridingFunction = cg.getNode(id);
         if (!overridingFunction) {
-          logError() << "Overriding function of node " << node->getId() << " (" << node->getFunctionName() << ") does not exist.\n";
+          logError() << "Overriding function of node " << node->getId() << " (" << node->getFunctionName()
+                     << ") does not exist.\n";
           success = false;
           continue;
         }
         if (auto* overridingMD = overridingFunction->get<metacg::OverrideMD>(); overridingMD) {
-          if (std::find(overridingMD->overrides.begin(), overridingMD->overrides.end(), node->getId()) == overridingMD->overrides.end()) {
-            logError() << "Overriding function " << overridingFunction->getId() << " (" << node->getFunctionName() << ") does not list base function " << node->getId() << " (" << node->getFunctionName() << ") in metadata.\n";
+          if (std::find(overridingMD->overrides.begin(), overridingMD->overrides.end(), node->getId()) ==
+              overridingMD->overrides.end()) {
+            logError() << "Overriding function " << overridingFunction->getId() << " (" << node->getFunctionName()
+                       << ") does not list base function " << node->getId() << " (" << node->getFunctionName()
+                       << ") in metadata.\n";
             success = false;
           }
         } else {
-          logError() << "Overriding function "  << overridingFunction->getId() << " (" << overridingFunction->getFunctionName() << ") of node " << node->getId() << " (" << node->getFunctionName() << ") does not define override metadata.\n";
+          logError() << "Overriding function " << overridingFunction->getId() << " ("
+                     << overridingFunction->getFunctionName() << ") of node " << node->getId() << " ("
+                     << node->getFunctionName() << ") does not define override metadata.\n";
           success = false;
         }
       }
@@ -143,47 +157,41 @@ std::optional<std::vector<const metacg::CgNode*>> getCallPath(const metacg::Call
       return std::nullopt;
     }
     path.insert(path.begin(), n);
-  } while(true);
+  } while (true);
   return {};
 }
 
-
-FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
-                                    const FunctionSet &functions,
-                                    TraversalHelper &helper) {
-
+FunctionSet replaceInlinedFunctions(const SymbolSetList& symSets, const FunctionSet& functions,
+                                    TraversalHelper& helper) {
   FunctionSet newSet;
 
   int numAdded = 0;
 
-  std::function<void(const metacg::CgNode &, bool,
-                     std::unordered_set<const metacg::CgNode *>)>
-      addValidCallers =
-          [&](const metacg::CgNode &node, bool trigger,
-              std::unordered_set<const metacg::CgNode *> visited) {
-            visited.insert(&node);
-            auto nodeInfo = helper.get(&node);
-            for (auto *caller : nodeInfo.getCallers()) {
-              if (visited.find(caller) != visited.end()) {
-                continue;
+  std::function<void(const metacg::CgNode&, bool, std::unordered_set<const metacg::CgNode*>)> addValidCallers =
+      [&](const metacg::CgNode& node, bool trigger, std::unordered_set<const metacg::CgNode*> visited) {
+        visited.insert(&node);
+        auto nodeInfo = helper.get(&node);
+        for (auto* caller : nodeInfo.getCallers()) {
+          if (visited.find(caller) != visited.end()) {
+            continue;
+          }
+          if (findSymbol(symSets, caller->getFunctionName())) {
+            if (addToSet(newSet, caller)) {
+              if (trigger) {
+                assert(caller->has<CaPIMD>());
+                caller->get<CaPIMD>()->value.isTrigger = true;
               }
-              if (findSymbol(symSets, caller->getFunctionName())) {
-                if (addToSet(newSet, caller)) {
-                  if (trigger) {
-                    assert(caller->has<CaPIMD>());
-                    caller->get<CaPIMD>()->value.isTrigger = true;
-                  }
-                  numAdded++;
-                }
-              } else {
-                addValidCallers(*caller, trigger, visited);
-              }
+              numAdded++;
             }
-          };
+          } else {
+            addValidCallers(*caller, trigger, visited);
+          }
+        }
+      };
 
   FunctionSet notFound;
 
-  for (auto &fn : functions) {
+  for (auto& fn : functions) {
     if (findSymbol(symSets, fn->getFunctionName())) {
       newSet.insert(fn);
     } else {
@@ -198,7 +206,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
   int numBetweenOutputs = notFound.size() / 10;
   int nextOutput = numBetweenOutputs;
 
-  for (auto &fn : notFound) {
+  for (auto& fn : notFound) {
     if (!fn) {
       std::cerr << "Unable to find function in call graph - skipping.\n";
       continue;
@@ -211,8 +219,7 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
     // Status output
     if (numBetweenOutputs >= 10) {
       if (numProcessed >= nextOutput) {
-        logInfo() << (int)((numProcessed / (float)notFound.size()) * 100)
-                  << "% of inlined functions processed...\n";
+        logInfo() << (int)((numProcessed / (float)notFound.size()) * 100) << "% of inlined functions processed...\n";
         nextOutput += numBetweenOutputs;
       }
     }
@@ -223,7 +230,8 @@ FunctionSet replaceInlinedFunctions(const SymbolSetList &symSets,
   return newSet;
 }
 
-SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtors) : cg(cg), helper(cg, traverseVirtualDtors) {
+SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtors)
+    : cg(cg), helper(cg, traverseVirtualDtors) {
   // TODO: Add some kind of analysis management logic for selectors to request results
   StatementCountAnalysis sca;
   sca.run(helper);
@@ -241,7 +249,8 @@ SelectionRunner::SelectionRunner(metacg::Callgraph& cg, bool traverseVirtualDtor
   }
 }
 
-std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool pathSensitive, bool debugMode) {
+std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const std::string& query, bool pathSensitive,
+                                                                        bool debugMode) {
   auto ast = parseSelectionQuery(query);
   if (!ast) {
     return std::unexpected("Failed to parse selection query");
@@ -272,10 +281,9 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
 
   // If no actions specified, use full instrumentation of last defined selector instance
   if (!instActionsSpecified) {
-    actions.push_back({capi::InstrumentationType::ALWAYS_INSTRUMENT,
-                       selectorGraph->getEntryNodes().back()->getName()});
+    actions.push_back({capi::InstrumentationType::ALWAYS_INSTRUMENT, selectorGraph->getEntryNodes().back()->getName()});
   } else {
-    for (auto &action : actions) {
+    for (auto& action : actions) {
       selectorGraph->addEntryNode(action.selRefName);
     }
   }
@@ -303,7 +311,7 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
     pathSensitive = false;
   }
 
-  for (auto & action : actions) {
+  for (auto& action : actions) {
     auto it = result.find(action.selRefName);
     if (it == result.end()) {
       logError() << "Warning: no selection results for '" << action.selRefName << "'\n";
@@ -318,7 +326,7 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
     }
 
     // Measurement config
-    for (auto &f : selResult) {
+    for (auto& f : selResult) {
       CallPath strPath;
 
       if (pathSensitive) {
@@ -344,7 +352,8 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
         }
         // Matching path found. For now, print a warning and always override.
         // TODO: Figure out sensible override rules
-        logWarn() << "A measurement config entry for function " << f->getFunctionName() << " already exists. Overwriting...\n";
+        logWarn() << "A measurement config entry for function " << f->getFunctionName()
+                  << " already exists. Overwriting...\n";
         entry = std::move(pathEntry);
         shouldAdd = false;
       }
@@ -358,4 +367,4 @@ std::expected<MeasurementConfig, std::string> SelectionRunner::runQuery(const st
   return mc;
 }
 
-}
+}  // namespace capi
