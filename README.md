@@ -191,6 +191,7 @@ If no `instrument` directive is specified, the result of the last pipeline defin
 
 ### List of available selectors
 
+<!-- CAPI_DEFAULT_SELECTORS_START -->
 | Name                                                               | Parameters                  | Selector inputs | Example                                                 | Explanation                                                                                                    |
 |--------------------------------------------------------------------|-----------------------------|-----------------|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | by_name                                                            | regex string                | 1               | `by_name("foo.*")`                                      | Selects functions with names starting with "foo".                                                              |
@@ -210,6 +211,8 @@ If no `instrument` directive is specified, the result of the last pipeline defin
 | inclusive_statement_count                                          | comp. operator, threshold   | 1               | `%A \|> inclusive_statement_count(">", 100)`            | Selects functions with an inclusive statement count (statements in reachable sub-graph) > 100.                 |
 | common_caller<br/>common_caller_distinct<br/>common_caller_partial | heuristic parameter         | 2               | `[by_name("foo"), by_name("bar")] \|> common_caller(1)` | Common caller selection with max. LCA-Dist 1 (details [here](#common-caller-selection-for-trace-augmentation)) |
 
+
+<!-- CAPI_DEFAULT_SELECTORS_END -->
 #### Common caller selection for trace augmentation
 The `common_caller` selectors are specialized heuristics for augmenting MPI based traces [[3]](https://doi.org/10.1007/978-3-031-73716-9_3).
 To instrument a region in the trace, the surrounding MPI calls X and Y are determined.
@@ -219,6 +222,7 @@ Details will be made available in an upcoming publication.
 #### TALP selectors
 If CaPI is built with TALP support, the following selectors, based on TALP efficiency metrics attached to the call graph as function metadata, are available.
 
+<!-- CAPI_TALP_SELECTORS_START -->
 | Name                            | Parameters | Selector inputs | Example                                       | Explanation                                                             |
 |----------------------------------|-------------|-----------------|-----------------------------------------------|-------------------------------------------------------------------------|
 | has_talp_metrics                 | -           | 1               | `has_talp_metrics`                            | Selects the subset of functions that has TALP metrics attached.         |
@@ -251,6 +255,7 @@ If CaPI is built with TALP support, the following selectors, based on TALP effic
 | talp_avg_freq                    | 1           | 1               | `talp_avg_freq("<", 1e9)`                     | Selection based on average useful frequency in Herz                     |
 
 
+<!-- CAPI_TALP_SELECTORS_END -->
 ### Inline compensation
 LLVM-XRay currently does not support the instrumentation of inlined functions.
 Since the MetaCG call graph is based on the source code, the information whether a function is inlined by the compiler is not directly available to CaPI.
