@@ -33,15 +33,16 @@ nlohmann::json exportSelectorDoc() {
 
   nlohmann::json result = nlohmann::json::array();
 
-  for (const auto& documentation : docs) {
+  for (const auto& doc : docs) {
     nlohmann::json j;
 
-    j["name"] = documentation.name;
-    j["type"] = documentation.type;
-    j["parameterLabels"] = documentation.parameterLabels;
-    j["parameterTypes"] = documentation.parameterTypes;
-    j["examples"] = documentation.example;
-    j["explanation"] = documentation.description;
+    j["name"] = doc.name;
+    j["type"] = doc.type;
+    j["parameterLabels"] = doc.parameterLabels;
+    j["parameterTypes"] = doc.parameterTypes;
+    j["examples"] = doc.example;
+    j["explanation"] = doc.description;
+    j["numInputs"] = doc.numInputs;
 
     result.push_back(j);
   }

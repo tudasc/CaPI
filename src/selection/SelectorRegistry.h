@@ -26,10 +26,11 @@ struct SelectorDoc {
   std::vector<std::string> parameterTypes;
   std::string example;
   std::string description;
+  std::string numInputs;
 
   SelectorDoc(const std::string& n, SelectorType t, const std::vector<std::string>& pLabels,
-              const std::vector<std::string>& pTypes, const std::string& ex, const std::string& desc)
-      : name(n), type(t), parameterLabels(pLabels), parameterTypes(pTypes), example(ex), description(desc) {}
+              const std::vector<std::string>& pTypes, const std::string& ex, const std::string& desc, const std::string& numInputs)
+      : name(n), type(t), parameterLabels(pLabels), parameterTypes(pTypes), example(ex), description(desc), numInputs(numInputs)  {}
 };
 
 struct SelectorInfo {
