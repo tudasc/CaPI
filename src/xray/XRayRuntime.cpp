@@ -2,15 +2,15 @@
 // Created by sebastian on 21.03.22.
 //
 
-#include "capi_version.h"
 #include "XRayRuntime.h"
-#include "capi/support/Logging.h"
-#include "capi/support/Timer.h"
-#include "capi/symbol_retriever/SymbolRetriever.h"
+#include "CallLogger.h"
 #include "capi/selection/FunctionFilter.h"
 #include "capi/selection/MeasurementConfig.h"
 #include "capi/selection/MeasurementConfigIO.h"
-#include "CallLogger.h"
+#include "capi/support/Logging.h"
+#include "capi/support/Timer.h"
+#include "capi/symbol_retriever/SymbolRetriever.h"
+#include "capi_version.h"
 
 #include <atomic>
 #include <cstddef>
@@ -25,10 +25,10 @@
 
 #include "xray/xray_interface.h"
 
-#include "llvm/XRay/InstrumentationMap.h"
-#include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/Demangle/Demangle.h"
+#include "llvm/XRay/InstrumentationMap.h"
 
 #ifdef WITH_MPI
 #include <mpi.h>
@@ -72,20 +72,20 @@ using namespace llvm;
 
 // Modified from XRay's func-id-helper.h
 struct FuncIdConversionHelper {
-public:
+ public:
   using FunctionAddressMap = std::unordered_map<int32_t, uint64_t>;
 
-private:
+ private:
   std::string BinaryInstrMap;
-  symbolize::LLVMSymbolizer &Symbolizer;
-  const FunctionAddressMap &FunctionAddresses;
+  symbolize::LLVMSymbolizer& Symbolizer;
+  const FunctionAddressMap& FunctionAddresses;
   mutable llvm::DenseMap<int32_t, std::string> CachedNames;
 
-public:
-  FuncIdConversionHelper(std::string BinaryInstrMap,
-                         symbolize::LLVMSymbolizer &Symbolizer,
-                         const FunctionAddressMap &FunctionAddresses) XRAY_NEVER_INSTRUMENT
-      : BinaryInstrMap(std::move(BinaryInstrMap)), Symbolizer(Symbolizer),
+ public:
+  FuncIdConversionHelper(std::string BinaryInstrMap, symbolize::LLVMSymbolizer& Symbolizer,
+                         const FunctionAddressMap& FunctionAddresses) XRAY_NEVER_INSTRUMENT
+      : BinaryInstrMap(std::move(BinaryInstrMap)),
+        Symbolizer(Symbolizer),
         FunctionAddresses(FunctionAddresses) {}
 
   // Returns the symbol or a string representation of the function id.
@@ -106,19 +106,18 @@ public:
     // object::SectionedAddress::UndefSection works for only absolute addresses.
     ModuleAddress.SectionIndex = object::SectionedAddress::UndefSection;
     if (auto ResOrErr = Symbolizer.symbolizeCode(BinaryInstrMap, ModuleAddress)) {
-      auto &DI = *ResOrErr;
+      auto& DI = *ResOrErr;
       if (DI.FunctionName != DILineInfo::BadString)
         sym = DI.FunctionName;
 
     } else
-      handleAllErrors(ResOrErr.takeError(), [&](const ErrorInfoBase &) {
-        logError() << "Symbolizer error\n"; // TODO: More information
+      handleAllErrors(ResOrErr.takeError(), [&](const ErrorInfoBase&) {
+        logError() << "Symbolizer error\n";  // TODO: More information
       });
 
     CachedNames[FuncId] = sym;
     return sym;
   }
-
 };
 
 XRayFunctionMap loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
@@ -135,14 +134,14 @@ XRayFunctionMap loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
   opts.Demangle = false;
   llvm::symbolize::LLVMSymbolizer symbolizer(opts);
 
-  const auto &funcAddresses = instrMap.getFunctionAddresses();
+  const auto& funcAddresses = instrMap.getFunctionAddresses();
 
   FuncIdConversionHelper conversionHelper(objectFile, symbolizer, funcAddresses);
 
   auto& sleds = instrMap.sleds();
 
   int lastId = -1;
-  for (const auto &sled : sleds) {
+  for (const auto& sled : sleds) {
     auto fid = instrMap.getFunctionId(sled.Function);
 
     // Process each function ID only once
@@ -152,17 +151,14 @@ XRayFunctionMap loadXRayIDs(std::string& objectFile) XRAY_NEVER_INSTRUMENT {
     auto name = conversionHelper.getSymbol(*fid);
     auto demangledName = llvm::demangle(name);
 
-    xrayIdMap[*fid] = {*fid, name, demangledName,  sled.Function};
-
+    xrayIdMap[*fid] = {*fid, name, demangledName, sled.Function};
   }
 
   return xrayIdMap;
-
 }
 
 // Stored behind a pointer to avoid initialization order problems.
 capi::GlobalCaPIData* globalCaPIData;
-
 
 extern void handleXRayEvent(int32_t id, XRayEntryType type);
 
@@ -183,13 +179,12 @@ std::vector<std::string> splitArgs(const std::string& input) {
 }
 
 cxxopts::ParseResult parseOptions() {
-
   std::vector<std::string> args;
   const char* env = std::getenv("CAPI_OPTIONS");
   if (env && !std::string(env).empty()) {
     args = splitArgs(env);
   }
-  args.insert(args.begin(), "capi-runtime"); // argv[0] dummy
+  args.insert(args.begin(), "capi-runtime");  // argv[0] dummy
 
   std::vector<const char*> argv;
   argv.reserve(args.size());
@@ -199,23 +194,16 @@ cxxopts::ParseResult parseOptions() {
 
   cxxopts::Options options("capi-options", "CaPI runtime common options");
 
-
-  options.add_options()
-      ("enable", "Enable instrumentation",
-       cxxopts::value<bool>()->default_value("false"))
-      ("log-calls", "Log instrumented calls",
-       cxxopts::value<bool>()->default_value("false"))
-      ("ignore-indirect-calls", "Disable indirect call handling",
-       cxxopts::value<bool>()->default_value("false"))
-      ("config", "Measurement configuration file",
-       cxxopts::value<std::string>()->default_value(""))
-      ("filter-file", "Filter file (deprecated, use --config instead)",
-       cxxopts::value<std::string>()->default_value(""));
+  options.add_options()("enable", "Enable instrumentation", cxxopts::value<bool>()->default_value("false"))(
+      "log-calls", "Log instrumented calls", cxxopts::value<bool>()->default_value("false"))(
+      "ignore-indirect-calls", "Disable indirect call handling", cxxopts::value<bool>()->default_value("false"))(
+      "config", "Measurement configuration file", cxxopts::value<std::string>()->default_value(""))(
+      "filter-file", "Filter file (deprecated, use --config instead)",
+      cxxopts::value<std::string>()->default_value(""));
 
   capi::registerExtraOptions(options);
   auto result = options.parse(static_cast<int>(args.size()), argv.data());
   return result;
-
 }
 
 struct PatchingStats {
@@ -238,9 +226,8 @@ static std::string detectObject(int objId, MappedSymTableMap& symTables) {
   return objName;
 }
 
-
-static PatchingStats patchObject(int objId, const XRayFunctionMap& localMap, XRayFunctionMap& globalMap, FunctionFilter* filter, Timer* patchTimer) {
-
+static PatchingStats patchObject(int objId, const XRayFunctionMap& localMap, XRayFunctionMap& globalMap,
+                                 FunctionFilter* filter, Timer* patchTimer) {
   size_t maxFID = __xray_max_function_id_in_object(objId);
   if (maxFID == 0) {
     logError() << "Detected no XRay sleds - no functions instrumented.\n";
@@ -297,9 +284,8 @@ static PatchingStats patchObject(int objId, const XRayFunctionMap& localMap, XRa
   return stats;
 }
 
-
-static PatchingStats loadIdsAndPatchObject(int objId, std::string objName, XRayFunctionMap& globalMap, FunctionFilter* filter, Timer* idLoadTimer, Timer* patchTimer) {
-
+static PatchingStats loadIdsAndPatchObject(int objId, std::string objName, XRayFunctionMap& globalMap,
+                                           FunctionFilter* filter, Timer* idLoadTimer, Timer* patchTimer) {
   if (idLoadTimer)
     idLoadTimer->resume();
   auto funcInfoMap = loadXRayIDs(objName);
@@ -308,20 +294,17 @@ static PatchingStats loadIdsAndPatchObject(int objId, std::string objName, XRayF
 
   size_t maxFID = __xray_max_function_id_in_object(objId);
 
-  logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")" << std::endl;
+  logInfo() << "Detected " << maxFID << " patchable functions in object " << objId << " (" << objName << ")"
+            << std::endl;
 
   return patchObject(objId, funcInfoMap, globalMap, filter, patchTimer);
 }
 
-
 void initXRay() XRAY_NEVER_INSTRUMENT {
-
-    bool expected = false;
-    if (!runtimeInitialized.compare_exchange_strong(
-            expected, true,
-            std::memory_order_acq_rel)) {
-        return;
-    }
+  bool expected = false;
+  if (!runtimeInitialized.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+    return;
+  }
 
   logInfo() << "Running with DynCaPI Version " << CAPI_VERSION_MAJOR << "." << CAPI_VERSION_MINOR << std::endl;
   logInfo() << "Git revision: " << CAPI_GIT_SHA1 << std::endl;
@@ -371,9 +354,9 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     logInfo() << "No CaPI filtering file specified.\n";
   }
 
-
   if (!shouldInit) {
-    logInfo() << "CaPI is inactive. Set '--config <config_file>' or '--enable' in 'CAPI_OPTIONS' if you want to activate instrumentation.\n";
+    logInfo() << "CaPI is inactive. Set '--config <config_file>' or '--enable' in 'CAPI_OPTIONS' if you want to "
+                 "activate instrumentation.\n";
     return;
   }
 
@@ -391,7 +374,7 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   std::unordered_set<uintptr_t> filteredOut;
 
   size_t numObjects = __xray_num_objects();
-  numObjects = std::min(__xray_num_objects(), 255ul); // FIXME: Workaround for bug in XRay
+  numObjects = std::min(__xray_num_objects(), 255ul);  // FIXME: Workaround for bug in XRay
 
   numInitialObjects = numObjects;
 
@@ -432,23 +415,23 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
     logInfo() << "Call logging is active\n";
     globalCaPIData->logger = std::make_unique<CallLogger>(execFilename);
   }
-    auto mainGraph = extractMainGraph();
-    if (!mainGraph) {
-        logWarn() << "Could not load embedded graph - running without runtime graph\n";
-    }
+  auto mainGraph = extractMainGraph();
+  if (!mainGraph) {
+    logWarn() << "Could not load embedded graph - running without runtime graph\n";
+  }
 
-    // Load and merge DSO call graphs
-    if (mainGraph && capi::graphsToMerge) {
-        for (auto rawCg : *graphsToMerge) {
-            if (rawCg) {
-                auto dsoCg = capi::loadGraphFromStr(rawCg);
-                if (dsoCg) {
-                    mainGraph->merge(*dsoCg, cage::DynamicLinkagePolicy{});
-                }
-            }
+  // Load and merge DSO call graphs
+  if (mainGraph && capi::graphsToMerge) {
+    for (auto rawCg : *graphsToMerge) {
+      if (rawCg) {
+        auto dsoCg = capi::loadGraphFromStr(rawCg);
+        if (dsoCg) {
+          mainGraph->merge(*dsoCg, cage::DynamicLinkagePolicy{});
         }
+      }
     }
-    globalCaPIData->runtimeGraph = std::make_unique<RuntimeGraph>(std::move(mainGraph));
+  }
+  globalCaPIData->runtimeGraph = std::make_unique<RuntimeGraph>(std::move(mainGraph));
 
   logInfo() << "Functions found: " << fullStats.numFound << "\n";
   logInfo() << "Functions patched: " << fullStats.numPatched << " (" << fullStats.numFailed << " failed)\n";
@@ -458,7 +441,6 @@ void initXRay() XRAY_NEVER_INSTRUMENT {
   postXRayInit();
 }
 
-
 void finalizeXRay() XRAY_NEVER_INSTRUMENT {
   runtimeActive.store(false, std::memory_order_release);
   preXRayFinalize();
@@ -466,131 +448,140 @@ void finalizeXRay() XRAY_NEVER_INSTRUMENT {
   globalCaPIData = nullptr;
 }
 
-}
+}  // namespace capi
 
-extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_t firstFunctionAddr, const char* rawCg) XRAY_NEVER_INSTRUMENT {
-
+extern "C" __attribute__((visibility("default"))) void capi_register_dso(uint64_t firstFunctionAddr,
+                                                                         const char* rawCg) XRAY_NEVER_INSTRUMENT {
   if (!capi::runtimeActive.load(std::memory_order_acquire)) {
-      // Store for loading during init
-      if (!capi::graphsToMerge) {
-          // Need pointer here to avoid static initialization order fiasco
-          capi::graphsToMerge = new std::vector<const char*>();
-      }
-      capi::graphsToMerge->push_back(rawCg);
-      capi::logInfo() << "Registered DSO! Graph stored for merging during init...\n";
-      return;
+    // Store for loading during init
+    if (!capi::graphsToMerge) {
+      // Need pointer here to avoid static initialization order fiasco
+      capi::graphsToMerge = new std::vector<const char*>();
+    }
+    capi::graphsToMerge->push_back(rawCg);
+    capi::logInfo() << "Registered DSO! Graph stored for merging during init...\n";
+    return;
   }
-
 
   // Patching only libraries that are loaded *after* the initial setup.
   // TODO: Should they also be merged into the runtime graph for validation? Probably not?
 
-  size_t numObjects = std::min(__xray_num_objects(), 255ul); // FIXME: Workaround for bug in XRay
+  size_t numObjects = std::min(__xray_num_objects(), 255ul);  // FIXME: Workaround for bug in XRay
   for (int objId = capi::numInitialObjects; objId < numObjects; objId++) {
-      if (__xray_max_function_id_in_object(objId) == 0) {
-        continue;
-      }
-//      capi::logInfo() << "First adddress in " << i << " is " << std::hex <<  __xray_function_address_in_object(1, i) << ", target address is " << firstFunctionAddr << std::dec << "\n";
-      if (__xray_function_address_in_object(1, objId) == firstFunctionAddr) {
+    if (__xray_max_function_id_in_object(objId) == 0) {
+      continue;
+    }
+    //      capi::logInfo() << "First adddress in " << i << " is " << std::hex <<  __xray_function_address_in_object(1,
+    //      i) << ", target address is " << firstFunctionAddr << std::dec << "\n";
+    if (__xray_function_address_in_object(1, objId) == firstFunctionAddr) {
+      capi::logInfo() << "Intercepted loading of DSO with ID=" << objId << " with first function at address "
+                      << std::hex << firstFunctionAddr << std::dec << "\n";
 
-        capi::logInfo() << "Intercepted loading of DSO with ID=" << objId << " with first function at address " << std::hex << firstFunctionAddr << std::dec << "\n";
+      struct FindDsoCtx {
+        uintptr_t target;
+        const char* name = nullptr;
+        uintptr_t addr;
+      };
 
-        struct FindDsoCtx {
-          uintptr_t target;
-          const char* name = nullptr;
-          uintptr_t addr;
-        };
+      FindDsoCtx ctx;
+      ctx.target = firstFunctionAddr;
+      dl_iterate_phdr(
+          [](struct dl_phdr_info* info, size_t, void* data) -> int {
+            auto* ctx = static_cast<FindDsoCtx*>(data);
+            for (int i = 0; i < info->dlpi_phnum; ++i) {
+              const ElfW(Phdr) & ph = info->dlpi_phdr[i];
 
-        FindDsoCtx ctx;
-        ctx.target = firstFunctionAddr;
-        dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* data) -> int {
-          auto* ctx = static_cast<FindDsoCtx*>(data);
-          for (int i = 0; i < info->dlpi_phnum; ++i) {
-            const ElfW(Phdr)& ph = info->dlpi_phdr[i];
+              if (ph.p_type != PT_LOAD)
+                continue;
 
-            if (ph.p_type != PT_LOAD)
-              continue;
+              uintptr_t start = info->dlpi_addr + ph.p_vaddr;
+              uintptr_t end = start + ph.p_memsz;
 
-            uintptr_t start = info->dlpi_addr + ph.p_vaddr;
-            uintptr_t end   = start + ph.p_memsz;
+              // capi::logInfo() << "Checking segment: start=" << std::hex << start << ", end=" << end << std::dec <<
+              // "\n";
 
-            //capi::logInfo() << "Checking segment: start=" << std::hex << start << ", end=" << end << std::dec << "\n";
-
-            if (ctx->target >= start && ctx->target < end) {
-              ctx->name = info->dlpi_name && info->dlpi_name[0]
-                                ? info->dlpi_name
-                                : "<main executable>";
-              ctx->addr = start;
-              return 1; // stop iteration
+              if (ctx->target >= start && ctx->target < end) {
+                ctx->name = info->dlpi_name && info->dlpi_name[0] ? info->dlpi_name : "<main executable>";
+                ctx->addr = start;
+                return 1;  // stop iteration
+              }
             }
-          }
-//          capi::logInfo() << "Detected loading of DSO " << (info->dlpi_name[0] ? info->dlpi_name : "unknown" ) << " at address "
-//                                      << std::hex << (void*)info->dlpi_addr << std::dec << "\n";
-          return 0;
-        }, &ctx);
+            //          capi::logInfo() << "Detected loading of DSO " << (info->dlpi_name[0] ? info->dlpi_name :
+            //          "unknown" ) << " at address "
+            //                                      << std::hex << (void*)info->dlpi_addr << std::dec << "\n";
+            return 0;
+          },
+          &ctx);
 
-        if (!ctx.name) {
-          capi::logError() << "Could not detect corresponding object file!\n";
-          return;
-        }
-
-        capi::logInfo() << "Loading symbols and patching DSO " << ctx.name << "\n";
-
-        auto symTable = loadSymbolTable(ctx.name);
-        if (!symTable.empty()) {
-            // FIXME: Adress mapping is not correct
-            MappedSymTable mappedTable(std::move(symTable), MemMapEntry(ctx.name, ctx.addr, 0));
-            capi::globalCaPIData->symTables[ctx.addr] = std::move(mappedTable);
-        }
-
-        auto& xrayMap = capi::globalCaPIData->xrayFuncMap;
-        auto& filter = capi::globalCaPIData->filter;
-
-        // TODO: Reenable patching of loaded objects
-        //auto objectStats = loadIdsAndPatchObject(objId, ctx.name, xrayMap, filter.get(), nullptr, nullptr);
-        //__xray_patch_object(objId);
+      if (!ctx.name) {
+        capi::logError() << "Could not detect corresponding object file!\n";
+        return;
       }
 
-  }
+      capi::logInfo() << "Loading symbols and patching DSO " << ctx.name << "\n";
 
+      auto symTable = loadSymbolTable(ctx.name);
+      if (!symTable.empty()) {
+        // FIXME: Adress mapping is not correct
+        MappedSymTable mappedTable(std::move(symTable), MemMapEntry(ctx.name, ctx.addr, 0));
+        capi::globalCaPIData->symTables[ctx.addr] = std::move(mappedTable);
+      }
+
+      auto& xrayMap = capi::globalCaPIData->xrayFuncMap;
+      auto& filter = capi::globalCaPIData->filter;
+
+      // TODO: Reenable patching of loaded objects
+      // auto objectStats = loadIdsAndPatchObject(objId, ctx.name, xrayMap, filter.get(), nullptr, nullptr);
+      //__xray_patch_object(objId);
+    }
+  }
 }
 
 static std::mutex rtGraphMutex;
 
 extern "C" void __metacg_indirect_call(const char* name, void* address) XRAY_NEVER_INSTRUMENT {
-    if (!capi::runtimeActive.load(std::memory_order_acquire) || !capi::globalCaPIData) {
-        // CaPI was not initialized or is finalized
-        return;
-    }
-    if (capi::ignoreIndirect) {
-        return;
-    }
+  if (!capi::runtimeActive.load(std::memory_order_acquire) || !capi::globalCaPIData) {
+    // CaPI was not initialized or is finalized
+    return;
+  }
+  if (capi::ignoreIndirect) {
+    return;
+  }
 
-    std::lock_guard<std::mutex> lock(rtGraphMutex);
+  // Thread-local fast path
+  thread_local std::unordered_map<const char*, std::unordered_set<void*>> tlVisitedMap;
+  auto& tlKnownCalls = tlVisitedMap[name];
+  if (tlKnownCalls.find(address) != tlKnownCalls.end()) {
+    // This thread has already seen this edge
+    return;
+  }
+  tlKnownCalls.insert(address);
 
-    static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
+  std::lock_guard<std::mutex> lock(rtGraphMutex);
 
-    auto& knownCalls = visitedMap[name];
-    if (knownCalls.find(address) != knownCalls.end()) {
-        // We have seen this edge before
-        return;
-    }
-    knownCalls.insert(address);
+  static std::unordered_map<const char*, std::unordered_set<void*>> visitedMap;
 
-    const std::string& symbol = findSymbol(reinterpret_cast<std::uintptr_t>(address), capi::globalCaPIData->symTables);
-    if (symbol.empty()) {
-        capi::logError() << "Could not resolve symbol for call to address " << std::hex << reinterpret_cast<std::uintptr_t>(address) << std::dec << " from " << name << "\n";
-        return;
-    }
-    capi::globalCaPIData->runtimeGraph->recordIndirectCall(name, symbol);
+  auto& knownCalls = visitedMap[name];
+  if (knownCalls.find(address) != knownCalls.end()) {
+    // We have seen this edge before
+    return;
+  }
+  knownCalls.insert(address);
 
+  const std::string& symbol = findSymbol(reinterpret_cast<std::uintptr_t>(address), capi::globalCaPIData->symTables);
+  if (symbol.empty()) {
+    capi::logError() << "Could not resolve symbol for call to address " << std::hex
+                     << reinterpret_cast<std::uintptr_t>(address) << std::dec << " from " << name << "\n";
+    return;
+  }
+  capi::globalCaPIData->runtimeGraph->recordIndirectCall(name, symbol);
 }
 
 namespace {
-  struct InitXRay {
-    InitXRay() XRAY_NEVER_INSTRUMENT { capi::initXRay(); }
-    ~InitXRay() XRAY_NEVER_INSTRUMENT { capi::finalizeXRay(); }
-  };
+struct InitXRay {
+  InitXRay() XRAY_NEVER_INSTRUMENT { capi::initXRay(); }
+  ~InitXRay() XRAY_NEVER_INSTRUMENT { capi::finalizeXRay(); }
+};
 
-  InitXRay _;
-}
+InitXRay _;
+}  // namespace
