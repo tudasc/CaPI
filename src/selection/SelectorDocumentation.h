@@ -17,7 +17,7 @@ inline const auto& getAllSelectorDocs() {
                      capi::SelectorType::DEFAULT,
                      (std::vector<std::string>{"regex string"}),
                      (std::vector<std::string>{"string"}),
-                     "byPath(\"foo/.*\")",
+                     "by_path(\"foo/.*\")",
                      "Selects functions contained in directory \"foo\".","1"),
         SELECTOR_DOC(inline_specified,
                      capi::SelectorType::DEFAULT,
