@@ -1,5 +1,7 @@
 #include "capi/selection/DriverUtils.h"
-#include <vector>
+#include <iostream>
+#include <string>
+#include <nlohmann/json.hpp>
 
 namespace capi {
 LogLevel verbosity{static_cast<LogLevel>(0)};
@@ -39,7 +41,7 @@ void generateTableMD() {
   std::cout << "|------|------------|-----------------|---------|-------------|\n";
   for (const auto& doc : default_selectors) {
     std::cout << "|" << doc["name"].get<std::string>() << "|" << joinJsonArray(doc["parameterLabels"]) << "|"
-              << doc["numInputs"].get<std::string>() << "|" << doc["examples"].get<std::string>() << "|"
+              << doc["numInputs"].get<std::string>() << "|" << "`" << doc["examples"].get<std::string>() <<  "`" << "|"
               << doc["explanation"].get<std::string>() << "|\n";
   }
 
@@ -49,7 +51,7 @@ void generateTableMD() {
   std::cout << "|------|------------|-----------------|---------|-------------|\n";
   for (const auto& doc : talp_selectors) {
     std::cout << "|" << doc["name"].get<std::string>() << "|" << joinJsonArray(doc["parameterLabels"]) << "|"
-              << doc["numInputs"].get<std::string>() << "|" << doc["examples"].get<std::string>() << "|"
+              << doc["numInputs"].get<std::string>() << "|" << "`" << doc["examples"].get<std::string>() << "`" << "|"
               << doc["explanation"].get<std::string>() << "|\n";
   }
 }
